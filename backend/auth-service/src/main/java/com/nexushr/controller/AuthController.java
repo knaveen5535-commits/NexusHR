@@ -1,5 +1,6 @@
 package com.nexushr.controller;
 
+import com.nexushr.dto.LoginRequest;
 import com.nexushr.dto.RegisterRequest;
 import com.nexushr.service.AuthService;
 import jakarta.validation.Valid;
@@ -18,5 +19,10 @@ public class AuthController {
     @PostMapping("/register")
     public String register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/login")
+    public String login(@Valid @RequestBody LoginRequest request) {
+        return authService.login(request);
     }
 }
