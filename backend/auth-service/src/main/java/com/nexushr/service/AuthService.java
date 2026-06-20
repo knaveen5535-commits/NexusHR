@@ -8,7 +8,7 @@ import com.nexushr.exception.EmailAlreadyExistsException;
 import com.nexushr.exception.InvalidCredentialsException;
 import com.nexushr.exception.UserNotFoundException;
 import com.nexushr.repository.UserRepository;
-import com.nexushr.security.JwtService;
+import com.nexushr.service.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

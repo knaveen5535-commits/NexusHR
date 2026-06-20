@@ -1,5 +1,6 @@
 package com.nexushr.security;
 
+import com.nexushr.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,9 +17,9 @@ import java.io.IOException;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    private final com.nexushr.security.JwtService jwtService;
+    private final JwtService jwtService;
 
-    public JwtFilter(com.nexushr.security.JwtService jwtService) {
+    public JwtFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
 
