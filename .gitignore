@@ -26,8 +26,7 @@ logs/
 .env
 .env.*
 
-application-local.properties
-application-*.properties
+**/application-local.properties
 
 application-local.yml
 application-*.yml
