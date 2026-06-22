@@ -1,5 +1,6 @@
 package com.nexushr.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class JwtService {
                 .compact();
     }
 
+    /*
     public String extractEmail(String token) {
 
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
@@ -48,5 +50,18 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("role", String.class);
+    }
+
+     */
+
+    public Claims extractClaims(String token){
+
+        SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

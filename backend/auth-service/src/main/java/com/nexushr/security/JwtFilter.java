@@ -1,6 +1,7 @@
 package com.nexushr.security;
 
 import com.nexushr.service.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,9 +39,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
+        Claims claims = jwtService.extractClaims(token);
+
+        String email = claims.getSubject();
+        String role = claims.get("role", String.class);
+        /*
         String email = jwtService.extractEmail(token);
         String role = jwtService.extractRole(token);
-
+         */
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         email,
