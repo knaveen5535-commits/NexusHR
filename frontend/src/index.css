@@ -174,3 +174,13 @@
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* ── Login page floating shapes ── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+  50%       { transform: translateY(-18px) rotate(6deg); opacity: 0.85; }
+}
+
+.animate-float {
+  animation: float-y 7s ease-in-out infinite;
+}
