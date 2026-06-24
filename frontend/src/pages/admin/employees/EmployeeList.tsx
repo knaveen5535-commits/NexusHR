@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
   MoreHorizontal, Mail, Phone, Calendar, CheckSquare,
-  Square, UserPlus, ArrowUpDown, X,
+  Square, UserPlus, ArrowUpDown, X, Edit2, Trash2, Shield,
+  Building, UserCheck, PowerOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
 import type { Employee } from '../../../types';
 import { useRole } from '../../../hooks/useRole';
+import { useTheme } from '../../../hooks/useTheme';
 
 const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
   id: `${i + 1}`,
@@ -130,11 +132,55 @@ export default function EmployeeList() {
 
 
 
+  const { isDark } = useTheme();
+
+  // Modal States
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingEmp, setEditingEmp] = useState<any>(null);
+  const [assigningDept, setAssigningDept] = useState<any>(null);
+  const [assigningMgr, setAssigningMgr] = useState<any>(null);
+  const [togglingStatus, setTogglingStatus] = useState<any>(null);
+  const [deletingEmp, setDeletingEmp] = useState<any>(null);
+
+  const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={`relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl shadow-2xl border ${
+              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+            }`}
+          >
+            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+              <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h2>
+              <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-500'}`}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
-    <div className="p-4 sm:p-8 space-y-6">
+    <div className={`p-4 sm:p-8 space-y-6 min-h-full transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white">Employees</h1>
-        <p className="text-zinc-400 text-sm mt-1">{role === 'admin' ? 'Manage all employees across the organization' : 'View and manage employee information'}</p>
+        <h1 className={`text-3xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Employee Management</h1>
+        <p className={`mt-2 text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Manage your workforce, update profiles, and assign roles.</p>
       </motion.div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -146,15 +192,17 @@ export default function EmployeeList() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search name, email, department..."
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-950/50 pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+              className={`w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
+                isDark ? 'border-zinc-800 bg-zinc-950/50 text-white placeholder-zinc-500 focus:ring-blue-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:ring-blue-500 shadow-sm'
+              }`}
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2.5 rounded-lg border transition-colors ${
+            className={`p-2.5 rounded-xl border transition-colors ${
               showFilters || filters.department || filters.status
-                ? 'bg-blue-600/10 border-blue-500/30 text-blue-400'
-                : 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? isDark ? 'bg-blue-600/10 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'
+                : isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800' : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
             }`}
           >
             <Filter className="h-4 w-4" />
@@ -163,17 +211,17 @@ export default function EmployeeList() {
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {selected.size > 0 && (
-            <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/30 rounded-lg px-3 py-1.5">
-              <span className="text-sm text-blue-400 font-medium">{selected.size} selected</span>
-              <button onClick={() => setSelected(new Set())} className="text-blue-400 hover:text-blue-300">
+            <div className={`flex items-center gap-2 border rounded-xl px-3 py-2 ${isDark ? 'bg-blue-600/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+              <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{selected.size} selected</span>
+              <button onClick={() => setSelected(new Set())} className={`${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
                 <X className="h-4 w-4" />
               </button>
             </div>
           )}
-          <button onClick={() => exportCSV(filtered)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 text-sm font-medium transition-colors">
+          <button onClick={() => exportCSV(filtered)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-colors ${isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800' : 'border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
             <Download className="h-4 w-4" /> Export
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-all shadow-lg shadow-blue-600/20">
+          <button onClick={() => setIsAddOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg ${isDark ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
             <UserPlus className="h-4 w-4" /> Add Employee
           </button>
         </div>
@@ -225,11 +273,11 @@ export default function EmployeeList() {
         )}
       </AnimatePresence>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl overflow-hidden">
+      <div className={`rounded-3xl border overflow-hidden transition-all ${isDark ? 'border-white/5 bg-zinc-900/40 backdrop-blur-xl' : 'border-slate-200 bg-white/60 backdrop-blur-xl shadow-md'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 bg-zinc-800/30">
+              <tr className={`border-b ${isDark ? 'border-zinc-800 bg-zinc-800/30' : 'border-slate-200 bg-slate-50'}`}>
                 <th className="px-4 py-3 w-10">
                   <button onClick={toggleSelectAll} className="text-zinc-400 hover:text-white">
                     {selected.size === paginated.length && paginated.length > 0
@@ -267,17 +315,17 @@ export default function EmployeeList() {
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-slate-200'}`}>
               {paginated.map((emp, i) => (
                 <motion.tr
                   key={emp.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="hover:bg-zinc-800/20 transition-colors group"
+                  className={`group transition-colors ${isDark ? 'hover:bg-zinc-800/20' : 'hover:bg-slate-50'}`}
                 >
                   <td className="px-4 py-3">
-                    <button onClick={() => toggleSelect(emp.id)} className="text-zinc-400 hover:text-white">
+                    <button onClick={() => toggleSelect(emp.id)} className={`${isDark ? 'text-zinc-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
                       {selected.has(emp.id)
                         ? <CheckSquare className="h-4 w-4 text-blue-400" />
                         : <Square className="h-4 w-4" />
@@ -286,16 +334,16 @@ export default function EmployeeList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                        <span className="text-sm font-semibold text-blue-400">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+                        <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
                           {emp.firstName[0]}{emp.lastName[0]}
                         </span>
                       </div>
                       <div>
-                        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">
+                        <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>
                           {emp.firstName} {emp.lastName}
                         </p>
-                        <p className="text-xs text-zinc-500">{emp.employeeId}</p>
+                        <p className={`text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{emp.employeeId}</p>
                       </div>
                     </div>
                   </td>
@@ -331,9 +379,23 @@ export default function EmployeeList() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <button className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                      <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setAssigningDept(emp)} title="Assign Department" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
+                        <Building className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setAssigningMgr(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
+                        <UserCheck className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setTogglingStatus(emp)} title="Activate/Deactivate" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400' : 'hover:bg-amber-50 text-slate-500 hover:text-amber-600'}`}>
+                        <PowerOff className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </motion.tr>
               ))}
@@ -391,6 +453,85 @@ export default function EmployeeList() {
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <ModalWrapper isOpen={isAddOpen || !!editingEmp} onClose={() => { setIsAddOpen(false); setEditingEmp(null); }} title={editingEmp ? 'Edit Employee' : 'Add New Employee'}>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 sm:col-span-1">
+            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>First Name</label>
+            <input type="text" defaultValue={editingEmp?.firstName || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Last Name</label>
+            <input type="text" defaultValue={editingEmp?.lastName || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
+          </div>
+          <div className="col-span-2">
+            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Email Address</label>
+            <input type="email" defaultValue={editingEmp?.email || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
+          </div>
+          <button onClick={() => { setIsAddOpen(false); setEditingEmp(null); }} className={`col-span-2 mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
+            Save Employee
+          </button>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!assigningDept} onClose={() => setAssigningDept(null)} title="Assign Department">
+        <div>
+          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Department for {assigningDept?.firstName}</label>
+          <select className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
+          </select>
+          <button onClick={() => setAssigningDept(null)} className={`w-full mt-6 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-600 hover:bg-purple-700'}`}>
+            Confirm Assignment
+          </button>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!assigningMgr} onClose={() => setAssigningMgr(null)} title="Assign Manager">
+        <div>
+          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Manager for {assigningMgr?.firstName}</label>
+          <select className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <option>John Doe</option>
+            <option>Sarah Smith</option>
+          </select>
+          <button onClick={() => setAssigningMgr(null)} className={`w-full mt-6 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
+            Confirm Manager
+          </button>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!togglingStatus} onClose={() => setTogglingStatus(null)} title="Change Status">
+        <div>
+          <p className={`text-sm mb-4 ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
+            Are you sure you want to change the status of <strong>{togglingStatus?.firstName} {togglingStatus?.lastName}</strong>?
+          </p>
+          <div className="flex gap-3">
+            <button onClick={() => setTogglingStatus(null)} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${isDark ? 'border-zinc-800 text-zinc-300 hover:bg-zinc-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+              Cancel
+            </button>
+            <button onClick={() => setTogglingStatus(null)} className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-600 hover:bg-amber-700'}`}>
+              Yes, Toggle Status
+            </button>
+          </div>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!deletingEmp} onClose={() => setDeletingEmp(null)} title="Delete Employee">
+        <div>
+          <p className={`text-sm mb-4 ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
+            Are you sure you want to delete <strong>{deletingEmp?.firstName} {deletingEmp?.lastName}</strong>? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={() => setDeletingEmp(null)} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${isDark ? 'border-zinc-800 text-zinc-300 hover:bg-zinc-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+              Cancel
+            </button>
+            <button onClick={() => setDeletingEmp(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/20">
+              Delete Employee
+            </button>
+          </div>
+        </div>
+      </ModalWrapper>
+
     </div>
   );
 }

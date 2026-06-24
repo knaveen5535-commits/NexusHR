@@ -2,25 +2,23 @@ import type { NavItem } from '../types';
 
 export const adminNav: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: 'LayoutDashboard' },
-  { name: 'Employees', href: '/admin/employees', icon: 'Users', permissions: ['manage:employees'] },
-  { name: 'HR Managers', href: '/admin/hr-managers', icon: 'UserCheck', permissions: ['manage:hrs'] },
-  { name: 'Managers', href: '/admin/managers', icon: 'UserCog', permissions: ['manage:managers'] },
+  { name: 'Employee Management', href: '/admin/employees', icon: 'Users', permissions: ['manage:employees'] },
+  { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
+  { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
   {
-    name: 'Analytics',
-    href: '/admin/analytics',
-    icon: 'BarChart3',
+    name: 'Reports',
+    href: '/admin/reports',
+    icon: 'FileText',
     permissions: ['view:analytics'],
     children: [
-      { name: 'Attendance', href: '/admin/analytics/attendance', icon: 'CalendarCheck' },
-      { name: 'Payroll', href: '/admin/analytics/payroll', icon: 'DollarSign' },
-      { name: 'Performance', href: '/admin/analytics/performance', icon: 'TrendingUp' },
+      { name: 'Employee Report', href: '/admin/reports/employees', icon: 'Users' },
+      { name: 'Payroll Report', href: '/admin/reports/payroll', icon: 'DollarSign' },
+      { name: 'Attendance Report', href: '/admin/reports/attendance', icon: 'CalendarCheck' },
+      { name: 'Performance Report', href: '/admin/reports/performance', icon: 'TrendingUp' },
+      { name: 'AI Insights', href: '/admin/reports/ai', icon: 'Brain', badge: 'AI' },
     ],
   },
-  { name: 'Attendance', href: '/admin/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
-  { name: 'Payroll', href: '/admin/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
-  { name: 'AI Insights', href: '/admin/ai-insights', icon: 'Sparkles', permissions: ['access:ai-insights'], badge: 'AI' },
-  { name: 'Audit Logs', href: '/admin/audit-logs', icon: 'ScrollText', permissions: ['view:audit-logs'] },
-  { name: 'Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
+  { name: 'System Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
 ];
 
 export const hrNav: NavItem[] = [

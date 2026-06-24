@@ -12,6 +12,12 @@ import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
 import ProtectedRoute from './components/guards/ProtectedRoute';
 
+// New Admin Pages
+import DepartmentManagement from './pages/admin/departments/DepartmentManagement';
+import RoleManagement from './pages/admin/roles/RoleManagement';
+import Reports from './pages/admin/reports/Reports';
+import SystemSettings from './pages/admin/settings/SystemSettings';
+
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -41,6 +47,10 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="departments" element={<DepartmentManagement />} />
+            <Route path="roles" element={<RoleManagement />} />
+            <Route path="reports/*" element={<Reports />} />
+            <Route path="settings" element={<SystemSettings />} />
             <Route path="ai-insights" element={<AiAssistant />} />
           </Route>
 
