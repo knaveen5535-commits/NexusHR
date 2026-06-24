@@ -9,30 +9,9 @@ const DEMO_USERS = [
 ];
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: (() => {
-    try {
-      return localStorage.getItem('token');
-    } catch {
-      return null;
-    }
-  })(),
-  user: (() => {
-    try {
-      const item = localStorage.getItem('user');
-      return item && item !== 'undefined' ? JSON.parse(item) : null;
-    } catch {
-      return null;
-    }
-  })(),
-  isAuthenticated: (() => {
-    try {
-      const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
-      return !!token && !!user && user !== 'undefined';
-    } catch {
-      return false;
-    }
-  })(),
+  token: null,
+  user: null,
+  isAuthenticated: false,
   setAuth: (token, user) => {
     try {
       localStorage.setItem('token', token);
