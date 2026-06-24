@@ -1,4 +1,6 @@
+# =========================
 # Logs
+# =========================
 logs
 *.log
 npm-debug.log*
@@ -7,18 +9,54 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# =========================
+# Node / Frontend Build
+# =========================
+node_modules/
+dist/
+dist-ssr/
+coverage/
 *.local
 
-# Editor directories and files
+# DO NOT IGNORE package-lock.json if using npm
+# package-lock.json   ← REMOVE THIS
+# yarn.lock           ← REMOVE unless using yarn
+# pnpm-lock.yaml      ← REMOVE unless using pnpm
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+
+# =========================
+# IntelliJ IDEA
+# =========================
+.idea/
+*.iml
+
+# =========================
+# VS Code
+# =========================
 .vscode/*
 !.vscode/extensions.json
-.idea
+
+# =========================
+# TypeScript / Vite
+# =========================
+*.tsbuildinfo
+vite.svg
+
+# =========================
+# OS Files
+# =========================
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+
+# =========================
+# Temporary
+# =========================
+*.tmp
+*.temp
+*.swp
+*.swo

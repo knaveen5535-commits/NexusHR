@@ -1,19 +1,49 @@
 # IntelliJ
 .idea/
 *.iml
+out/
 
-# Java / Maven
+# =========================
+# Java / Spring Boot / Maven
+# =========================
 target/
+build/
 *.class
 *.jar
+*.war
 
+# =========================
 # Logs
+# =========================
+logs/
 *.log
 
-# Environment files
+# =========================
+# Environment / Secrets
+# =========================
 .env
-application-local.yml
+.env.*
 
+**/application-local.properties
+
+application-local.yml
+application-*.yml
+
+# =========================
 # OS files
+# =========================
 .DS_Store
 Thumbs.db
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# =========================
+# Keep Maven wrapper (if using)
+# =========================
+!.mvn/wrapper/maven-wrapper.jar
