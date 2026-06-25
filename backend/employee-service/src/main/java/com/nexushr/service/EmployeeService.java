@@ -7,6 +7,10 @@ import com.nexushr.entity.Department;
 import com.nexushr.entity.Designation;
 import com.nexushr.entity.Employee;
 import com.nexushr.enums.EmployeeStatus;
+import com.nexushr.exception.DepartmentNotFoundException;
+import com.nexushr.exception.EmailAlreadyExistsException;
+import com.nexushr.exception.DesignationNotFoundException;
+import com.nexushr.exception.EmployeeNotFoundException;
 import com.nexushr.repository.DepartmentRepository;
 import com.nexushr.repository.DesignationRepository;
 import com.nexushr.repository.EmployeeRepository;
@@ -34,12 +38,32 @@ public class EmployeeService {
         Department department =
                 departmentRepository.findById(request.getDepartmentId())
                         .orElseThrow(() ->
-                                new RuntimeException("Department not found"));
+                                new DepartmentNotFoundException("Department not found"));
 
         Designation designation =
                 designationRepository.findById(request.getDesignationId())
                         .orElseThrow(() ->
-                                new RuntimeException("Designation not found"));
+                                new DesignationNotFoundException("Designation not found"));
+
+        Employee manager = null;
+        if (request.getManagerId() != null) {
+
+            manager = employeeRepository.findById(
+                    request.getManagerId()
+            ).orElseThrow(() ->
+                    new EmployeeNotFoundException(
+                            "Manager not found"
+                    )
+            );
+        }
+
+        if (employeeRepository.existsByEmail(
+                request.getEmail())) {
+
+            throw new EmailAlreadyExistsException(
+                    "Email already exists"
+            );
+        }
 
         Employee employee = new Employee();
 
@@ -49,12 +73,20 @@ public class EmployeeService {
         employee.setPhone(request.getPhone());
         employee.setSalary(request.getSalary());
 
-        employee.setEmployeeCode("EMP" + System.currentTimeMillis());
+        long employeeCount = employeeRepository.count() + 1;
+
+        String employeeCode =
+                String.format("EMP%03d", employeeCount);
+
+        employee.setEmployeeCode(employeeCode);
+
+        //employee.setEmployeeCode("EMP" + System.currentTimeMillis());
 
         employee.setStatus(EmployeeStatus.ACTIVE);
 
         employee.setDepartment(department);
         employee.setDesignation(designation);
+        employee.setManager(manager);   // added
 
         Employee savedEmployee = employeeRepository.save(employee);
 
@@ -90,7 +122,7 @@ public class EmployeeService {
 
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Employee not found"));
+                        new EmployeeNotFoundException("Employee not found"));
 
         return new EmployeeResponse(
                 employee.getId(),
@@ -108,7 +140,7 @@ public class EmployeeService {
 
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Employee not found"));
+                        new EmployeeNotFoundException("Employee not found"));
 
         employeeRepository.delete(employee);
 
@@ -121,17 +153,26 @@ public class EmployeeService {
 
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Employee not found"));
+                        new EmployeeNotFoundException("Employee not found"));
 
         Department department =
                 departmentRepository.findById(request.getDepartmentId())
                         .orElseThrow(() ->
-                                new RuntimeException("Department not found"));
+                                new DepartmentNotFoundException("Department not found"));
 
         Designation designation =
                 designationRepository.findById(request.getDesignationId())
                         .orElseThrow(() ->
-                                new RuntimeException("Designation not found"));
+                                new DesignationNotFoundException("Designation not found"));
+
+        if(employeeRepository.existsByEmail(request.getEmail())
+                &&
+                !employee.getEmail().equals(request.getEmail())) {
+
+            throw new EmailAlreadyExistsException(
+                    "Email already exists"
+            );
+        }
 
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());

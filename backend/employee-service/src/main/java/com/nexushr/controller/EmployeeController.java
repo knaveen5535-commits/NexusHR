@@ -4,6 +4,7 @@ import com.nexushr.dto.CreateEmployeeRequest;
 import com.nexushr.dto.EmployeeResponse;
 import com.nexushr.dto.UpdateEmployeeRequest;
 import com.nexushr.service.EmployeeService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<EmployeeResponse> createEmployee(
-            @RequestBody CreateEmployeeRequest request) {
+            @Valid @RequestBody CreateEmployeeRequest request) {
 
         return ResponseEntity.ok(
                 employeeService.createEmployee(request)
@@ -30,6 +31,7 @@ public class EmployeeController {
 
     @GetMapping
     public ResponseEntity<List<EmployeeResponse>> getAllEmployees() {
+
         return ResponseEntity.ok(
                 employeeService.getAllEmployees()
         );
@@ -56,11 +58,10 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<EmployeeResponse> updateEmployee(
             @PathVariable Long id,
-            @RequestBody UpdateEmployeeRequest request) {
+            @Valid @RequestBody UpdateEmployeeRequest request) {
 
         return ResponseEntity.ok(
                 employeeService.updateEmployee(id, request)
         );
     }
-
 }
