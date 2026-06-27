@@ -14,6 +14,8 @@ public class JwtService {
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
+    @Value("${jwt.expiration}")
+    private int TOKEN_EXPIRE;
     public String generateToken(String email, String role) {
 
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
@@ -22,7 +24,7 @@ public class JwtService {
                 .subject(email)
                 .claim("role", role)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 86400000))
+                .expiration(new Date(System.currentTimeMillis() + TOKEN_EXPIRE))
                 .signWith(key)
                 .compact();
     }
