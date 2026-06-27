@@ -26,8 +26,9 @@ import java.util.UUID;
 public class AuthService {
 
     @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
-
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    @Autowired
+    private final EmailService emailService;
 
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
@@ -37,12 +38,16 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        BCryptPasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       AuthenticationManager authenticationManager) {
+                       AuthenticationManager authenticationManager,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       EmailService emailService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder=passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.emailService = emailService;
     }
 
     public String register(RegisterRequest request) {
@@ -117,7 +122,17 @@ public class AuthService {
                 resetToken
         );
 
-        return token;
+        String resetLink =
+                "http://localhost:3000/reset-password?token=" + token;
+
+        emailService.sendEmail(
+                user.getEmail(),
+                "Password Reset Request",
+                "Click the link to reset password: "
+                        + resetLink
+        );
+
+        return "Reset link sent to email";
     }
 
     public String resetPassword(
