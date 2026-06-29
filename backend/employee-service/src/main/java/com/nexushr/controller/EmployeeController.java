@@ -4,6 +4,7 @@ import com.nexushr.dto.CreateEmployeeRequest;
 import com.nexushr.dto.EmployeeResponse;
 import com.nexushr.dto.UpdateEmployeeRequest;
 import com.nexushr.service.EmployeeService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +23,17 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<EmployeeResponse> createEmployee(
-            @Valid @RequestBody CreateEmployeeRequest request) {
+            @Valid @RequestBody CreateEmployeeRequest request,
+            HttpServletRequest httpRequest) {
+
+        String authHeader =
+                httpRequest.getHeader("Authorization");
 
         return ResponseEntity.ok(
-                employeeService.createEmployee(request)
+                employeeService.createEmployee(
+                        request,
+                        authHeader
+                )
         );
     }
 

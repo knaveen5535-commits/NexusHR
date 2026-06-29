@@ -3,6 +3,7 @@ package com.nexushr.service;
 import com.nexushr.dto.LoginRequest;
 import com.nexushr.dto.RegisterRequest;
 import com.nexushr.entity.User;
+import com.nexushr.enums.Role;
 import com.nexushr.enums.Status;
 import com.nexushr.exception.EmailAlreadyExistsException;
 import com.nexushr.exception.InvalidCredentialsException;
@@ -33,7 +34,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
     }
 
-    public String register(RegisterRequest request) {
+    public String createUser(RegisterRequest request) {
 
         if(userRepository.existsByEmail(request.getEmail())){
             throw new EmailAlreadyExistsException("Email already exists");
@@ -47,7 +48,18 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return "User Registered Successfully";
+        return "Admin Registered Successfully";
+    }
+
+
+    public String registerAdmin(RegisterRequest request) {
+
+        if (request.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only ADMIN role allowed");
+        }
+
+        //request.setRole(Role.ADMIN);
+        return createUser(request);
     }
 
     public String login(LoginRequest request) {

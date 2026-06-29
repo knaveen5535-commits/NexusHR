@@ -15,6 +15,8 @@ import com.nexushr.exception.EmployeeNotFoundException;
 import com.nexushr.repository.DepartmentRepository;
 import com.nexushr.repository.DesignationRepository;
 import com.nexushr.repository.EmployeeRepository;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,7 +40,7 @@ public class EmployeeService {
         this.restTemplate=restTemplate;
     }
 
-    public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
+    public EmployeeResponse createEmployee(CreateEmployeeRequest request,String authHeader) {
 
         Department department =
                 departmentRepository.findById(request.getDepartmentId())
@@ -93,12 +95,15 @@ public class EmployeeService {
         employee.setDesignation(designation);
         employee.setManager(manager);   // added
 
-        //String tempPassword = "@123";
 
+        /*
         String tempPassword =
                 UUID.randomUUID()
                         .toString()
                         .substring(0,8);
+         */
+
+        String tempPassword = "Temp@123";
 
         AuthRegisterRequest authRequest =
                 new AuthRegisterRequest();
@@ -115,13 +120,28 @@ public class EmployeeService {
                 request.getRole()
         );
 
+        HttpHeaders headers =
+                new HttpHeaders();
+
+        headers.set(
+                "Authorization",
+                authHeader
+        );
+
+        HttpEntity<AuthRegisterRequest> entity =
+                new HttpEntity<>(
+                        authRequest,
+                        headers
+                );
+
+
         Employee savedEmployee = null;
         try {
 
             String response =
                     restTemplate.postForObject(
-                            "http://localhost:8081/api/auth/register",
-                            authRequest,
+                            "http://localhost:8081/api/auth/create-user",
+                            entity,
                             String.class
                     );
 
