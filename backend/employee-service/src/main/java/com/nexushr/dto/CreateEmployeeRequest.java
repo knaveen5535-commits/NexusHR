@@ -1,5 +1,6 @@
 package com.nexushr.dto;
 
+import com.nexushr.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,4 +38,7 @@ public class CreateEmployeeRequest {
     private Long designationId;
 
     private Long managerId;
+
+    @NotNull(message = "Role required")
+    private Role role;
 }
