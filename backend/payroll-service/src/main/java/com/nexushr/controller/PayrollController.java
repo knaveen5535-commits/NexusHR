@@ -64,4 +64,14 @@ public class PayrollController {
                 "Payroll deleted successfully"
         );
     }
+
+    @PutMapping("/{id}/paid")
+    public ResponseEntity<PayrollResponse>
+    markPayrollAsPaid(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                payrollService.markPayrollAsPaid(id)
+        );
+    }
 }

@@ -49,6 +49,11 @@ public class SecurityConfig {
                                 "/api/payroll/**"
                         ).hasRole("ADMIN")
 
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/payroll/**"
+                        ).hasRole("ADMIN")
+
                         .anyRequest()
                         .authenticated()
                 )

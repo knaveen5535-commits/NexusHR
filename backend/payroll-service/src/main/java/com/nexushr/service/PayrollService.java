@@ -169,4 +169,35 @@ public class PayrollService {
 
         payrollRepository.delete(payroll);
     }
+
+    public PayrollResponse markPayrollAsPaid(
+            Long id) {
+
+        Payroll payroll =
+                payrollRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Payroll not found"
+                                )
+                        );
+
+        payroll.setStatus(
+                PayrollStatus.PAID
+        );
+
+        Payroll updatedPayroll =
+                payrollRepository.save(payroll);
+
+        return new PayrollResponse(
+                updatedPayroll.getId(),
+                updatedPayroll.getEmployeeId(),
+                updatedPayroll.getBaseSalary(),
+                updatedPayroll.getBonus(),
+                updatedPayroll.getDeductions(),
+                updatedPayroll.getNetSalary(),
+                updatedPayroll.getPayDate(),
+                updatedPayroll.getStatus()
+        );
+    }
+
 }
