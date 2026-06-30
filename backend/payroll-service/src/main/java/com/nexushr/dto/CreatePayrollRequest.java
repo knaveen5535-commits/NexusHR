@@ -4,12 +4,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class CreatePayrollRequest {
 
     @NotNull(message = "Employee ID is required")
@@ -21,4 +22,5 @@ public class CreatePayrollRequest {
     private BigDecimal bonus;
 
     private BigDecimal deductions;
+
 }
