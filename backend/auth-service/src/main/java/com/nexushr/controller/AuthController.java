@@ -1,10 +1,8 @@
 package com.nexushr.controller;
 
-import com.nexushr.dto.ForgotPasswordRequest;
-import com.nexushr.dto.LoginRequest;
-import com.nexushr.dto.RegisterRequest;
-import com.nexushr.dto.ResetPasswordRequest;
+import com.nexushr.dto.*;
 import com.nexushr.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -61,6 +59,24 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 authService.forgotPassword(request)
+        );
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        String authHeader =
+                httpRequest.getHeader(
+                        "Authorization"
+                );
+
+        return ResponseEntity.ok(
+                authService.changePassword(
+                        request,
+                        authHeader
+                )
         );
     }
 }

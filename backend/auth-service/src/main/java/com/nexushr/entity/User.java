@@ -31,25 +31,5 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-    }
-
-    @Entity
-    @Table(name = "password_reset_token")
-    @Data
-    public static class PasswordResetToken {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
-
-        private String email;
-
-        @Column(unique = true)
-        private String token;
-
-        private LocalDateTime expiryTime;
-    }
+    private Boolean firstLogin;
 }

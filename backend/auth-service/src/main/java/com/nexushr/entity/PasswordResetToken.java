@@ -21,3 +21,4 @@ public class PasswordResetToken {
 
     private LocalDateTime expiryTime;
 }
+

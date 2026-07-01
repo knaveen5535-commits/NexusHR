@@ -1,9 +1,6 @@
 package com.nexushr.service;
 
-import com.nexushr.dto.ForgotPasswordRequest;
-import com.nexushr.dto.LoginRequest;
-import com.nexushr.dto.RegisterRequest;
-import com.nexushr.dto.ResetPasswordRequest;
+import com.nexushr.dto.*;
 import com.nexushr.entity.PasswordResetToken;
 import com.nexushr.entity.User;
 import com.nexushr.enums.Role;
@@ -14,6 +11,7 @@ import com.nexushr.exception.UserNotFoundException;
 import com.nexushr.repository.PasswordResetTokenRepository;
 import com.nexushr.repository.UserRepository;
 import com.nexushr.service.JwtService;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,7 +61,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
         user.setStatus(Status.ACTIVE);
-
+        user.setFirstLogin(true);
         userRepository.save(user);
 
         return "Admin Registered Successfully";
@@ -187,5 +185,57 @@ public class AuthService {
         tokenRepository.delete(resetToken);
 
         return "Password reset successful";
+    }
+
+    public String changePassword(
+            ChangePasswordRequest request,
+            String authHeader) {
+
+        String token =
+                authHeader.substring(7);
+
+        Claims claims =
+                jwtService.extractClaims(token);
+
+        String email =
+                claims.getSubject();
+
+
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "User not found"
+                                ));
+
+        if (!passwordEncoder.matches(
+                request.getOldPassword(),
+                user.getPassword()
+        )) {
+
+            throw new RuntimeException(
+                    "Old password incorrect"
+            );
+        }
+
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getPassword())) {
+
+            throw new RuntimeException(
+                    "New password cannot be same as old password"
+            );
+        }
+
+        user.setPassword(
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
+
+        user.setFirstLogin(false);
+        userRepository.save(user);
+
+        return "Password changed successfully";
     }
 }
