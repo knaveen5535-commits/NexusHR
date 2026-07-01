@@ -28,8 +28,14 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    private Boolean firstLogin;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    private Boolean firstLogin;
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+    }
 }
