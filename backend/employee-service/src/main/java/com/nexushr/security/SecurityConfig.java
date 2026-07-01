@@ -54,6 +54,11 @@ public class SecurityConfig {
                                 "/api/employees/**"
                         ).hasAnyRole("ADMIN", "HR", "MANAGER")
 
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/employees/manager/**"
+                        ).hasAnyRole("ADMIN","HR","MANAGER")
+
                         .anyRequest()
                         .authenticated()
                 )
