@@ -72,4 +72,14 @@ public class EmployeeController {
                 employeeService.updateEmployee(id, request)
         );
     }
+
+    @GetMapping("/manager/{managerId}/team")
+    public ResponseEntity<List<EmployeeResponse>>
+    getTeamMembers(
+            @PathVariable Long managerId) {
+
+        return ResponseEntity.ok(
+                employeeService.getTeamMembers(managerId)
+        );
+    }
 }

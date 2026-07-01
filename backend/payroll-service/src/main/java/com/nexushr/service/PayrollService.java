@@ -1,6 +1,7 @@
 package com.nexushr.service;
 
 import com.nexushr.dto.CreatePayrollRequest;
+import com.nexushr.dto.EmployeeResponse;
 import com.nexushr.dto.PayrollResponse;
 import com.nexushr.entity.Payroll;
 import com.nexushr.enums.PayrollStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -198,6 +200,51 @@ public class PayrollService {
                 updatedPayroll.getPayDate(),
                 updatedPayroll.getStatus()
         );
+    }
+
+    public List<PayrollResponse> getTeamPayrolls(
+            Long managerId,
+            String authHeader) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", authHeader);
+
+        HttpEntity<String> entity =
+                new HttpEntity<>(headers);
+
+        ResponseEntity<EmployeeResponse[]> response =
+                restTemplate.exchange(
+                        "http://localhost:8082/api/employees/manager/"
+                                + managerId + "/team",
+                        HttpMethod.GET,
+                        entity,
+                        EmployeeResponse[].class
+                );
+
+        List<Long> employeeIds =
+                Arrays.stream(response.getBody())
+                        .map(EmployeeResponse::getId)
+                        .toList();
+
+        List<Payroll> payrolls =
+                payrollRepository.findByEmployeeIdIn(
+                        employeeIds
+                );
+
+        return payrolls.stream()
+                .map(payroll ->
+                        new PayrollResponse(
+                                payroll.getId(),
+                                payroll.getEmployeeId(),
+                                payroll.getBaseSalary(),
+                                payroll.getBonus(),
+                                payroll.getDeductions(),
+                                payroll.getNetSalary(),
+                                payroll.getPayDate(),
+                                payroll.getStatus()
+                        )
+                )
+                .toList();
     }
 
 }

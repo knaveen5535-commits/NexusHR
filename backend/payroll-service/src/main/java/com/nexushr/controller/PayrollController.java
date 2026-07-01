@@ -74,4 +74,21 @@ public class PayrollController {
                 payrollService.markPayrollAsPaid(id)
         );
     }
+
+    @GetMapping("/manager/{managerId}/team")
+    public ResponseEntity<List<PayrollResponse>>
+    getTeamPayrolls(
+            @PathVariable Long managerId,
+            HttpServletRequest request) {
+
+        String authHeader =
+                request.getHeader("Authorization");
+
+        return ResponseEntity.ok(
+                payrollService.getTeamPayrolls(
+                        managerId,
+                        authHeader
+                )
+        );
+    }
 }

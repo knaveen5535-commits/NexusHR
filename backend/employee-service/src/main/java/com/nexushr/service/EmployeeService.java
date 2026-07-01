@@ -268,4 +268,28 @@ public class EmployeeService {
                 updatedEmployee.getStatus()
         );
     }
+
+    public List<EmployeeResponse> getTeamMembers(
+            Long managerId) {
+
+        List<Employee> employees =
+                employeeRepository.findByManagerId(managerId);
+
+        return employees.stream()
+                .map(employee ->
+                        new EmployeeResponse(
+                                employee.getId(),
+                                employee.getEmployeeCode(),
+                                employee.getFirstName(),
+                                employee.getLastName(),
+                                employee.getEmail(),
+                                employee.getDepartment().getDepartmentName(),
+                                employee.getDesignation().getTitle(),
+                                employee.getStatus()
+                        )
+                )
+                .toList();
+    }
+
+
 }
