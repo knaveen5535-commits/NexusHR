@@ -39,7 +39,7 @@ const demoRoles = [
   {
     id: 'employee' as const,
     label: 'Employee',
-    desc: 'SelfHR Mana-service & profile portal',
+    desc: 'Self-service & profile portal',
     Icon: User,
     gradient: 'from-emerald-600 to-emerald-400',
     glow: 'rgba(16,185,129,0.35)',
@@ -127,7 +127,7 @@ export default function Login() {
 
   return (
     <div
-      className={`min-h-screen w-full flex items-center justify-center p-4 overflow-hidden transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}
+      className={`min-h-screen w-full flex items-center justify-center p-4 pt-16 md:pt-4 overflow-hidden transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}
       aria-label="Login page"
     >
       {/* Top right theme toggle */}
@@ -335,230 +335,232 @@ export default function Login() {
         <div className={`flex flex-1 relative transition-colors duration-500 ${isDark ? 'bg-zinc-950/50' : 'bg-slate-50/50'}`}>
 
           {/* Right Panel Content */}
-          <div className="flex-1 flex flex-col justify-center p-8 md:p-12 relative overflow-y-auto">
+          <div className="flex-1 flex flex-col p-8 md:p-12 overflow-y-auto">
             
-            {!selectedRole ? (
-              // ── STATE 1: ROLE SELECTION LIST ──
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-md mx-auto"
-              >
-                <div className="mb-8 text-center md:text-left">
-                  <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Role</h2>
-                  <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Choose your role to continue</p>
-                </div>
-                
-                <div className="space-y-3" role="list">
-                  {demoRoles.map((role) => {
-                    const RoleIcon = role.Icon;
-                    return (
-                      <motion.button
-                        key={role.id}
-                        role="listitem"
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleSelectRole(role.id)}
-                        className={`group relative w-full overflow-hidden rounded-[1.25rem] border p-4 text-left transition-all duration-300 ${
-                          isDark 
-                            ? 'border-white/5 bg-zinc-900/40 hover:bg-white/5 hover:border-white/10' 
-                            : 'border-slate-200/80 bg-white hover:bg-slate-50/80 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]'
-                        }`}
-                      >
-                        {/* Shimmer effect on hover */}
-                        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                        
-                        <div className="relative flex items-center gap-5">
-                          {/* AI-Style Professional Icon */}
-                          <div className="relative">
-                            <div className={`absolute inset-0 blur-xl opacity-40 group-hover:opacity-80 transition-opacity duration-500 bg-gradient-to-br ${role.gradient}`} />
-                            <div
-                              className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${role.gradient} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}
-                              style={{ 
-                                boxShadow: `inset 0 2px 4px rgba(255,255,255,0.3), 0 4px 14px ${role.glow}` 
-                              }}
-                            >
-                              {/* Glass overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
-                              <RoleIcon className="h-6 w-6 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />
+            <div className="flex-1 flex flex-col justify-center min-h-0 py-6">
+              {!selectedRole ? (
+                // ── STATE 1: ROLE SELECTION LIST ──
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="w-full max-w-md mx-auto"
+                >
+                  <div className="mb-8 text-center md:text-left">
+                    <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Role</h2>
+                    <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Choose your role to continue</p>
+                  </div>
+                  
+                  <div className="space-y-3" role="list">
+                    {demoRoles.map((role) => {
+                      const RoleIcon = role.Icon;
+                      return (
+                        <motion.button
+                          key={role.id}
+                          role="listitem"
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleSelectRole(role.id)}
+                          className={`group relative w-full overflow-hidden rounded-[1.25rem] border p-4 text-left transition-all duration-300 ${
+                            isDark 
+                              ? 'border-white/5 bg-zinc-900/40 hover:bg-white/5 hover:border-white/10' 
+                              : 'border-slate-200/80 bg-white hover:bg-slate-50/80 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]'
+                          }`}
+                        >
+                          {/* Shimmer effect on hover */}
+                          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                          
+                          <div className="relative flex items-center gap-3 md:gap-5">
+                            {/* AI-Style Professional Icon */}
+                            <div className="relative shrink-0">
+                              <div className={`absolute inset-0 blur-xl opacity-40 group-hover:opacity-80 transition-opacity duration-500 bg-gradient-to-br ${role.gradient}`} />
+                              <div
+                                className={`relative flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${role.gradient} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}
+                                style={{ 
+                                  boxShadow: `inset 0 2px 4px rgba(255,255,255,0.3), 0 4px 14px ${role.glow}` 
+                                }}
+                              >
+                                {/* Glass overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
+                                <RoleIcon className="h-5 w-5 md:h-6 md:w-6 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />
+                              </div>
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className={`truncate text-base md:text-lg font-extrabold tracking-tight leading-tight transition-colors ${isDark ? 'text-zinc-100 group-hover:text-white' : 'text-slate-800 group-hover:text-slate-950'}`}>
+                                {role.label}
+                              </p>
+                              <p className={`mt-0.5 md:mt-1 truncate text-[11px] md:text-xs font-semibold tracking-wider uppercase ${isDark ? 'text-zinc-500 group-hover:text-zinc-400' : 'text-slate-500 group-hover:text-slate-600'}`}>
+                                {role.desc}
+                              </p>
+                            </div>
+                            
+                            <div className={`flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full transition-all duration-500 group-hover:scale-110 ${
+                              isDark ? 'bg-white/5 group-hover:bg-white/15' : 'bg-slate-100 group-hover:bg-slate-200'
+                            }`}>
+                              <ArrowRight className={`h-3.5 w-3.5 md:h-4 md:w-4 transition-transform duration-500 group-hover:translate-x-1 ${isDark ? 'text-zinc-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-900'}`} />
                             </div>
                           </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-lg font-extrabold tracking-tight leading-tight transition-colors ${isDark ? 'text-zinc-100 group-hover:text-white' : 'text-slate-800 group-hover:text-slate-950'}`}>
-                              {role.label}
-                            </p>
-                            <p className={`mt-1 truncate text-xs font-semibold tracking-wider uppercase ${isDark ? 'text-zinc-500 group-hover:text-zinc-400' : 'text-slate-500 group-hover:text-slate-600'}`}>
-                              {role.desc}
-                            </p>
-                          </div>
-                          
-                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-500 group-hover:scale-110 ${
-                            isDark ? 'bg-white/5 group-hover:bg-white/15' : 'bg-slate-100 group-hover:bg-slate-200'
-                          }`}>
-                            <ArrowRight className={`h-4 w-4 transition-transform duration-500 group-hover:translate-x-1 ${isDark ? 'text-zinc-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-900'}`} />
-                          </div>
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ) : (
-              // ── STATE 2: LOGIN FORM ──
-              <motion.div
-                key="form"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="w-full max-w-sm mx-auto"
-              >
-                {/* Mobile back button & role display */}
-                <div className="mb-8 flex items-center md:hidden gap-3">
-                   <button 
-                     onClick={() => setSelectedRole(null)}
-                     className={`p-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-200 text-slate-700'}`}
-                   >
-                     <ArrowRight className="h-4 w-4 rotate-180" />
-                   </button>
-                   {activeRoleData && (
-                     <div className="flex items-center gap-2">
-                       <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${activeRoleData.gradient}`}>
-                         <activeRoleData.Icon className="h-4 w-4 text-white" />
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ) : (
+                // ── STATE 2: LOGIN FORM ──
+                <motion.div
+                  key="form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="w-full max-w-sm mx-auto"
+                >
+                  {/* Mobile back button & role display */}
+                  <div className="mb-8 flex items-center md:hidden gap-3">
+                     <button 
+                       onClick={() => setSelectedRole(null)}
+                       className={`p-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-200 text-slate-700'}`}
+                     >
+                       <ArrowRight className="h-4 w-4 rotate-180" />
+                     </button>
+                     {activeRoleData && (
+                       <div className="flex items-center gap-2">
+                         <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${activeRoleData.gradient}`}>
+                           <activeRoleData.Icon className="h-4 w-4 text-white" />
+                         </div>
+                         <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData.label}</span>
                        </div>
-                       <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData.label}</span>
-                     </div>
-                   )}
-                </div>
-
-                <div className="text-center md:text-left mb-8 hidden md:block">
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="mb-6 relative inline-flex h-20 w-20 items-center justify-center rounded-2xl shadow-2xl"
-                  >
-                    <div className={`absolute inset-0 rounded-2xl opacity-80 bg-gradient-to-br ${activeRoleData?.gradient}`} />
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/30 to-transparent opacity-50 pointer-events-none" />
-                    <div className={`absolute inset-0 blur-xl opacity-50 bg-gradient-to-br ${activeRoleData?.gradient}`} />
-                    
-                    {activeRoleData && <activeRoleData.Icon className="h-10 w-10 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />}
-                  </motion.div>
-                  <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sign In</h2>
-                  <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Log in as <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData?.label}</span></p>
-                </div>
-
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Email Address</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
+                     )}
+                  </div>
+  
+                  <div className="text-center md:text-left mb-8 hidden md:block">
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="mb-6 relative inline-flex h-20 w-20 items-center justify-center rounded-2xl shadow-2xl"
+                    >
+                      <div className={`absolute inset-0 rounded-2xl opacity-80 bg-gradient-to-br ${activeRoleData?.gradient}`} />
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/30 to-transparent opacity-50 pointer-events-none" />
+                      <div className={`absolute inset-0 blur-xl opacity-50 bg-gradient-to-br ${activeRoleData?.gradient}`} />
+                      
+                      {activeRoleData && <activeRoleData.Icon className="h-10 w-10 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />}
+                    </motion.div>
+                    <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sign In</h2>
+                    <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Log in as <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData?.label}</span></p>
+                  </div>
+  
+                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Email Address</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Mail className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
+                        </div>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                            isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
+                          }`}
+                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                          placeholder="you@company.com"
+                          required
+                        />
                       </div>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                          isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
-                        }`}
-                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                        placeholder="you@company.com"
-                        required
-                      />
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Password</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
+  
+                    <div className="space-y-1.5">
+                      <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Password</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
+                        </div>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                            isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
+                          }`}
+                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                       </div>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                          isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
-                        }`}
-                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                        placeholder="••••••••"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600'}`}
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
                     </div>
+  
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center">
+                        <input
+                          id="remember-me"
+                          name="remember-me"
+                          type="checkbox"
+                          className={`h-4 w-4 rounded focus:ring-2 ${isDark ? 'border-zinc-700 bg-zinc-900 focus:ring-offset-zinc-950' : 'border-slate-300 bg-white focus:ring-offset-slate-50'}`}
+                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                          defaultChecked
+                        />
+                        <label htmlFor="remember-me" className={`ml-2 block text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
+                          Remember me
+                        </label>
+                      </div>
+                      <div className="text-sm">
+                        <a href="#" className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
+                          Forgot password?
+                        </a>
+                      </div>
+                    </div>
+  
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`group relative w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-extrabold tracking-wider uppercase text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${isDark ? 'focus:ring-offset-zinc-950' : 'focus:ring-offset-slate-50'}`}
+                      style={{ 
+                        '--tw-ring-color': activeRoleData?.color
+                      } as React.CSSProperties}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-r ${activeRoleData?.gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                      {/* Glass overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
+                      
+                      <span className="relative z-10 flex items-center gap-2">
+                        {isLoading ? (
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          'Secure Sign In'
+                        )}
+                      </span>
+                    </button>
+                  </form>
+  
+                  {/* Back button for desktop */}
+                  <div className="mt-6 text-center hidden md:block">
+                    <button 
+                      onClick={() => setSelectedRole(null)}
+                      className={`text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-800'}`}
+                    >
+                      &larr; Back to roles
+                    </button>
                   </div>
-
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center">
-                      <input
-                        id="remember-me"
-                        name="remember-me"
-                        type="checkbox"
-                        className={`h-4 w-4 rounded focus:ring-2 ${isDark ? 'border-zinc-700 bg-zinc-900 focus:ring-offset-zinc-950' : 'border-slate-300 bg-white focus:ring-offset-slate-50'}`}
-                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                        defaultChecked
-                      />
-                      <label htmlFor="remember-me" className={`ml-2 block text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
-                        Remember me
-                      </label>
-                    </div>
-                    <div className="text-sm">
-                      <a href="#" className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
-                        Forgot password?
-                      </a>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={`group relative w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-extrabold tracking-wider uppercase text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${isDark ? 'focus:ring-offset-zinc-950' : 'focus:ring-offset-slate-50'}`}
-                    style={{ 
-                      '--tw-ring-color': activeRoleData?.color
-                    } as React.CSSProperties}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-r ${activeRoleData?.gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
-                    {/* Glass overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
-                    
-                    <span className="relative z-10 flex items-center gap-2">
-                      {isLoading ? (
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : (
-                        'Secure Sign In'
-                      )}
-                    </span>
-                  </button>
-                </form>
-
-                {/* Back button for desktop */}
-                <div className="mt-6 text-center hidden md:block">
-                  <button 
-                    onClick={() => setSelectedRole(null)}
-                    className={`text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-800'}`}
-                  >
-                    &larr; Back to roles
-                  </button>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              )}
+            </div>
 
             {/* Footer */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.1 }}
-              className={`absolute bottom-6 left-0 right-0 text-center text-xs ${isDark ? 'text-zinc-600' : 'text-slate-400'}`}
+              className={`mt-4 pt-4 border-t text-center text-xs ${isDark ? 'text-zinc-600 border-white/5' : 'text-slate-400 border-slate-200'}`}
             >
               © {new Date().getFullYear()} NexusHR Enterprise. All rights reserved.
             </motion.p>

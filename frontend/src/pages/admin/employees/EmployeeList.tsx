@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
   Mail, Phone, Calendar, CheckSquare,
   Square, UserPlus, ArrowUpDown, X, Edit2, Trash2,
-  Building, UserCheck, PowerOff
+  Building, UserCheck, PowerOff, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -68,7 +68,18 @@ export default function EmployeeList() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<{ department?: string; status?: string }>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const perPage = 10;
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-dropdown]')) setOpenMenuId(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuId]);
 
   const filtered = useMemo(() => {
     let result = [...MOCK_EMPLOYEES];
@@ -233,24 +244,28 @@ export default function EmployeeList() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex flex-wrap gap-3 p-4 rounded-xl border border-zinc-800 bg-zinc-900/30">
+            <div className={`flex flex-wrap gap-3 p-4 rounded-xl border ${isDark ? 'border-zinc-800 bg-zinc-900/30' : 'border-slate-200 bg-slate-100/50'}`}>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Department</label>
+                <label className={`block text-xs mb-1 ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Department</label>
                 <select
                   value={filters.department || ''}
                   onChange={(e) => { setFilters((f) => ({ ...f, department: e.target.value || undefined })); setPage(1); }}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  className={`rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-colors ${
+                    isDark ? 'border-zinc-800 bg-zinc-950/50 text-white' : 'border-slate-300 bg-white text-slate-900'
+                  }`}
                 >
                   <option value="">All Departments</option>
                   {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-zinc-500 mb-1">Status</label>
+                <label className={`block text-xs mb-1 ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Status</label>
                 <select
                   value={filters.status || ''}
                   onChange={(e) => { setFilters((f) => ({ ...f, status: e.target.value || undefined })); setPage(1); }}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  className={`rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-colors ${
+                    isDark ? 'border-zinc-800 bg-zinc-950/50 text-white' : 'border-slate-300 bg-white text-slate-900'
+                  }`}
                 >
                   <option value="">All Statuses</option>
                   {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
@@ -260,7 +275,7 @@ export default function EmployeeList() {
                 <div className="flex items-end">
                   <button
                     onClick={() => setFilters({})}
-                    className="px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                    className={`px-3 py-2 rounded-lg text-sm transition-colors ${isDark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
                   >
                     Clear filters
                   </button>
@@ -347,11 +362,11 @@ export default function EmployeeList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="space-y-0.5">
-                      <p className="flex items-center gap-1.5 text-zinc-300">
-                        <Mail className="h-3 w-3 text-zinc-500" /> {emp.email}
+                      <p className={`flex items-center gap-1.5 ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
+                        <Mail className={`h-3 w-3 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} /> {emp.email}
                       </p>
-                      <p className="flex items-center gap-1.5 text-zinc-400 text-xs">
-                        <Phone className="h-3 w-3 text-zinc-500" /> {emp.phone}
+                      <p className={`flex items-center gap-1.5 text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+                        <Phone className={`h-3 w-3 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} /> {emp.phone}
                       </p>
                     </div>
                   </td>
@@ -360,7 +375,7 @@ export default function EmployeeList() {
                       {emp.department}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-300">{emp.designation}</td>
+                  <td className={`px-4 py-3 ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>{emp.designation}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
                       emp.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
@@ -370,29 +385,47 @@ export default function EmployeeList() {
                       {emp.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-400 text-xs">
+                  <td className={`px-4 py-3 text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3 w-3" />
                       {emp.joinDate}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                      <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
-                        <Edit2 className="h-4 w-4" />
+                  <td className="px-4 py-3 relative">
+                    <div className="flex items-center justify-end md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button
+                        data-dropdown
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === emp.id ? null : emp.id); }}
+                        className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
+                      >
+                        <MoreVertical className="h-4 w-4" />
                       </button>
-                      <button onClick={() => setAssigningDept(emp)} title="Assign Department" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
-                        <Building className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setAssigningMgr(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
-                        <UserCheck className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setTogglingStatus(emp)} title="Activate/Deactivate" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400' : 'hover:bg-amber-50 text-slate-500 hover:text-amber-600'}`}>
-                        <PowerOff className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {openMenuId === emp.id && (
+                        <div
+                          data-dropdown="menu"
+                          className={`absolute right-0 top-full mt-1 w-52 rounded-xl border shadow-xl z-50 py-1.5 ${
+                            isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+                          }`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button onClick={() => { setEditingEmp(emp); setOpenMenuId(null); }} className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors ${isDark ? 'text-zinc-300 hover:text-white hover:bg-zinc-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
+                            <Edit2 className="h-4 w-4" /> Edit
+                          </button>
+                          <button onClick={() => { setAssigningDept(emp); setOpenMenuId(null); }} className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors ${isDark ? 'text-zinc-300 hover:text-white hover:bg-zinc-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
+                            <Building className="h-4 w-4" /> Assign Department
+                          </button>
+                          <button onClick={() => { setAssigningMgr(emp); setOpenMenuId(null); }} className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors ${isDark ? 'text-zinc-300 hover:text-white hover:bg-zinc-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
+                            <UserCheck className="h-4 w-4" /> Assign Manager
+                          </button>
+                          <button onClick={() => { setTogglingStatus(emp); setOpenMenuId(null); }} className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors ${isDark ? 'text-zinc-300 hover:text-white hover:bg-zinc-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
+                            <PowerOff className="h-4 w-4" /> Toggle Status
+                          </button>
+                          <div className={`border-t my-1 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`} />
+                          <button onClick={() => { setDeletingEmp(emp); setOpenMenuId(null); }} className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm transition-colors ${isDark ? 'text-red-400 hover:text-red-300 hover:bg-zinc-800' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}`}>
+                            <Trash2 className="h-4 w-4" /> Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
@@ -403,7 +436,7 @@ export default function EmployeeList() {
 
         {filtered.length === 0 && (
           <EmptyState
-            icon={<Search className="h-8 w-8 text-zinc-500" />}
+            icon={<Search className={`h-8 w-8 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />}
             title={search || filters.department || filters.status ? 'No employees match your filters' : 'No employees found'}
             description={search || filters.department || filters.status ? 'Try adjusting your search or filter criteria.' : 'Add your first employee to get started.'}
           />
@@ -412,14 +445,18 @@ export default function EmployeeList() {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-zinc-400">
+          <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
             Showing {(page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`p-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDark
+                  ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -434,7 +471,9 @@ export default function EmployeeList() {
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     page === num
                       ? 'bg-blue-600 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                      : isDark
+                        ? 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   {num}
@@ -444,7 +483,11 @@ export default function EmployeeList() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`p-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDark
+                  ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
             >
               <ChevronRight className="h-4 w-4" />
             </button>

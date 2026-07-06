@@ -28,23 +28,29 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+        <>
+          {/* Mobile backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
             onClick={onClose}
           />
+
+          {/* Desktop click-outside */}
+          <div className="fixed inset-0 z-50 hidden md:block" onClick={onClose} />
+
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className={`relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl shadow-2xl border overflow-hidden ${
+            transition={{ type: "spring", duration: 0.3 }}
+            className={`fixed z-50 flex flex-col overflow-hidden border shadow-2xl ${
               isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
-            }`}
+            } left-4 right-4 top-24 max-h-[75vh] rounded-3xl md:left-auto md:right-6 md:top-[72px] md:w-[420px] md:max-h-[420px] md:rounded-3xl`}
           >
-            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+            <div className={`flex items-center justify-between p-4 md:p-6 border-b ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <Bell className={`h-5 w-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
                 <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Notifications</h2>
@@ -60,14 +66,14 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 md:space-y-3">
               {MOCK_NOTIFICATIONS.map((notification) => {
                 const config = typeConfig[notification.type as keyof typeof typeConfig];
                 const Icon = config.icon;
                 return (
                   <div
                     key={notification.id}
-                    className={`flex items-start gap-4 p-4 rounded-2xl transition-colors ${
+                    className={`flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-2xl transition-colors ${
                       isDark ? 'hover:bg-zinc-900' : 'hover:bg-slate-50'
                     } ${isDark ? 'bg-zinc-900/50' : 'bg-slate-50/50'}`}
                   >
@@ -93,7 +99,7 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
               })}
             </div>
 
-            <div className={`p-4 border-t ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+            <div className={`p-3 md:p-4 border-t ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
               <button
                 onClick={onClose}
                 className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
@@ -106,7 +112,7 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
               </button>
             </div>
           </motion.div>
-        </div>
+        </>
       )}
     </AnimatePresence>
   );
