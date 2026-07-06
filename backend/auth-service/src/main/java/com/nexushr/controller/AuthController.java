@@ -1,9 +1,10 @@
 package com.nexushr.controller;
 
-import com.nexushr.dto.LoginRequest;
-import com.nexushr.dto.RegisterRequest;
+import com.nexushr.dto.*;
 import com.nexushr.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,13 +17,66 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/register")
-    public String register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    @PostMapping("/create-user")
+    public ResponseEntity<String> createUser(
+            @RequestBody RegisterRequest request) {
+
+        return ResponseEntity.ok(
+                authService.createUser(request)
+        );
+    }
+
+    @PostMapping("/register-admin")
+    public ResponseEntity<String> registerAdmin(
+            @RequestBody RegisterRequest request) {
+
+        return ResponseEntity.ok(
+                authService.registerAdmin(request)
+        );
     }
 
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String>
+    resetPassword(
+            @RequestBody
+            ResetPasswordRequest request) {
+
+        return ResponseEntity.ok(
+                authService.resetPassword(request)
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String>
+    forgotPassword(
+            @RequestBody
+            ForgotPasswordRequest request) {
+
+        return ResponseEntity.ok(
+                authService.forgotPassword(request)
+        );
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        String authHeader =
+                httpRequest.getHeader(
+                        "Authorization"
+                );
+
+        return ResponseEntity.ok(
+                authService.changePassword(
+                        request,
+                        authHeader
+                )
+        );
     }
 }
