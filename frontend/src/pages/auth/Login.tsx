@@ -18,7 +18,7 @@ const demoRoles = [
   },
   {
     id: 'hr' as const,
-    label: 'HR Manager',
+    label: 'HR ',
     desc: 'Employee management & payroll',
     Icon: Users,
     gradient: 'from-purple-600 to-purple-400',
@@ -39,7 +39,7 @@ const demoRoles = [
   {
     id: 'employee' as const,
     label: 'Employee',
-    desc: 'Self-service & profile portal',
+    desc: 'SelfHR Mana-service & profile portal',
     Icon: User,
     gradient: 'from-emerald-600 to-emerald-400',
     glow: 'rgba(16,185,129,0.35)',

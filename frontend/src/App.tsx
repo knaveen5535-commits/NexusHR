@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { useThemeStore } from './hooks/useTheme';
 import Login from './pages/auth/Login';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
@@ -12,12 +14,27 @@ import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
 import ProtectedRoute from './components/guards/ProtectedRoute';
 
+// New Admin Pages
+import DepartmentManagement from './pages/admin/departments/DepartmentManagement';
+import RoleManagement from './pages/admin/roles/RoleManagement';
+import Reports from './pages/admin/reports/Reports';
+import SystemSettings from './pages/admin/settings/SystemSettings';
+
 const queryClient = new QueryClient();
+
+function ThemeSync() {
+  const theme = useThemeStore((s) => s.theme);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+  return null;
+}
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ThemeSync />
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
@@ -41,6 +58,10 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="departments" element={<DepartmentManagement />} />
+            <Route path="roles" element={<RoleManagement />} />
+            <Route path="reports/*" element={<Reports />} />
+            <Route path="settings" element={<SystemSettings />} />
             <Route path="ai-insights" element={<AiAssistant />} />
           </Route>
 
@@ -55,6 +76,12 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<HrDashboard />} />
+            <Route path="attendance" element={<HrDashboard />} />
+            <Route path="leave" element={<HrDashboard />} />
+            <Route path="payroll" element={<HrDashboard />} />
+            <Route path="performance" element={<HrDashboard />} />
+            <Route path="onboarding" element={<HrDashboard />} />
+            <Route path="reports/*" element={<Reports />} />
             <Route
               path="employees"
               element={
@@ -77,6 +104,10 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ManagerDashboard />} />
+            <Route path="attendance" element={<ManagerDashboard />} />
+            <Route path="performance" element={<ManagerDashboard />} />
+            <Route path="leave-approvals" element={<ManagerDashboard />} />
+            <Route path="reports/*" element={<Reports />} />
             <Route
               path="team"
               element={
@@ -99,6 +130,11 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />
+            <Route path="profile" element={<EmployeeDashboard />} />
+            <Route path="attendance" element={<EmployeeDashboard />} />
+            <Route path="leave" element={<EmployeeDashboard />} />
+            <Route path="payroll" element={<EmployeeDashboard />} />
+            <Route path="performance" element={<EmployeeDashboard />} />
             <Route path="ai-assistant" element={<AiAssistant />} />
           </Route>
 

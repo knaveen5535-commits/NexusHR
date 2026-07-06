@@ -1,139 +1,179 @@
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import KpiCard from '../../../components/common/KpiCard';
-import AreaChartCard from '../../../components/charts/AreaChartCard';
-import BarChartCard from '../../../components/charts/BarChartCard';
-import PieChartCard from '../../../components/charts/PieChartCard';
-import type { KpiCard as KpiCardType } from '../../../types';
+import { useTheme } from '../../../hooks/useTheme';
+import { exportDashboardPdf } from '../../../utils/exportPdf';
+import { 
+  Users, UserCheck, Building, Briefcase,
+  DollarSign, Activity, Brain, UserCog, Calendar, 
+  ShieldCheck, Download
+} from 'lucide-react';
 
-const kpiData: KpiCardType[] = [
-  { label: 'Total Employees', value: '1,247', change: '+12% this month', trend: 'up', icon: 'Users', color: 'blue-500' },
-  { label: 'Departments', value: '12', change: '2 new this quarter', trend: 'up', icon: 'Building', color: 'purple-500' },
-  { label: 'Attendance Rate', value: '94.7%', change: '+2.3% vs last month', trend: 'up', icon: 'Calendar', color: 'emerald-500' },
-  { label: 'Payroll This Month', value: '$4.2M', change: '+8.1% vs last month', trend: 'up', icon: 'DollarSign', color: 'amber-500' },
-  { label: 'Open Positions', value: '23', change: '-5 vs last month', trend: 'down', icon: 'UserPlus', color: 'rose-500' },
-  { label: 'AI Insights', value: '12', change: '3 new recommendations', trend: 'up', icon: 'Sparkles', color: 'cyan-500' },
+// Overview KPIs
+const kpis = [
+  { label: 'Total Employees', value: '1,247', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
+  { label: 'Active Employees', value: '1,180', icon: UserCheck, color: 'text-emerald-500', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-500/10' },
+  { label: 'Departments Count', value: '12', icon: Building, color: 'text-purple-500', glow: 'shadow-purple-500/20', bg: 'bg-purple-500/10' },
+  { label: 'Managers Count', value: '84', icon: Briefcase, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
+  { label: 'HR Staff Count', value: '12', icon: UserCog, color: 'text-rose-500', glow: 'shadow-rose-500/20', bg: 'bg-rose-500/10' },
+  { label: 'Monthly Payroll Cost', value: '$4.2M', icon: DollarSign, color: 'text-cyan-500', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-500/10' },
+  { label: 'Attendance %', value: '94.7%', icon: Calendar, color: 'text-indigo-500', glow: 'shadow-indigo-500/20', bg: 'bg-indigo-500/10' },
+  { label: 'Attrition Rate', value: '4.2%', icon: Activity, color: 'text-red-500', glow: 'shadow-red-500/20', bg: 'bg-red-500/10' },
+  { label: 'AI Workforce Score', value: '88/100', icon: Brain, color: 'text-fuchsia-500', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-500/10' },
 ];
-
-const attendanceData = [
-  { name: 'Mon', value: 95, value2: 88 },
-  { name: 'Tue', value: 92, value2: 85 },
-  { name: 'Wed', value: 97, value2: 90 },
-  { name: 'Thu', value: 91, value2: 82 },
-  { name: 'Fri', value: 88, value2: 78 },
-  { name: 'Sat', value: 65, value2: 55 },
-  { name: 'Sun', value: 45, value2: 40 },
-];
-
-const departmentData = [
-  { name: 'Engineering', value: 35 },
-  { name: 'Marketing', value: 20 },
-  { name: 'Sales', value: 25 },
-  { name: 'HR', value: 10 },
-  { name: 'Finance', value: 10 },
-];
-
-const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
-
-const monthlyData = [
-  { name: 'Jan', value: 3.2, value2: 2.1 },
-  { name: 'Feb', value: 3.5, value2: 2.3 },
-  { name: 'Mar', value: 3.8, value2: 2.4 },
-  { name: 'Apr', value: 4.0, value2: 2.5 },
-  { name: 'May', value: 4.2, value2: 2.6 },
-  { name: 'Jun', value: 4.5, value2: 2.8 },
-];
-
-const pieData = departmentData.map((d, i) => ({ ...d, color: COLORS[i] }));
 
 export default function AdminDashboard() {
+  const { isDark } = useTheme();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    if (!reportRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      await exportDashboardPdf(reportRef.current, 'admin-dashboard-report');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants: import('framer-motion').Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+  };
+
   return (
-    <div className="p-4 sm:p-8 space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-1">Company-wide overview and analytics</p>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {kpiData.map((kpi, i) => (
-          <KpiCard key={kpi.label} data={kpi} index={i} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AreaChartCard
-          title="Attendance Trends (Last 7 Days)"
-          data={attendanceData}
-          areas={[
-            { key: 'value', color: '#3b82f6', label: 'This Week' },
-            { key: 'value2', color: '#8b5cf6', label: 'Last Week' },
-          ]}
+    <div className={`min-h-full w-full p-4 sm:p-6 lg:p-8 transition-colors duration-500 overflow-hidden relative ${isDark ? 'bg-[#0a0a0f] text-white' : 'bg-slate-50 text-slate-900'}`}>
+      
+      {/* Premium Background Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <motion.div
+          className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full mix-blend-screen filter blur-[120px] opacity-50"
+          style={{ background: isDark ? 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.2) 0%, rgba(255,255,255,0) 70%)' }}
+          animate={{ 
+            x: [0, 30, 0], 
+            y: [0, -30, 0],
+            scale: [1, 1.1, 1] 
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <AreaChartCard
-          title="Payroll Overview (Monthly)"
-          data={monthlyData}
-          areas={[
-            { key: 'value', color: '#10b981', label: 'Revenue' },
-            { key: 'value2', color: '#ef4444', label: 'Cost' },
-          ]}
+        <motion.div
+          className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] rounded-full mix-blend-screen filter blur-[120px] opacity-40"
+          style={{ background: isDark ? 'radial-gradient(circle, rgba(168,85,247,0.3) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(168,85,247,0.2) 0%, rgba(255,255,255,0) 70%)' }}
+          animate={{ 
+            x: [0, -40, 0], 
+            y: [0, 40, 0],
+            scale: [1, 1.2, 1] 
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <BarChartCard
-            title="Department Distribution"
-            data={departmentData}
-            bars={[{ key: 'value', color: '#3b82f6', label: 'Employees' }]}
-            horizontal
-          />
-        </div>
-        <PieChartCard title="Department Split" data={pieData} innerRadius={55} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-white mb-4">System Health</h3>
-          <div className="space-y-4">
-            {[
-              { label: 'API Response Time', value: '142ms', status: 'good' as const },
-              { label: 'Active Sessions', value: '1,247', status: 'good' as const },
-              { label: 'Database Load', value: '23%', status: 'good' as const },
-              { label: 'Error Rate', value: '0.02%', status: 'good' as const },
-            ].map((metric) => (
-              <div key={metric.label} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0">
-                <span className="text-sm text-zinc-400">{metric.label}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white">{metric.value}</span>
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                </div>
-              </div>
-            ))}
+      <div ref={reportRef} className="relative z-10 max-w-[1600px] mx-auto space-y-8">
+        
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-transparent"
+        >
+          <div className="space-y-2">
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2 ${isDark ? 'bg-blue-500/10 border border-blue-500/20 text-blue-400' : 'bg-blue-50 border border-blue-200 text-blue-600'}`}>
+              <ShieldCheck className="h-4 w-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Administration</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight flex items-center gap-3">
+              Command Center
+            </h1>
+            <p className={`text-base sm:text-lg max-w-2xl font-medium ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
+              Complete overview of enterprise workforce metrics and core management operations.
+            </p>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              className={`group relative flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden
+                ${isDark 
+                  ? 'bg-zinc-800/50 text-white border border-white/10 hover:border-blue-500/50 hover:bg-zinc-800' 
+                  : 'bg-white text-slate-900 border border-slate-200 hover:border-blue-500/30 hover:bg-slate-50 hover:shadow-xl'
+                }`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+              <Download className={`h-4 w-4 relative z-10 transition-transform group-hover:-translate-y-0.5 ${downloading ? 'animate-bounce text-blue-500' : ''}`} />
+              <span className="relative z-10">{downloading ? 'Generating Report...' : 'Export PDF'}</span>
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Dashboard Overview - KPI Grid */}
+        <div className="pt-4">
+          <motion.div 
+            className="flex items-center justify-between mb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Overview Statistics</h2>
+          </motion.div>
+
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5"
+          >
+            {kpis.map((kpi) => {
+              const Icon = kpi.icon;
+              return (
+                <motion.div
+                  key={kpi.label}
+                  variants={itemVariants}
+                  whileHover={{ y: -4, scale: 1.01 }}
+                  className={`group relative overflow-hidden flex flex-col p-6 rounded-3xl border transition-all duration-300 ${
+                    isDark 
+                      ? 'bg-[#111116]/80 border-white/5 shadow-xl shadow-black/20 hover:border-white/10 hover:shadow-2xl hover:bg-[#16161e]' 
+                      : 'bg-white border-slate-200/60 shadow-lg shadow-slate-200/40 hover:border-slate-300 hover:shadow-xl'
+                  }`}
+                >
+                  {/* Subtle gradient background on hover */}
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-transparent ${isDark ? 'to-white/[0.02]' : 'to-slate-900/[0.02]'}`} />
+                  
+                  <div className="relative z-10 flex items-start justify-between">
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${kpi.bg} ${kpi.glow} shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300`}>
+                      <Icon className={`h-7 w-7 ${kpi.color}`} />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 relative z-10">
+                    <h3 className={`text-sm font-semibold tracking-wide ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+                      {kpi.label}
+                    </h3>
+                    <p className={`text-3xl font-black mt-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {kpi.value}
+                    </p>
+                  </div>
+
+                  {/* Decorative corner accent */}
+                  <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${kpi.bg}`} />
+                </motion.div>
+              );
+            })}
+          </motion.div>
         </div>
 
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-white mb-4">Recent Activities</h3>
-          <div className="space-y-4">
-            {[
-              { action: 'New employee onboarded', user: 'Sarah Connor', time: '2h ago', type: 'add' },
-              { action: 'Payroll processed', user: 'Finance Dept', time: '5h ago', type: 'payment' },
-              { action: 'Leave approved', user: 'Mike Johnson', time: '1d ago', type: 'check' },
-              { action: 'Department updated', user: 'Engineering', time: '1d ago', type: 'edit' },
-              { action: 'AI report generated', user: 'System', time: '2d ago', type: 'ai' },
-            ].map((activity, i) => (
-              <div key={i} className="flex items-start gap-3 pb-3 border-b border-zinc-800 last:border-0 last:pb-0">
-                <div className="h-2 w-2 mt-2 rounded-full bg-blue-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white">{activity.action}</p>
-                  <p className="text-xs text-zinc-500">by {activity.user} - {activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
