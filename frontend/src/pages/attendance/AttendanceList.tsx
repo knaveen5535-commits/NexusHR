@@ -33,13 +33,13 @@ export default function AttendanceList() {
     <div className="p-4 sm:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Attendance</h1>
-          <p className="text-zinc-400 text-sm mt-1">Track employee attendance and time logs</p>
+          <h1 className="text-2xl font-bold text-foreground">Attendance</h1>
+          <p className="text-muted-foreground text-sm mt-1">Track employee attendance and time logs</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800 rounded-lg px-3 py-2">
-            <Calendar className="h-4 w-4 text-zinc-400" />
-            <span className="text-sm text-white font-medium">{currentMonth}</span>
+          <div className="flex items-center gap-2 bg-card/50 border border-border rounded-lg px-3 py-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-foreground font-medium">{currentMonth}</span>
           </div>
         </div>
       </div>
@@ -50,11 +50,11 @@ export default function AttendanceList() {
           { label: 'Absent', count: '1', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
           { label: 'Late', count: '1', icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
         ].map((stat) => (
-          <div key={stat.label} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 backdrop-blur-xl hover:border-zinc-700 transition-all">
+          <div key={stat.label} className="bg-card/50 border border-border rounded-xl p-5 backdrop-blur-xl hover:border-border transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-zinc-400 text-sm">{stat.label}</p>
-                <p className="text-2xl font-bold text-white mt-1">{stat.count}</p>
+                <p className="text-muted-foreground text-sm">{stat.label}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{stat.count}</p>
               </div>
               <div className={`${stat.bg} p-3 rounded-lg`}>
                 <stat.icon className={`h-6 w-6 ${stat.color}`} />
@@ -64,19 +64,19 @@ export default function AttendanceList() {
         ))}
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-xl">
-        <div className="p-4 border-b border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="bg-card/50 border border-border rounded-xl overflow-hidden backdrop-blur-xl">
+        <div className="p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-zinc-400" />
-            <span className="text-sm text-zinc-400">Filter:</span>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Filter:</span>
             {['all', 'present', 'absent', 'late'].map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
                   filter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                    ? 'bg-blue-600 text-foreground'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {f}
@@ -84,18 +84,18 @@ export default function AttendanceList() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 transition-colors">
+            <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm text-zinc-300">Today</span>
-            <button className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 transition-colors">
+            <span className="text-sm text-foreground">Today</span>
+            <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-300">
-            <thead className="bg-zinc-800/50 text-xs uppercase text-zinc-400 border-b border-zinc-800">
+          <table className="w-full text-left text-sm text-foreground">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b border-border">
               <tr>
                 <th className="px-6 py-4">Employee</th>
                 <th className="px-6 py-4">Date</th>
@@ -109,8 +109,8 @@ export default function AttendanceList() {
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <Clock className="h-8 w-8 text-zinc-600" />
-                      <p className="text-zinc-500">No attendance records found.</p>
+                      <Clock className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground">No attendance records found.</p>
                     </div>
                   </td>
                 </tr>
@@ -118,12 +118,12 @@ export default function AttendanceList() {
                 filteredAttendance.map((record) => {
                   const StatusIcon = statusIcons[record.status];
                   return (
-                    <tr key={record.id} className="hover:bg-zinc-800/30 transition-colors">
-                      <td className="px-6 py-4 font-medium text-white">{record.employee}</td>
+                    <tr key={record.id} className="hover:bg-secondary/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">{record.employee}</td>
                       <td className="px-6 py-4">{record.date}</td>
                       <td className="px-6 py-4">
                         <span className="flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5 text-zinc-500" />
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                           {record.checkIn}
                         </span>
                       </td>

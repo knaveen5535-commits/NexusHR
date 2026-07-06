@@ -29,7 +29,20 @@ export const hrNav: NavItem[] = [
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
   { name: 'Performance', href: '/hr/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
   { name: 'Onboarding', href: '/hr/onboarding', icon: 'UserPlus', permissions: ['manage:onboarding'] },
-  { name: 'AI Reports', href: '/hr/ai-reports', icon: 'Sparkles', permissions: ['access:ai-insights'], badge: 'AI' },
+  {
+    name: 'Reports',
+    href: '/hr/reports',
+    icon: 'FileText',
+    permissions: ['view:analytics'],
+    children: [
+      { name: 'Employee Report', href: '/hr/reports/employees', icon: 'Users' },
+      { name: 'Payroll Report', href: '/hr/reports/payroll', icon: 'DollarSign' },
+      { name: 'Attendance Report', href: '/hr/reports/attendance', icon: 'CalendarCheck' },
+      { name: 'Performance Report', href: '/hr/reports/performance', icon: 'TrendingUp' },
+      { name: 'AI Insights', href: '/hr/reports/ai', icon: 'Brain', badge: 'AI' },
+    ],
+  },
+  { name: 'AI Assistant', href: '/hr/ai-reports', icon: 'Sparkles', permissions: ['access:ai-insights'], badge: 'AI' },
 ];
 
 export const managerNav: NavItem[] = [
@@ -38,7 +51,19 @@ export const managerNav: NavItem[] = [
   { name: 'Attendance', href: '/manager/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Performance', href: '/manager/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
   { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
-  { name: 'Reports', href: '/manager/reports', icon: 'BarChart3', permissions: ['generate:reports'] },
+  {
+    name: 'Reports',
+    href: '/manager/reports',
+    icon: 'BarChart3',
+    permissions: ['generate:reports'],
+    children: [
+      { name: 'Employee Report', href: '/manager/reports/employees', icon: 'Users' },
+      { name: 'Payroll Report', href: '/manager/reports/payroll', icon: 'DollarSign' },
+      { name: 'Attendance Report', href: '/manager/reports/attendance', icon: 'CalendarCheck' },
+      { name: 'Performance Report', href: '/manager/reports/performance', icon: 'TrendingUp' },
+      { name: 'AI Insights', href: '/manager/reports/ai', icon: 'Brain', badge: 'AI' },
+    ],
+  },
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 

@@ -48,22 +48,22 @@ function OverviewTab() {
           <KpiCard key={kpi.label} data={kpi} index={i} />
         ))}
         {/* Additional KPIs */}
-        <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex items-center gap-4">
+        <div className="p-4 rounded-xl border border-border bg-card/50 backdrop-blur-xl flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center">
             <CheckCircle size={24} className="text-indigo-400" />
           </div>
           <div>
-            <p className="text-sm text-zinc-400">Pending Approvals</p>
-            <p className="text-xl font-bold text-white">45</p>
+            <p className="text-sm text-muted-foreground">Pending Approvals</p>
+            <p className="text-xl font-bold text-foreground">45</p>
           </div>
         </div>
-        <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex items-center gap-4">
+        <div className="p-4 rounded-xl border border-border bg-card/50 backdrop-blur-xl flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center">
             <DollarSign size={24} className="text-teal-400" />
           </div>
           <div>
-            <p className="text-sm text-zinc-400">Payroll Status</p>
-            <p className="text-xl font-bold text-white">Processed</p>
+            <p className="text-sm text-muted-foreground">Payroll Status</p>
+            <p className="text-xl font-bold text-foreground">Processed</p>
           </div>
         </div>
       </div>
@@ -92,43 +92,43 @@ function LifecycleTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Onboarding */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-blue-500/10">
               <UserPlus size={20} className="text-blue-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Onboarding Portal</h3>
+            <h3 className="text-lg font-semibold text-foreground">Onboarding Portal</h3>
           </div>
           <div className="space-y-4">
-            <p className="text-sm text-zinc-400 mb-2">Initiate new hire onboarding processes and collect required documents.</p>
+            <p className="text-sm text-muted-foreground mb-2">Initiate new hire onboarding processes and collect required documents.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-zinc-800/30 border border-dashed border-zinc-700 hover:bg-zinc-800/50 hover:border-blue-500/50 transition-colors gap-2">
-                <Upload size={20} className="text-zinc-400" />
-                <span className="text-sm font-medium text-white">Offer Letter</span>
+              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted border border-dashed border-border hover:bg-muted hover:border-blue-500/50 transition-colors gap-2">
+                <Upload size={20} className="text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Offer Letter</span>
               </button>
-              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-zinc-800/30 border border-dashed border-zinc-700 hover:bg-zinc-800/50 hover:border-blue-500/50 transition-colors gap-2">
-                <Shield size={20} className="text-zinc-400" />
-                <span className="text-sm font-medium text-white">ID Proof Upload</span>
+              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted border border-dashed border-border hover:bg-muted hover:border-blue-500/50 transition-colors gap-2">
+                <Shield size={20} className="text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">ID Proof Upload</span>
               </button>
-              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-zinc-800/30 border border-dashed border-zinc-700 hover:bg-zinc-800/50 hover:border-blue-500/50 transition-colors gap-2">
-                <FileText size={20} className="text-zinc-400" />
-                <span className="text-sm font-medium text-white">Resume Upload</span>
+              <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted border border-dashed border-border hover:bg-muted hover:border-blue-500/50 transition-colors gap-2">
+                <FileText size={20} className="text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Resume Upload</span>
               </button>
               <button className="flex flex-col items-center justify-center p-4 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors gap-2">
-                <UserPlus size={20} className="text-white" />
-                <span className="text-sm font-medium text-white">Create Profile</span>
+                <UserPlus size={20} className="text-foreground" />
+                <span className="text-sm font-medium text-foreground">Create Profile</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Offboarding */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-red-500/10">
               <UserMinus size={20} className="text-red-400" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Offboarding Portal</h3>
+            <h3 className="text-lg font-semibold text-foreground">Offboarding Portal</h3>
           </div>
           <div className="space-y-4">
             {[
@@ -137,9 +137,9 @@ function LifecycleTab() {
               { label: 'Clearance Status', count: '1 Pending' },
               { label: 'Final Settlement Processing', count: 1 },
             ].map((task, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
-                <span className="text-sm text-zinc-300">{task.label}</span>
-                <span className="text-xs font-medium px-2 py-1 bg-zinc-800 rounded-md text-white">{task.count}</span>
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
+                <span className="text-sm text-foreground">{task.label}</span>
+                <span className="text-xs font-medium px-2 py-1 bg-secondary rounded-md text-foreground">{task.count}</span>
               </div>
             ))}
           </div>
@@ -153,11 +153,11 @@ function AttendanceTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Company Attendance Monitor</h3>
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-lg font-semibold text-foreground mb-6">Company Attendance Monitor</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-zinc-400 border-b border-zinc-800">
+              <thead className="text-muted-foreground border-b border-border">
                 <tr>
                   <th className="pb-3 font-medium">Department</th>
                   <th className="pb-3 font-medium">Total</th>
@@ -166,15 +166,15 @@ function AttendanceTab() {
                   <th className="pb-3 font-medium">Late</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/50 text-zinc-300">
+              <tbody className="divide-y divide-border text-foreground">
                 {[
                   { dept: 'Engineering', total: 145, present: 138, leave: 5, late: 12 },
                   { dept: 'Sales', total: 85, present: 80, leave: 3, late: 2 },
                   { dept: 'Marketing', total: 42, present: 39, leave: 2, late: 1 },
                   { dept: 'HR & Admin', total: 18, present: 17, leave: 1, late: 0 },
                 ].map((row, i) => (
-                  <tr key={i} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-3 font-medium text-white">{row.dept}</td>
+                  <tr key={i} className="hover:bg-muted transition-colors">
+                    <td className="py-3 font-medium text-foreground">{row.dept}</td>
                     <td className="py-3">{row.total}</td>
                     <td className="py-3 text-emerald-400">{row.present}</td>
                     <td className="py-3 text-amber-400">{row.leave}</td>
@@ -186,18 +186,18 @@ function AttendanceTab() {
           </div>
         </div>
 
-        <div className="lg:col-span-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-white mb-4">Overtime & Late Logs</h3>
+        <div className="lg:col-span-1 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Overtime & Late Logs</h3>
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
               <h4 className="text-sm font-medium text-red-400 mb-1">Late Logins (Today)</h4>
-              <p className="text-2xl font-bold text-white">15</p>
-              <p className="text-xs text-zinc-400 mt-1">Requires manager review</p>
+              <p className="text-2xl font-bold text-foreground">15</p>
+              <p className="text-xs text-muted-foreground mt-1">Requires manager review</p>
             </div>
             <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
               <h4 className="text-sm font-medium text-blue-400 mb-1">Overtime Hours (Week)</h4>
-              <p className="text-2xl font-bold text-white">124 hrs</p>
-              <p className="text-xs text-zinc-400 mt-1">Across 4 departments</p>
+              <p className="text-2xl font-bold text-foreground">124 hrs</p>
+              <p className="text-xs text-muted-foreground mt-1">Across 4 departments</p>
             </div>
           </div>
         </div>
@@ -209,17 +209,17 @@ function AttendanceTab() {
 function LeaveTab() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Company Leave Applications</h3>
+          <h3 className="text-lg font-semibold text-foreground">Company Leave Applications</h3>
           <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">18 Pending</span>
         </div>
         <div className="space-y-3">
           {pendingLeaves.map((leave, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
+            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
               <div>
-                <p className="text-sm font-medium text-white">{leave.employee}</p>
-                <p className="text-xs text-zinc-400">{leave.type} Leave - {leave.days} days ({leave.from} - {leave.to})</p>
+                <p className="text-sm font-medium text-foreground">{leave.employee}</p>
+                <p className="text-xs text-muted-foreground">{leave.type} Leave - {leave.days} days ({leave.from} - {leave.to})</p>
               </div>
               <div className="flex gap-2">
                 <button className="px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Approve</button>
@@ -230,17 +230,17 @@ function LeaveTab() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-        <h3 className="text-lg font-semibold text-white mb-6">Leave Balance Overview</h3>
-        <p className="text-sm text-zinc-400 mb-6">Monitor organizational liability and upcoming mass leaves.</p>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-6">Leave Balance Overview</h3>
+        <p className="text-sm text-muted-foreground mb-6">Monitor organizational liability and upcoming mass leaves.</p>
         <div className="space-y-4">
           {[
             { label: 'Annual Leave Liability', value: '4,250 days', color: 'blue' },
             { label: 'Sick Leave Utilization', value: '42%', color: 'emerald' },
             { label: 'Upcoming Holidays (Q3)', value: '3 days', color: 'purple' },
           ].map((stat, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
-              <span className="text-sm text-zinc-300">{stat.label}</span>
+            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
+              <span className="text-sm text-foreground">{stat.label}</span>
               <span className={`text-sm font-bold text-${stat.color}-400`}>{stat.value}</span>
             </div>
           ))}
@@ -255,36 +255,36 @@ function PayrollTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl text-center">
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">Total Monthly Payroll</h3>
-            <p className="text-3xl font-bold text-white mb-4">$452,500</p>
-            <button className="w-full py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-500 transition-colors">
+          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl text-center">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Monthly Payroll</h3>
+            <p className="text-3xl font-bold text-foreground mb-4">$452,500</p>
+            <button className="w-full py-2 rounded-lg bg-teal-600 text-foreground text-sm font-medium hover:bg-teal-500 transition-colors">
               Process Payroll (Jul)
             </button>
           </div>
-          <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
-            <h3 className="text-sm font-medium text-white mb-4">Salary Structure config</h3>
+          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
+            <h3 className="text-sm font-medium text-foreground mb-4">Salary Structure config</h3>
             <div className="space-y-3">
               {['Basic Salary', 'Allowances', 'Deductions', 'Bonus'].map((item) => (
-                <button key={item} className="w-full flex justify-between items-center p-3 rounded-lg bg-zinc-800/50 hover:bg-zinc-700/50 transition-colors text-sm text-zinc-300">
+                <button key={item} className="w-full flex justify-between items-center p-3 rounded-lg bg-muted hover:bg-secondary/50 transition-colors text-sm text-foreground">
                   {item}
-                  <Target size={16} className="text-zinc-500" />
+                  <Target size={16} className="text-muted-foreground" />
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-2 p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
+        <div className="lg:col-span-2 p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-white">Payslip Generation</h3>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800 text-white text-sm hover:bg-zinc-700 transition-colors border border-zinc-700">
+            <h3 className="text-lg font-semibold text-foreground">Payslip Generation</h3>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm hover:bg-secondary transition-colors border border-border">
               <Download size={16} /> Batch Download
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-zinc-400 border-b border-zinc-800">
+              <thead className="text-muted-foreground border-b border-border">
                 <tr>
                   <th className="pb-3 font-medium">Employee</th>
                   <th className="pb-3 font-medium">Gross</th>
@@ -293,14 +293,14 @@ function PayrollTab() {
                   <th className="pb-3 font-medium">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/50 text-zinc-300">
+              <tbody className="divide-y divide-border text-foreground">
                 {[
                   { name: 'Alice Wang', gross: '$8,500', net: '$6,800', status: 'Ready' },
                   { name: 'Bob Kim', gross: '$9,200', net: '$7,360', status: 'Ready' },
                   { name: 'Carol Davis', gross: '$7,800', net: '$6,240', status: 'Pending Review' },
                 ].map((row, i) => (
-                  <tr key={i} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-3 font-medium text-white">{row.name}</td>
+                  <tr key={i} className="hover:bg-muted transition-colors">
+                    <td className="py-3 font-medium text-foreground">{row.name}</td>
                     <td className="py-3">{row.gross}</td>
                     <td className="py-3">{row.net}</td>
                     <td className="py-3">
@@ -325,27 +325,27 @@ function PayrollTab() {
 function NotificationsTab() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Company Announcements</h3>
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 transition-colors">New Announcement</button>
+          <h3 className="text-lg font-semibold text-foreground">Company Announcements</h3>
+          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-foreground text-xs font-medium hover:bg-blue-500 transition-colors">New Announcement</button>
         </div>
         <div className="space-y-4">
           {[
             { title: 'Q3 Townhall Meeting', date: 'Jul 15, 2026', desc: 'Join the executive team for the Q3 kickoff and company updates.' },
             { title: 'New Health Benefits', date: 'Jul 01, 2026', desc: 'Updated health insurance policies are now active.' },
           ].map((ann, i) => (
-            <div key={i} className="p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
-              <h4 className="text-sm font-medium text-white">{ann.title}</h4>
+            <div key={i} className="p-4 rounded-lg bg-muted border border-border">
+              <h4 className="text-sm font-medium text-foreground">{ann.title}</h4>
               <p className="text-xs text-blue-400 mt-1 mb-2">{ann.date}</p>
-              <p className="text-sm text-zinc-400">{ann.desc}</p>
+              <p className="text-sm text-muted-foreground">{ann.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-        <h3 className="text-lg font-semibold text-white mb-6">Automated Alerts</h3>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-6">Automated Alerts</h3>
         <div className="space-y-3">
           <div className="flex items-center gap-4 p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
             <div className="p-2 rounded-full bg-indigo-500/10">
@@ -353,7 +353,7 @@ function NotificationsTab() {
             </div>
             <div>
               <h4 className="text-sm font-medium text-indigo-400">Upcoming Birthdays</h4>
-              <p className="text-sm text-zinc-300">5 employees have birthdays this week.</p>
+              <p className="text-sm text-foreground">5 employees have birthdays this week.</p>
             </div>
           </div>
           <div className="flex items-center gap-4 p-4 rounded-lg bg-teal-500/5 border border-teal-500/20">
@@ -362,7 +362,7 @@ function NotificationsTab() {
             </div>
             <div>
               <h4 className="text-sm font-medium text-teal-400">Holiday Notifications</h4>
-              <p className="text-sm text-zinc-300">Independence Day (Aug 15) alert scheduled.</p>
+              <p className="text-sm text-foreground">Independence Day (Aug 15) alert scheduled.</p>
             </div>
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function HrDashboard() {
       case 'leave': return <LeaveTab />;
       case 'payroll': return <PayrollTab />;
       case 'notifications': return <NotificationsTab />;
-      case 'performance': return <div className="p-6 text-center text-zinc-400">Performance management module coming soon.</div>;
+      case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
       default: return <OverviewTab />;
     }
   };
@@ -394,8 +394,8 @@ export default function HrDashboard() {
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white">HR Central</h1>
-        <p className="text-zinc-400 text-sm mt-1">Manage workforce lifecycle, attendance, payroll, and core operations.</p>
+        <h1 className="text-2xl font-bold text-foreground">HR Central</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage workforce lifecycle, attendance, payroll, and core operations.</p>
       </motion.div>
 
 

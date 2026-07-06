@@ -10,20 +10,20 @@ export default function KpiCard({ data, index = 0 }: { data: KpiCardType; index?
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl hover:border-zinc-700 transition-all"
+      className="group relative overflow-hidden rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl hover:border-border transition-all"
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-zinc-400">{data.label}</p>
-          <p className="text-3xl font-bold text-white tracking-tight">{data.value}</p>
+          <p className="text-sm font-medium text-muted-foreground">{data.label}</p>
+          <p className="text-3xl font-bold text-foreground tracking-tight">{data.value}</p>
           {data.change && (
             <div className="flex items-center gap-1">
               {data.trend === 'up' && <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />}
               {data.trend === 'down' && <TrendingDown className="h-3.5 w-3.5 text-red-400" />}
-              {data.trend === 'neutral' && <Minus className="h-3.5 w-3.5 text-zinc-400" />}
+              {data.trend === 'neutral' && <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
               <span className={`text-xs font-medium ${
                 data.trend === 'up' ? 'text-emerald-400' :
-                data.trend === 'down' ? 'text-red-400' : 'text-zinc-400'
+                data.trend === 'down' ? 'text-red-400' : 'text-muted-foreground'
               }`}>
                 {data.change}
               </span>

@@ -5,7 +5,7 @@ import { Shield, Plus, Key, Lock, Users, X, CheckSquare, Square } from 'lucide-r
 
 const MOCK_ROLES = [
   { id: 1, name: 'Administrator', users: 4, permissions: ['Manage Employees', 'System Config', 'Manage Roles', 'Analytics'] },
-  { id: 2, name: 'HR Manager', users: 12, permissions: ['Manage Employees', 'Payroll', 'Reports', 'Leave Approvals'] },
+  { id: 2, name: 'HR', users: 12, permissions: ['Manage Employees', 'Payroll', 'Reports', 'Leave Approvals'] },
   { id: 3, name: 'Team Manager', users: 84, permissions: ['View Team', 'Approve Leave', 'Performance Reviews'] },
   { id: 4, name: 'Employee', users: 1147, permissions: ['View Profile', 'Apply Leave', 'View Payslips'] },
 ];

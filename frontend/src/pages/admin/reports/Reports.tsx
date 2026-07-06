@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { exportDashboardPdf } from '../../../utils/exportPdf';
@@ -7,7 +7,7 @@ import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import PieChartCard from '../../../components/charts/PieChartCard';
 import {
-  FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck, Brain, X, Filter,
+  FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck, Brain,
   UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle, Activity
 } from 'lucide-react';
 
@@ -150,7 +150,7 @@ const REPORT_DATA: Record<string, {
 export default function Reports() {
   const { isDark } = useTheme();
   const location = useLocation();
-  const [generatingReport, setGeneratingReport] = useState<any>(null);
+  const navigate = useNavigate();
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -166,10 +166,18 @@ export default function Reports() {
   };
 
   const filteredReportId = pathMap[subPath];
+  const isSingleReportMode = !!filteredReportId;
+  
+  const activeReport = isSingleReportMode ? REPORT_TYPES.find(r => r.id === filteredReportId) : null;
+  const reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
 
-  const visibleReports = filteredReportId 
-    ? REPORT_TYPES.filter(r => r.id === filteredReportId)
-    : REPORT_TYPES;
+  const reversePathMap: Record<string, string> = {
+    emp: 'employees',
+    pay: 'payroll',
+    att: 'attendance',
+    perf: 'performance',
+    ai: 'ai'
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -183,14 +191,11 @@ export default function Reports() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
   };
-
-  const report = generatingReport ? REPORT_DATA[generatingReport.id] : null;
-
   const handleExportPDF = async () => {
-    if (!reportContentRef.current || exporting) return;
+    if (!reportContentRef.current || exporting || !activeReport) return;
     setExporting(true);
     try {
-      await exportDashboardPdf(reportContentRef.current, `${generatingReport.id}-report`);
+      await exportDashboardPdf(reportContentRef.current, `${activeReport.id}-report`);
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
@@ -232,115 +237,86 @@ export default function Reports() {
               <span className="text-xs font-bold uppercase tracking-wider">Analytics</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
-              Enterprise Reports
+              {isSingleReportMode && activeReport ? activeReport.name : 'Enterprise Reports'}
             </h1>
             <p className={`text-base sm:text-lg max-w-2xl font-medium ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
-              Generate, schedule, and export comprehensive operational insights across your organization.
+              {isSingleReportMode && activeReport ? activeReport.desc : 'Generate, schedule, and export comprehensive operational insights across your organization.'}
             </p>
           </div>
         </motion.div>
 
         {/* Reports Grid */}
-        <div className="pt-4">
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"
-          >
-            {visibleReports.map((report) => {
-              const Icon = report.icon;
-              return (
-                <motion.div
-                  key={report.id}
-                  variants={itemVariants}
-                  whileHover={{ y: -4, scale: 1.01 }}
-                  className={`group relative overflow-hidden flex flex-col p-6 rounded-3xl border transition-all duration-300 ${
-                    isDark 
-                      ? 'bg-[#111116]/80 border-white/5 shadow-xl shadow-black/20 hover:border-white/10 hover:shadow-2xl hover:bg-[#16161e]' 
-                      : 'bg-white border-slate-200/60 shadow-lg shadow-slate-200/40 hover:border-slate-300 hover:shadow-xl'
-                  }`}
-                >
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-transparent ${isDark ? 'to-white/[0.02]' : 'to-slate-900/[0.02]'}`} />
-                  
-                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300 ${report.bg} ${report.glow} relative z-10`}>
-                    <Icon className={`h-7 w-7 ${report.color}`} />
-                  </div>
-                  
-                  <h3 className={`text-xl font-extrabold mb-3 relative z-10 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {report.name}
-                  </h3>
-                  <p className={`text-sm font-medium mb-8 flex-1 relative z-10 leading-relaxed ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
-                    {report.desc}
-                  </p>
-                  
-                  <button 
-                    onClick={() => setGeneratingReport(report)}
-                    className={`relative z-10 w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 border mt-auto overflow-hidden group/btn ${
+        {/* Reports Grid */}
+        {!isSingleReportMode && (
+          <div className="pt-4">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"
+            >
+              {REPORT_TYPES.map((r) => {
+                const Icon = r.icon;
+                return (
+                  <motion.div
+                    key={r.id}
+                    variants={itemVariants}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    className={`group relative overflow-hidden flex flex-col p-6 rounded-3xl border transition-all duration-300 ${
                       isDark 
-                        ? 'bg-zinc-800/50 border-white/5 text-zinc-300 hover:bg-zinc-800 hover:text-white hover:border-white/10' 
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm'
+                        ? 'bg-[#111116]/80 border-white/5 shadow-xl shadow-black/20 hover:border-white/10 hover:shadow-2xl hover:bg-[#16161e]' 
+                        : 'bg-white border-slate-200/60 shadow-lg shadow-slate-200/40 hover:border-slate-300 hover:shadow-xl'
                     }`}
                   >
-                    <Download className="h-4 w-4 transition-transform group-hover/btn:-translate-y-0.5" /> 
-                    Configure & Generate
-                  </button>
-
-                  <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${report.bg}`} />
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </div>
-
-        {/* Report Preview Modal */}
-        <AnimatePresence>
-          {generatingReport && report && (
-            <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-6 overflow-y-auto">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md"
-                onClick={() => setGeneratingReport(null)}
-              />
-              <motion.div
-                ref={reportContentRef}
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className={`relative w-full max-w-5xl my-8 flex flex-col rounded-[2rem] shadow-2xl overflow-hidden ${
-                  isDark ? 'bg-[#111116] border border-white/10 shadow-black/50' : 'bg-white border border-slate-200 shadow-slate-300/50'
-                }`}
-              >
-                {/* Modal Header */}
-                <div className={`absolute top-0 left-0 w-full h-32 opacity-20 pointer-events-none ${isDark ? 'bg-gradient-to-b from-emerald-500/30 to-transparent' : 'bg-gradient-to-b from-emerald-500/20 to-transparent'}`} />
-                
-                <div className={`relative flex items-center justify-between p-6 sm:p-8 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-2xl ${isDark ? 'bg-zinc-800' : 'bg-slate-100'}`}>
-                      {generatingReport.icon ? <generatingReport.icon className={`h-6 w-6 ${generatingReport.color}`} /> : <Filter className="h-6 w-6" />}
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-transparent ${isDark ? 'to-white/[0.02]' : 'to-slate-900/[0.02]'}`} />
+                    
+                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3 duration-300 ${r.bg} ${r.glow} relative z-10`}>
+                      <Icon className={`h-7 w-7 ${r.color}`} />
                     </div>
-                    <div>
-                      <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {generatingReport.name}
-                      </h2>
-                      <p className={`text-sm font-medium ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
-                        {generatingReport.desc}
-                      </p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setGeneratingReport(null)} 
-                    className={`p-2.5 rounded-full transition-all duration-200 ${
-                      isDark ? 'hover:bg-zinc-800/80 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
+                    
+                    <h3 className={`text-xl font-extrabold mb-3 relative z-10 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {r.name}
+                    </h3>
+                    <p className={`text-sm font-medium mb-8 flex-1 relative z-10 leading-relaxed ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+                      {r.desc}
+                    </p>
+                    
+                    <button 
+                      onClick={() => navigate(reversePathMap[r.id])}
+                      className={`relative z-10 w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 border mt-auto overflow-hidden group/btn ${
+                        isDark 
+                          ? 'bg-zinc-800/50 border-white/5 text-zinc-300 hover:bg-zinc-800 hover:text-white hover:border-white/10' 
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 hover:shadow-sm'
+                      }`}
+                    >
+                      <FileText className="h-4 w-4 transition-transform group-hover/btn:-translate-y-0.5" /> 
+                      View Report
+                    </button>
+
+                    <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${r.bg}`} />
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </div>
+        )}
+
+        {/* Detailed Report View directly on page */}
+        <AnimatePresence mode="wait">
+          {isSingleReportMode && activeReport && reportData && (
+            <motion.div
+              key="report-view"
+              ref={reportContentRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className={`relative w-full my-8 flex flex-col rounded-[2rem] shadow-2xl overflow-hidden ${
+                isDark ? 'bg-[#111116] border border-white/10 shadow-black/50' : 'bg-white border border-slate-200 shadow-slate-300/50'
+              }`}
+            >
+              {/* Header Gradient */}
+              <div className={`absolute top-0 left-0 w-full h-32 opacity-20 pointer-events-none ${isDark ? 'bg-gradient-to-b from-emerald-500/30 to-transparent' : 'bg-gradient-to-b from-emerald-500/20 to-transparent'}`} />
 
                 <div className="relative overflow-y-auto max-h-[70vh] p-6 sm:p-8 space-y-8">
                   {/* Filters Section */}
@@ -389,7 +365,7 @@ export default function Reports() {
 
                   {/* KPI Cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {report.kpis.map((kpi, i) => {
+                    {reportData.kpis.map((kpi, i) => {
                       const Icon = kpi.icon;
                       return (
                         <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border ${
@@ -413,26 +389,26 @@ export default function Reports() {
 
                   {/* Chart */}
                   <div>
-                    {report.chart.type === 'bar' && (
+                    {reportData.chart.type === 'bar' && (
                       <BarChartCard
-                        title={report.chart.title}
-                        data={report.chart.data}
+                        title={reportData.chart.title}
+                        data={reportData.chart.data}
                         bars={[{ key: 'value', color: '#22c55e', label: 'Value' }]}
                         isDark={isDark}
                       />
                     )}
-                    {report.chart.type === 'area' && (
+                    {reportData.chart.type === 'area' && (
                       <AreaChartCard
-                        title={report.chart.title}
-                        data={report.chart.data}
+                        title={reportData.chart.title}
+                        data={reportData.chart.data}
                         areas={[{ key: 'value', color: '#22c55e', label: 'Value' }]}
                         isDark={isDark}
                       />
                     )}
-                    {report.chart.type === 'pie' && (
+                    {reportData.chart.type === 'pie' && (
                       <PieChartCard
-                        title={report.chart.title}
-                        data={report.chart.data}
+                        title={reportData.chart.title}
+                        data={reportData.chart.data}
                         isDark={isDark}
                       />
                     )}
@@ -442,14 +418,14 @@ export default function Reports() {
                   <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
                     <div className={`px-6 py-4 border-b ${isDark ? 'border-white/5 bg-zinc-900/50' : 'border-slate-100 bg-slate-50/50'}`}>
                       <h3 className={`text-sm font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {generatingReport.name} — Detailed Breakdown
+                        {activeReport.name} — Detailed Breakdown
                       </h3>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className={`${isDark ? 'border-b border-white/5' : 'border-b border-slate-100'}`}>
-                            {report.tableHeaders.map((header, i) => (
+                            {reportData.tableHeaders.map((header, i) => (
                               <th key={i} className={`px-6 py-3.5 text-left text-xs font-black uppercase tracking-wider ${
                                 isDark ? 'text-zinc-500' : 'text-slate-500'
                               }`}>
@@ -459,7 +435,7 @@ export default function Reports() {
                           </tr>
                         </thead>
                         <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                          {report.tableRows.map((row, i) => (
+                          {reportData.tableRows.map((row, i) => (
                             <tr key={i} className={`transition-colors ${
                               isDark ? 'hover:bg-zinc-900/50' : 'hover:bg-slate-50'
                             }`}>
@@ -485,10 +461,10 @@ export default function Reports() {
                     Data as of {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => setGeneratingReport(null)} className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${
+                    <button onClick={() => navigate('..', { relative: 'path' })} className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${
                       isDark ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                     }`}>
-                      Cancel
+                      Back to Reports
                     </button>
                     <button
                       onClick={handleExportPDF}
@@ -506,7 +482,6 @@ export default function Reports() {
                   </div>
                 </div>
               </motion.div>
-            </div>
           )}
         </AnimatePresence>
 

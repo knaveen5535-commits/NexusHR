@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
-  Users, Calendar, FileText, TrendingUp, CheckCircle, XCircle,
+  Users, FileText, CheckCircle, XCircle,
   Brain, AlertTriangle, Target, UserPlus, Star
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
@@ -79,8 +79,8 @@ function TeamTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-white">Team Roster</h3>
-        <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors">
+        <h3 className="text-lg font-semibold text-foreground">Team Roster</h3>
+        <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-foreground text-sm font-medium hover:bg-blue-500 transition-colors">
           <UserPlus size={16} />
           Assign Tasks
         </button>
@@ -88,10 +88,10 @@ function TeamTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {teamMembers.map((member, i) => (
-          <div key={i} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl hover:border-zinc-700 transition-colors">
+          <div key={i} className="p-4 rounded-xl border border-border bg-card/50 backdrop-blur-xl hover:border-border transition-colors">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center">
-                <Users size={20} className="text-white" />
+                <Users size={20} className="text-foreground" />
               </div>
               <span className={`px-2 py-1 text-xs rounded-full border ${
                 member.status === 'Online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -101,18 +101,18 @@ function TeamTab() {
                 {member.status}
               </span>
             </div>
-            <h4 className="text-base font-semibold text-white">{member.name}</h4>
-            <p className="text-sm text-zinc-400 mb-4">{member.role}</p>
-            <div className="flex justify-between items-center pt-4 border-t border-zinc-800/50">
+            <h4 className="text-base font-semibold text-foreground">{member.name}</h4>
+            <p className="text-sm text-muted-foreground mb-4">{member.role}</p>
+            <div className="flex justify-between items-center pt-4 border-t border-border/50">
               <div className="text-center">
-                <p className="text-xs text-zinc-500">Tasks</p>
-                <p className="text-sm text-white font-medium">{member.tasks}</p>
+                <p className="text-xs text-muted-foreground">Tasks</p>
+                <p className="text-sm text-foreground font-medium">{member.tasks}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-zinc-500">Rating</p>
+                <p className="text-xs text-muted-foreground">Rating</p>
                 <div className="flex items-center gap-1">
                   <Star size={12} className="text-amber-400 fill-amber-400" />
-                  <p className="text-sm text-white font-medium">{member.rating}</p>
+                  <p className="text-sm text-foreground font-medium">{member.rating}</p>
                 </div>
               </div>
             </div>
@@ -126,18 +126,18 @@ function TeamTab() {
 function LeaveTab() {
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-        <h3 className="text-lg font-semibold text-white mb-6">Pending Leave Requests</h3>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-6">Pending Leave Requests</h3>
         <div className="space-y-4">
           {pendingApprovals.map((leave) => (
-            <div key={leave.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-zinc-800/30 border border-zinc-800 gap-4">
+            <div key={leave.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-muted border border-border gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
                   <FileText size={18} className="text-blue-400" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-white">{leave.employee}</h4>
-                  <p className="text-xs text-zinc-400">{leave.type} • {leave.dates} ({leave.days} days)</p>
+                  <h4 className="text-sm font-medium text-foreground">{leave.employee}</h4>
+                  <p className="text-xs text-muted-foreground">{leave.type} • {leave.dates} ({leave.days} days)</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -159,8 +159,8 @@ function LeaveTab() {
 function PerformanceTab() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-        <h3 className="text-sm font-semibold text-white mb-6">Team KPIs (Q3)</h3>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-sm font-semibold text-foreground mb-6">Team KPIs (Q3)</h3>
         <div className="space-y-5">
           {[
             { metric: 'Feature Deliveries', value: '85%', target: '90%', color: 'blue' },
@@ -169,10 +169,10 @@ function PerformanceTab() {
           ].map((kpi, i) => (
             <div key={i}>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-zinc-300">{kpi.metric}</span>
-                <span className="text-white font-medium">{kpi.value} <span className="text-zinc-500 text-xs">/ {kpi.target}</span></span>
+                <span className="text-foreground">{kpi.metric}</span>
+                <span className="text-foreground font-medium">{kpi.value} <span className="text-muted-foreground text-xs">/ {kpi.target}</span></span>
               </div>
-              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 bg-${kpi.color}-500`} 
                   style={{ width: '85%' }} 
@@ -183,48 +183,23 @@ function PerformanceTab() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-        <h3 className="text-sm font-semibold text-white mb-6">Quarterly Reviews Actionable</h3>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-sm font-semibold text-foreground mb-6">Quarterly Reviews Actionable</h3>
         <div className="space-y-4">
           {[
             { name: 'Carol Davis', status: 'Needs Review', due: 'In 2 days' },
             { name: 'Bob Kim', status: 'In Progress', due: 'In 5 days' },
           ].map((review, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
               <div>
-                <p className="text-sm font-medium text-white">{review.name}</p>
+                <p className="text-sm font-medium text-foreground">{review.name}</p>
                 <p className="text-xs text-amber-400 mt-0.5">Due: {review.due}</p>
               </div>
-              <button className="px-3 py-1.5 rounded-md bg-zinc-800 text-white text-xs hover:bg-zinc-700 transition-colors">
+              <button className="px-3 py-1.5 rounded-md bg-secondary text-foreground text-xs hover:bg-secondary transition-colors">
                 Start Review
               </button>
             </div>
           ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ReportsTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex flex-col items-center justify-center text-center hover:bg-zinc-800/50 transition-colors cursor-pointer group">
-          <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Calendar size={28} className="text-blue-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">Team Attendance Report</h3>
-          <p className="text-sm text-zinc-400 mt-2 max-w-xs">Detailed view of team attendance, late logins, and overtime tracking.</p>
-          <button className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors">Generate Report</button>
-        </div>
-        <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex flex-col items-center justify-center text-center hover:bg-zinc-800/50 transition-colors cursor-pointer group">
-          <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <TrendingUp size={28} className="text-purple-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">Team Performance Report</h3>
-          <p className="text-sm text-zinc-400 mt-2 max-w-xs">Comprehensive review of team KPIs, goal completions, and ratings.</p>
-          <button className="mt-4 px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-500 transition-colors">Generate Report</button>
         </div>
       </div>
     </div>
@@ -240,7 +215,7 @@ function AIInsightsTab() {
             <AlertTriangle size={24} className="text-red-400" />
             <h3 className="text-lg font-semibold text-red-400">Attrition Prediction</h3>
           </div>
-          <p className="text-sm text-zinc-300 mb-4">AI models indicate a <span className="text-red-400 font-bold">High Risk</span> of attrition for <span className="text-white font-medium">Carol Davis</span> due to prolonged stagnation in the current role and recent overtime patterns.</p>
+          <p className="text-sm text-foreground mb-4">AI models indicate a <span className="text-red-400 font-bold">High Risk</span> of attrition for <span className="text-foreground font-medium">Carol Davis</span> due to prolonged stagnation in the current role and recent overtime patterns.</p>
           <button className="w-full py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors">View Retention Strategy</button>
         </div>
 
@@ -249,7 +224,7 @@ function AIInsightsTab() {
             <Target size={24} className="text-amber-400" />
             <h3 className="text-lg font-semibold text-amber-400">Skill Gap Analysis</h3>
           </div>
-          <p className="text-sm text-zinc-300 mb-4">The team is lacking proficiency in <span className="text-amber-400 font-medium">Next.js 14 App Router</span>. Recommending targeted upskilling for the frontend sub-team.</p>
+          <p className="text-sm text-foreground mb-4">The team is lacking proficiency in <span className="text-amber-400 font-medium">Next.js 14 App Router</span>. Recommending targeted upskilling for the frontend sub-team.</p>
           <button className="w-full py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition-colors">Assign Training Module</button>
         </div>
 
@@ -258,7 +233,7 @@ function AIInsightsTab() {
             <Brain size={24} className="text-emerald-400" />
             <h3 className="text-lg font-semibold text-emerald-400">Workload Balance</h3>
           </div>
-          <p className="text-sm text-zinc-300 mb-4">David Lee is currently handling <span className="text-emerald-400 font-medium">35% more tasks</span> than average. Consider redistributing 2 tasks to Bob Kim to balance load.</p>
+          <p className="text-sm text-foreground mb-4">David Lee is currently handling <span className="text-emerald-400 font-medium">35% more tasks</span> than average. Consider redistributing 2 tasks to Bob Kim to balance load.</p>
           <button className="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">Auto-Redistribute Tasks</button>
         </div>
       </div>
@@ -279,9 +254,8 @@ export default function ManagerDashboard() {
       case 'team': return <TeamTab />;
       case 'leave': return <LeaveTab />;
       case 'performance': return <PerformanceTab />;
-      case 'reports': return <ReportsTab />;
       case 'ai': return <AIInsightsTab />;
-      case 'attendance': return <div className="p-6 text-center text-zinc-400">Attendance tracking coming soon.</div>;
+      case 'attendance': return <div className="p-6 text-center text-muted-foreground">Attendance tracking coming soon.</div>;
       default: return <OverviewTab />;
     }
   };
@@ -289,8 +263,8 @@ export default function ManagerDashboard() {
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white">Manager Workspace</h1>
-        <p className="text-zinc-400 text-sm mt-1">Oversee team performance, approvals, and AI insights.</p>
+        <h1 className="text-2xl font-bold text-foreground">Manager Workspace</h1>
+        <p className="text-muted-foreground text-sm mt-1">Oversee team performance, approvals, and AI insights.</p>
       </motion.div>
 
 

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { useThemeStore } from './hooks/useTheme';
 import Login from './pages/auth/Login';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
@@ -20,10 +22,19 @@ import SystemSettings from './pages/admin/settings/SystemSettings';
 
 const queryClient = new QueryClient();
 
+function ThemeSync() {
+  const theme = useThemeStore((s) => s.theme);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ThemeSync />
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
@@ -70,6 +81,7 @@ export default function App() {
             <Route path="payroll" element={<HrDashboard />} />
             <Route path="performance" element={<HrDashboard />} />
             <Route path="onboarding" element={<HrDashboard />} />
+            <Route path="reports/*" element={<Reports />} />
             <Route
               path="employees"
               element={
@@ -95,7 +107,7 @@ export default function App() {
             <Route path="attendance" element={<ManagerDashboard />} />
             <Route path="performance" element={<ManagerDashboard />} />
             <Route path="leave-approvals" element={<ManagerDashboard />} />
-            <Route path="reports" element={<ManagerDashboard />} />
+            <Route path="reports/*" element={<Reports />} />
             <Route
               path="team"
               element={
