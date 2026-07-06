@@ -65,6 +65,11 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<HrDashboard />} />
+            <Route path="attendance" element={<HrDashboard />} />
+            <Route path="leave" element={<HrDashboard />} />
+            <Route path="payroll" element={<HrDashboard />} />
+            <Route path="performance" element={<HrDashboard />} />
+            <Route path="onboarding" element={<HrDashboard />} />
             <Route
               path="employees"
               element={
@@ -87,6 +92,10 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ManagerDashboard />} />
+            <Route path="attendance" element={<ManagerDashboard />} />
+            <Route path="performance" element={<ManagerDashboard />} />
+            <Route path="leave-approvals" element={<ManagerDashboard />} />
+            <Route path="reports" element={<ManagerDashboard />} />
             <Route
               path="team"
               element={
@@ -109,6 +118,11 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<EmployeeDashboard />} />
+            <Route path="profile" element={<EmployeeDashboard />} />
+            <Route path="attendance" element={<EmployeeDashboard />} />
+            <Route path="leave" element={<EmployeeDashboard />} />
+            <Route path="payroll" element={<EmployeeDashboard />} />
+            <Route path="performance" element={<EmployeeDashboard />} />
             <Route path="ai-assistant" element={<AiAssistant />} />
           </Route>
 

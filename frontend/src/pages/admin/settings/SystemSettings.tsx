@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
-import { Settings, Building2, Calendar, FileText, DollarSign, Bell, ChevronRight, X, Check } from 'lucide-react';
+import { Settings, Building2, Calendar, FileText, DollarSign, Bell, ChevronRight, X } from 'lucide-react';
 
 const SETTING_MODULES = [
   { id: 'profile', name: 'Company Profile', desc: 'Manage legal entity details and branding.', icon: Building2 },

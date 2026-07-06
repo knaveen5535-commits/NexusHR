@@ -2,14 +2,13 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
-  MoreHorizontal, Mail, Phone, Calendar, CheckSquare,
-  Square, UserPlus, ArrowUpDown, X, Edit2, Trash2, Shield,
+  Mail, Phone, Calendar, CheckSquare,
+  Square, UserPlus, ArrowUpDown, X, Edit2, Trash2,
   Building, UserCheck, PowerOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
 import type { Employee } from '../../../types';
-import { useRole } from '../../../hooks/useRole';
 import { useTheme } from '../../../hooks/useTheme';
 
 const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
@@ -62,7 +61,6 @@ function exportCSV(employees: Employee[]) {
 }
 
 export default function EmployeeList() {
-  const { role } = useRole();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('firstName');

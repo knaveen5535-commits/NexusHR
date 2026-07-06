@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router';
 import Sidebar from '../components/common/Sidebar';
+import NotificationDialog from '../components/common/NotificationDialog';
 import { Menu, Moon, Sun, Bell } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useTheme } from '../hooks/useTheme';
@@ -9,6 +10,7 @@ import { motion } from 'framer-motion';
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const { user } = useAuthStore();
   const { isDark, toggle } = useTheme();
 
@@ -71,9 +73,12 @@ export default function DashboardLayout() {
               </motion.div>
             </button>
 
-            <button className={`relative p-2 rounded-lg transition-colors ${
-              isDark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-            }`}>
+            <button
+              onClick={() => setNotificationOpen(true)}
+              className={`relative p-2 rounded-lg transition-colors ${
+                isDark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
               <Bell className="h-5 w-5" />
               <span className={`absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ${isDark ? 'ring-zinc-950' : 'ring-white'}`} />
             </button>
@@ -91,6 +96,8 @@ export default function DashboardLayout() {
             </div>
           </div>
         </header>
+
+        <NotificationDialog isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
 
         <main className="flex-1 overflow-y-auto relative z-10">
           <Outlet />

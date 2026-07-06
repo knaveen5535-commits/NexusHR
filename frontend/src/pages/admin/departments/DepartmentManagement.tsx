@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
-import { Building, Plus, Edit2, Trash2, UserPlus, Search, X, Check } from 'lucide-react';
+import { Building, Plus, Edit2, Trash2, UserPlus, Search, X } from 'lucide-react';
 
 const MOCK_DEPARTMENTS = [
   { id: 1, name: 'Engineering', head: 'John Doe', count: 142, budget: '$1.2M' },

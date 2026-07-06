@@ -1,12 +1,17 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router';
+import { 
+  Users, Calendar, FileText, TrendingUp, CheckCircle, XCircle,
+  Brain, AlertTriangle, Target, UserPlus, Star
+} from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
-import AreaChartCard from '../../../components/charts/AreaChartCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
+import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 
 const kpiData: KpiCardType[] = [
   { label: 'Team Members', value: '12', change: '+1 this month', trend: 'up', icon: 'Users', color: 'blue-500' },
-  { label: 'Attendance Rate', value: '96.2%', change: '+1.5%', trend: 'up', icon: 'Calendar', color: 'emerald-500' },
+  { label: 'Team Attendance', value: '96.2%', change: '+1.5%', trend: 'up', icon: 'Calendar', color: 'emerald-500' },
   { label: 'Pending Approvals', value: '5', change: '3 urgent', trend: 'down', icon: 'FileText', color: 'amber-500' },
   { label: 'Team Performance', value: '4.6', change: '+0.3 this quarter', trend: 'up', icon: 'TrendingUp', color: 'purple-500' },
 ];
@@ -27,20 +32,24 @@ const teamPerformance = [
   { name: 'Eva M.', value: 4.6 },
 ];
 
-const pendingApprovals = [
-  { employee: 'Alice Wang', type: 'Annual Leave', days: 3, status: 'pending' },
-  { employee: 'David Lee', type: 'Sick Leave', days: 1, status: 'pending' },
-  { employee: 'Eva Martinez', type: 'Personal Leave', days: 2, status: 'pending' },
+const teamMembers = [
+  { name: 'Alice Wang', role: 'Frontend Developer', status: 'Online', tasks: 5, rating: 4.8 },
+  { name: 'Bob Kim', role: 'Backend Developer', status: 'On Leave', tasks: 0, rating: 4.5 },
+  { name: 'Carol Davis', role: 'UX Designer', status: 'In Meeting', tasks: 2, rating: 4.2 },
+  { name: 'David Lee', role: 'DevOps Engineer', status: 'Online', tasks: 8, rating: 4.9 },
 ];
 
-export default function ManagerDashboard() {
-  return (
-    <div className="p-4 sm:p-8 space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white">Manager Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-1">Team overview and performance tracking</p>
-      </motion.div>
+const pendingApprovals = [
+  { id: 1, employee: 'Alice Wang', type: 'Annual Leave', dates: 'Aug 12 - Aug 15', days: 4, status: 'pending' },
+  { id: 2, employee: 'David Lee', type: 'Sick Leave', dates: 'Jul 28', days: 1, status: 'pending' },
+  { id: 3, employee: 'Eva Martinez', type: 'Personal Leave', dates: 'Aug 02 - Aug 03', days: 2, status: 'pending' },
+];
 
+
+
+function OverviewTab() {
+  return (
+    <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiData.map((kpi, i) => (
           <KpiCard key={kpi.label} data={kpi} index={i} />
@@ -52,61 +61,251 @@ export default function ManagerDashboard() {
           title="Team Attendance (This Week)"
           data={teamAttendance}
           areas={[
-            { key: 'value', color: '#3b82f6', label: 'Present' },
-            { key: 'value2', color: '#8b5cf6', label: 'On Time' },
+            { key: 'value', color: '#3b82f6', label: 'Total Present' },
+            { key: 'value2', color: '#10b981', label: 'On Time' },
           ]}
         />
         <BarChartCard
-          title="Team Performance Ratings"
+          title="Top Performers (Current Quarter)"
           data={teamPerformance}
-          bars={[{ key: 'value', color: '#10b981', label: 'Rating' }]}
+          bars={[{ key: 'value', color: '#8b5cf6', label: 'Rating' }]}
         />
       </div>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">Pending Approvals</h3>
-            <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded-md">5 pending</span>
+function TeamTab() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-white">Team Roster</h3>
+        <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors">
+          <UserPlus size={16} />
+          Assign Tasks
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {teamMembers.map((member, i) => (
+          <div key={i} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl hover:border-zinc-700 transition-colors">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center">
+                <Users size={20} className="text-white" />
+              </div>
+              <span className={`px-2 py-1 text-xs rounded-full border ${
+                member.status === 'Online' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                member.status === 'On Leave' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }`}>
+                {member.status}
+              </span>
+            </div>
+            <h4 className="text-base font-semibold text-white">{member.name}</h4>
+            <p className="text-sm text-zinc-400 mb-4">{member.role}</p>
+            <div className="flex justify-between items-center pt-4 border-t border-zinc-800/50">
+              <div className="text-center">
+                <p className="text-xs text-zinc-500">Tasks</p>
+                <p className="text-sm text-white font-medium">{member.tasks}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-zinc-500">Rating</p>
+                <div className="flex items-center gap-1">
+                  <Star size={12} className="text-amber-400 fill-amber-400" />
+                  <p className="text-sm text-white font-medium">{member.rating}</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="space-y-3">
-            {pendingApprovals.map((approval, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LeaveTab() {
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-white mb-6">Pending Leave Requests</h3>
+        <div className="space-y-4">
+          {pendingApprovals.map((leave) => (
+            <div key={leave.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-zinc-800/30 border border-zinc-800 gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
+                  <FileText size={18} className="text-blue-400" />
+                </div>
                 <div>
-                    <p className="text-sm font-medium text-white">{approval.employee}</p>
-                    <p className="text-xs text-zinc-400">{approval.type} - {approval.days} days</p>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors">Approve</button>
-                  <button className="px-3 py-1 rounded-md bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors">Reject</button>
+                  <h4 className="text-sm font-medium text-white">{leave.employee}</h4>
+                  <p className="text-xs text-zinc-400">{leave.type} • {leave.dates} ({leave.days} days)</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-white mb-4">Team Productivity Insights</h3>
-          <div className="space-y-4">
-            {[
-              { metric: 'Avg Tasks Completed', value: '38/42', progress: 90 },
-              { metric: 'On-time Delivery', value: '95%', progress: 95 },
-              { metric: 'Team Satisfaction', value: '4.2/5', progress: 84 },
-              { metric: 'Goal Achievement', value: '78%', progress: 78 },
-            ].map((item) => (
-              <div key={item.metric}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-zinc-400">{item.metric}</span>
-                  <span className="text-white font-medium">{item.value}</span>
-                </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500" style={{ width: `${item.progress}%` }} />
-                </div>
+              <div className="flex gap-2">
+                <button className="flex items-center gap-1 px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
+                  <CheckCircle size={16} /> Approve
+                </button>
+                <button className="flex items-center gap-1 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">
+                  <XCircle size={16} /> Reject
+                </button>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PerformanceTab() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+        <h3 className="text-sm font-semibold text-white mb-6">Team KPIs (Q3)</h3>
+        <div className="space-y-5">
+          {[
+            { metric: 'Feature Deliveries', value: '85%', target: '90%', color: 'blue' },
+            { metric: 'Code Quality (Bugs/PR)', value: '1.2', target: '< 2.0', color: 'emerald' },
+            { metric: 'Sprint Velocity', value: '42 pts', target: '40 pts', color: 'purple' },
+          ].map((kpi, i) => (
+            <div key={i}>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-zinc-300">{kpi.metric}</span>
+                <span className="text-white font-medium">{kpi.value} <span className="text-zinc-500 text-xs">/ {kpi.target}</span></span>
+              </div>
+              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 bg-${kpi.color}-500`} 
+                  style={{ width: '85%' }} 
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-xl">
+        <h3 className="text-sm font-semibold text-white mb-6">Quarterly Reviews Actionable</h3>
+        <div className="space-y-4">
+          {[
+            { name: 'Carol Davis', status: 'Needs Review', due: 'In 2 days' },
+            { name: 'Bob Kim', status: 'In Progress', due: 'In 5 days' },
+          ].map((review, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+              <div>
+                <p className="text-sm font-medium text-white">{review.name}</p>
+                <p className="text-xs text-amber-400 mt-0.5">Due: {review.due}</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-md bg-zinc-800 text-white text-xs hover:bg-zinc-700 transition-colors">
+                Start Review
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportsTab() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex flex-col items-center justify-center text-center hover:bg-zinc-800/50 transition-colors cursor-pointer group">
+          <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Calendar size={28} className="text-blue-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Team Attendance Report</h3>
+          <p className="text-sm text-zinc-400 mt-2 max-w-xs">Detailed view of team attendance, late logins, and overtime tracking.</p>
+          <button className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors">Generate Report</button>
+        </div>
+        <div className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl flex flex-col items-center justify-center text-center hover:bg-zinc-800/50 transition-colors cursor-pointer group">
+          <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <TrendingUp size={28} className="text-purple-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Team Performance Report</h3>
+          <p className="text-sm text-zinc-400 mt-2 max-w-xs">Comprehensive review of team KPIs, goal completions, and ratings.</p>
+          <button className="mt-4 px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-500 transition-colors">Generate Report</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIInsightsTab() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="p-6 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle size={24} className="text-red-400" />
+            <h3 className="text-lg font-semibold text-red-400">Attrition Prediction</h3>
+          </div>
+          <p className="text-sm text-zinc-300 mb-4">AI models indicate a <span className="text-red-400 font-bold">High Risk</span> of attrition for <span className="text-white font-medium">Carol Davis</span> due to prolonged stagnation in the current role and recent overtime patterns.</p>
+          <button className="w-full py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors">View Retention Strategy</button>
+        </div>
+
+        <div className="p-6 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Target size={24} className="text-amber-400" />
+            <h3 className="text-lg font-semibold text-amber-400">Skill Gap Analysis</h3>
+          </div>
+          <p className="text-sm text-zinc-300 mb-4">The team is lacking proficiency in <span className="text-amber-400 font-medium">Next.js 14 App Router</span>. Recommending targeted upskilling for the frontend sub-team.</p>
+          <button className="w-full py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition-colors">Assign Training Module</button>
+        </div>
+
+        <div className="p-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Brain size={24} className="text-emerald-400" />
+            <h3 className="text-lg font-semibold text-emerald-400">Workload Balance</h3>
+          </div>
+          <p className="text-sm text-zinc-300 mb-4">David Lee is currently handling <span className="text-emerald-400 font-medium">35% more tasks</span> than average. Consider redistributing 2 tasks to Bob Kim to balance load.</p>
+          <button className="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">Auto-Redistribute Tasks</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ManagerDashboard() {
+  const location = useLocation();
+  const currentPath = location.pathname.split('/').pop();
+  let activeTab = currentPath === 'dashboard' ? 'overview' : currentPath || 'overview';
+  
+  if (activeTab === 'leave-approvals') activeTab = 'leave';
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview': return <OverviewTab />;
+      case 'team': return <TeamTab />;
+      case 'leave': return <LeaveTab />;
+      case 'performance': return <PerformanceTab />;
+      case 'reports': return <ReportsTab />;
+      case 'ai': return <AIInsightsTab />;
+      case 'attendance': return <div className="p-6 text-center text-zinc-400">Attendance tracking coming soon.</div>;
+      default: return <OverviewTab />;
+    }
+  };
+
+  return (
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-2xl font-bold text-white">Manager Workspace</h1>
+        <p className="text-zinc-400 text-sm mt-1">Oversee team performance, approvals, and AI insights.</p>
+      </motion.div>
+
+
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {renderTabContent()}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
