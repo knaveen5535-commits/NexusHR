@@ -11,4 +11,8 @@ public class DepartmentResponse {
     private Long id;
     private String departmentName;
     private String budget;
+    private Long departmentHeadId;
+    private String head;
+    private Long count;
 }
+// trigger recompile

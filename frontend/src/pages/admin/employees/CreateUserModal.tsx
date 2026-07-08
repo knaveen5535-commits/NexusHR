@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { createEmployee, getManagers, type EmployeeBasic } from '../../../services/employee.service';
+import { createEmployee, getManagersByDepartment, type EmployeeBasic } from '../../../services/employee.service';
 import { getDepartments, type Department } from '../../../services/department.service';
 import { getDesignations, type Designation } from '../../../services/designation.service';
 import { useTheme } from '../../../hooks/useTheme';
@@ -35,7 +35,6 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   useEffect(() => {
     if (isOpen) {
       getDepartments().then(setDepartments).catch(console.error);
-      getManagers().then(setManagers).catch(console.error);
     }
   }, [isOpen]);
 
@@ -50,6 +49,15 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
           setFormData(prev => ({ ...prev, designationId: '' }));
         }
       }).catch(console.error);
+      
+      if (formData.role === 'EMPLOYEE') {
+        getManagersByDepartment(Number(formData.departmentId)).then(setManagers).catch(console.error);
+      } else {
+        setManagers([]);
+      }
+    } else {
+      setDesignations([]);
+      setManagers([]);
     }
   }, [formData.departmentId, formData.role]);
 
@@ -60,12 +68,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
       const next = { ...prev, [name]: value };
 
       if (name === 'role') {
+        next.managerId = '';
         if (value === 'HR') {
           const hrDept = departments.find(d => d.departmentName.toLowerCase().includes('human resources') || d.departmentName.toLowerCase().includes('hr'));
           if (hrDept) next.departmentId = hrDept.id.toString();
-          next.managerId = '';
-        } else if (value === 'MANAGER') {
-          next.managerId = '';
+        } else if (value === 'ADMIN') {
+           // Admin might not strictly need a department but required by entity, keep whatever is selected
         }
       }
 
@@ -173,6 +181,7 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                     <option value="EMPLOYEE">Employee</option>
                     <option value="HR">HR</option>
                     <option value="MANAGER">Manager</option>
+                    <option value="ADMIN">Admin</option>
                   </select>
                 </div>
 

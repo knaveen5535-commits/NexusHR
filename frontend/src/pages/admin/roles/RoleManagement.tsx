@@ -1,14 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { Shield, Plus, Key, Lock, Users, X, CheckSquare, Square } from 'lucide-react';
+import { getEmployees } from '../../../services/employee.service';
 
-const MOCK_ROLES = [
-  { id: 1, name: 'Administrator', users: 4, permissions: ['Manage Employees', 'System Config', 'Manage Roles', 'Analytics'] },
-  { id: 2, name: 'HR', users: 12, permissions: ['Manage Employees', 'Payroll', 'Reports', 'Leave Approvals'] },
-  { id: 3, name: 'Team Manager', users: 84, permissions: ['View Team', 'Approve Leave', 'Performance Reviews'] },
-  { id: 4, name: 'Employee', users: 1147, permissions: ['View Profile', 'Apply Leave', 'View Payslips'] },
-];
+// Removed MOCK_ROLES in favor of live data from getEmployees()
 
 const ALL_PERMISSIONS = [
   'Manage Employees', 'System Config', 'Manage Roles', 'Analytics',
@@ -23,6 +19,33 @@ export default function RoleManagement() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [managingPermsRole, setManagingPermsRole] = useState<any>(null);
   const [viewingUsersRole, setViewingUsersRole] = useState<any>(null);
+
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getEmployees().then(data => {
+      setEmployees(data);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setIsLoading(false);
+    });
+  }, []);
+
+  const rolesData = [
+    { id: 1, name: 'Administrator', key: 'admin', permissions: ['Manage Employees', 'System Config', 'Manage Roles', 'Analytics'] },
+    { id: 2, name: 'HR', key: 'hr', permissions: ['Manage Employees', 'Payroll', 'Reports', 'Leave Approvals'] },
+    { id: 3, name: 'Team Manager', key: 'manager', permissions: ['View Team', 'Approve Leave', 'Performance Reviews'] },
+    { id: 4, name: 'Employee', key: 'employee', permissions: ['View Profile', 'Apply Leave', 'View Payslips'] },
+  ].map(role => {
+    const roleUsers = employees.filter(e => e.role?.toLowerCase() === role.key.toLowerCase() || (e.role?.toLowerCase() === 'administrator' && role.key === 'admin'));
+    return {
+      ...role,
+      users: roleUsers.length,
+      userList: roleUsers
+    };
+  });
 
   const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
     <AnimatePresence>
@@ -84,7 +107,9 @@ export default function RoleManagement() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {MOCK_ROLES.map((role, i) => (
+          {isLoading ? (
+            <div className="col-span-2 text-center py-12 text-zinc-500">Loading roles...</div>
+          ) : rolesData.map((role, i) => (
             <motion.div
               key={role.id}
               initial={{ opacity: 0, y: 20 }}
@@ -210,31 +235,25 @@ export default function RoleManagement() {
         {/* View Users Modal */}
         <ModalWrapper isOpen={!!viewingUsersRole} onClose={() => setViewingUsersRole(null)} title={`Users with ${viewingUsersRole?.name} Role`}>
           <div className="space-y-3">
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>JD</div>
-                <div>
-                  <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>John Doe</p>
-                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>john@nexushr.com</p>
+            {viewingUsersRole?.userList?.map((u: any, idx: number) => (
+              <div key={idx} className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
+                    {u.firstName?.[0]}{u.lastName?.[0]}
+                  </div>
+                  <div>
+                    <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{u.firstName} {u.lastName}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{u.email}</p>
+                  </div>
                 </div>
+                <button className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
+                  Revoke Role
+                </button>
               </div>
-              <button className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
-                Revoke Role
-              </button>
-            </div>
-            {/* Dummy user 2 */}
-            <div className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs ${isDark ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>SS</div>
-                <div>
-                  <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Sarah Smith</p>
-                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>sarah@nexushr.com</p>
-                </div>
-              </div>
-              <button className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
-                Revoke Role
-              </button>
-            </div>
+            ))}
+            {viewingUsersRole?.userList?.length === 0 && (
+              <p className="text-center py-4 text-zinc-500 text-sm">No users found in this role.</p>
+            )}
             
             <button className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border border-dashed transition-colors ${
               isDark ? 'border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-900'

@@ -9,4 +9,5 @@ public class CreateDepartmentRequest {
     private String departmentName;
 
     private String budget;
+    private Long departmentHeadId;
 }

@@ -74,18 +74,27 @@ public class EmployeeController {
         );
     }
 
-    @GetMapping("/manager/{managerId}/team")
+    @GetMapping("/manager/team")
     public ResponseEntity<List<EmployeeResponse>>
-    getTeamMembers(
-            @PathVariable Long managerId) {
-
+    getTeamMembers(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
         return ResponseEntity.ok(
-                employeeService.getTeamMembers(managerId)
+                employeeService.getTeamMembers(authHeader)
         );
     }
 
     @GetMapping("/managers")
     public ResponseEntity<List<EmployeeBasicResponse>> getManagers() {
         return ResponseEntity.ok(employeeService.getManagers());
+    }
+
+    @GetMapping("/department/{departmentId}/managers")
+    public ResponseEntity<List<EmployeeBasicResponse>> getManagersByDepartment(@PathVariable Long departmentId) {
+        return ResponseEntity.ok(employeeService.getManagersByDepartment(departmentId));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<com.nexushr.dto.DashboardStatsDTO> getDashboardStats() {
+        return ResponseEntity.ok(employeeService.getDashboardStats());
     }
 }

@@ -4,6 +4,7 @@ import Sidebar from '../components/common/Sidebar';
 import NotificationDialog from '../components/common/NotificationDialog';
 import { Menu, Moon, Sun, Bell } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { useTheme } from '../hooks/useTheme';
 import { motion } from 'framer-motion';
 
@@ -12,6 +13,7 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { user } = useAuthStore();
+  const { unreadCount } = useNotificationStore();
   const { isDark, toggle } = useTheme();
 
   return (
@@ -80,7 +82,9 @@ export default function DashboardLayout() {
               }`}
             >
               <Bell className="h-5 w-5" />
-              <span className={`absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ${isDark ? 'ring-zinc-950' : 'ring-white'}`} />
+              {unreadCount() > 0 && (
+                <span className={`absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ${isDark ? 'ring-zinc-950' : 'ring-white'}`} />
+              )}
             </button>
 
             <div className={`flex items-center gap-3 pl-4 border-l transition-colors ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>

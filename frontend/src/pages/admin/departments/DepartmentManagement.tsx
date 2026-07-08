@@ -4,7 +4,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { Building, Plus, Edit2, Trash2, UserPlus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment, type Department } from '../../../services/department.service';
-import { getManagers, type EmployeeBasic } from '../../../services/employee.service';
+import { getManagers, getManagersByDepartment, type EmployeeBasic } from '../../../services/employee.service';
 
 export default function DepartmentManagement() {
   const { isDark } = useTheme();
@@ -17,12 +17,11 @@ export default function DepartmentManagement() {
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
-  const [assigningHeadDept, setAssigningHeadDept] = useState<Department | null>(null);
   const [deletingDept, setDeletingDept] = useState<Department | null>(null);
   
   // Form State
-  const [deptForm, setDeptForm] = useState({ departmentName: '', budget: '' });
-  const [headForm, setHeadForm] = useState({ managerId: '' });
+  const [deptForm, setDeptForm] = useState({ departmentName: '', budget: '', departmentHeadId: '' as string | number });
+  const [eligibleManagers, setEligibleManagers] = useState<EmployeeBasic[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -44,16 +43,27 @@ export default function DepartmentManagement() {
   const handleSaveDept = async () => {
     if (!deptForm.departmentName) return toast.error('Department name is required');
     try {
+      const payload: any = { 
+        departmentName: deptForm.departmentName, 
+        budget: deptForm.budget 
+      };
+      
+      if (deptForm.departmentHeadId) {
+        payload.departmentHeadId = Number(deptForm.departmentHeadId);
+      } else if (deptForm.departmentHeadId === '' && editingDept?.departmentHeadId) {
+        payload.departmentHeadId = -1; // -1 to clear the head in backend
+      }
+
       if (editingDept) {
-        await updateDepartment(editingDept.id, deptForm);
+        await updateDepartment(editingDept.id, payload);
         toast.success('Department updated successfully');
       } else {
-        await createDepartment(deptForm);
+        await createDepartment(payload);
         toast.success('Department created successfully');
       }
       setIsCreateOpen(false);
       setEditingDept(null);
-      setDeptForm({ departmentName: '', budget: '' });
+      setDeptForm({ departmentName: '', budget: '', departmentHeadId: '' });
       fetchData();
     } catch (error) {
       toast.error('Operation failed');
@@ -72,20 +82,27 @@ export default function DepartmentManagement() {
     }
   };
 
-  const handleAssignHead = async () => {
-    toast.success('Assign Head feature not fully implemented in backend yet');
-    setAssigningHeadDept(null);
-    setHeadForm({ managerId: '' });
-  };
-
   const openCreateModal = () => {
-    setDeptForm({ departmentName: '', budget: '' });
+    setDeptForm({ departmentName: '', budget: '', departmentHeadId: '' });
+    setEligibleManagers([]);
     setIsCreateOpen(true);
   };
 
-  const openEditModal = (dept: Department) => {
-    setDeptForm({ departmentName: dept.departmentName, budget: dept.budget || '' });
+  const openEditModal = async (dept: Department) => {
+    setDeptForm({ 
+      departmentName: dept.departmentName, 
+      budget: dept.budget || '',
+      departmentHeadId: dept.departmentHeadId || ''
+    });
     setEditingDept(dept);
+    
+    // Fetch eligible managers for this department
+    try {
+      const mgrs = await getManagersByDepartment(dept.id);
+      setEligibleManagers(mgrs);
+    } catch (err) {
+      toast.error('Failed to load eligible managers');
+    }
   };
 
   const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
@@ -208,14 +225,6 @@ export default function DepartmentManagement() {
                 </div>
               </div>
 
-              <button 
-                onClick={() => setAssigningHeadDept(dept)}
-                className={`mt-6 w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors border ${
-                  isDark ? 'bg-zinc-800/50 border-zinc-700/50 text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <UserPlus className="h-4 w-4" /> Assign Head
-              </button>
             </motion.div>
           ))}
           {!isLoading && departments.length === 0 && (
@@ -242,32 +251,31 @@ export default function DepartmentManagement() {
                 isDark ? 'bg-zinc-900/50 border-zinc-800 text-white placeholder-zinc-500' : 'bg-white border-slate-200 text-slate-900'
               }`} placeholder="e.g. $500K" />
             </div>
+            <div>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Department Head</label>
+              <select 
+                value={deptForm.departmentHeadId} 
+                onChange={e => setDeptForm({...deptForm, departmentHeadId: e.target.value})} 
+                disabled={!editingDept}
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
+                  isDark ? 'bg-zinc-900/50 border-zinc-800 text-white disabled:opacity-50' : 'bg-white border-slate-200 text-slate-900 disabled:opacity-50'
+                }`}
+              >
+                <option value="">{editingDept && eligibleManagers.length === 0 ? 'No Manager Available' : 'Select a manager...'}</option>
+                {eligibleManagers.map(m => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                ))}
+              </select>
+              {!editingDept && (
+                <p className={`mt-1.5 text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
+                  Save department first to assign employees as managers.
+                </p>
+              )}
+            </div>
             <button onClick={handleSaveDept} className={`w-full mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${
               isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-600 hover:bg-purple-700'
             }`}>
               {editingDept ? 'Save Changes' : 'Create Department'}
-            </button>
-          </div>
-        </ModalWrapper>
-
-        {/* Assign Head Modal */}
-        <ModalWrapper isOpen={!!assigningHeadDept} onClose={() => setAssigningHeadDept(null)} title={`Assign Head to ${assigningHeadDept?.departmentName}`}>
-          <div className="space-y-4">
-            <div>
-              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Manager</label>
-              <select value={headForm.managerId} onChange={e => setHeadForm({managerId: e.target.value})} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
-                isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'
-              }`}>
-                <option value="">Select a manager...</option>
-                {managers.map(m => (
-                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
-                ))}
-              </select>
-            </div>
-            <button onClick={handleAssignHead} className={`w-full mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${
-              isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-600 hover:bg-purple-700'
-            }`}>
-              Confirm Assignment
             </button>
           </div>
         </ModalWrapper>

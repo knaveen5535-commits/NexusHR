@@ -6,4 +6,5 @@ import lombok.Data;
 public class UpdateDepartmentRequest {
     private String departmentName;
     private String budget;
+    private Long departmentHeadId;
 }

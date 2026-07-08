@@ -12,7 +12,9 @@ import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import type { Employee } from '../../../types';
 import { useTheme } from '../../../hooks/useTheme';
-import { getEmployees } from '../../../services/employee.service';
+import { getEmployees, getTeamMembers } from '../../../services/employee.service';
+import { useAuthStore } from '../../../store/authStore';
+import { useLocation } from 'react-router';
 
 const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
   id: `${i + 1}`,
@@ -64,6 +66,8 @@ function exportCSV(employees: Employee[]) {
 
 export default function EmployeeList() {
   const { isDark } = useTheme();
+  const user = useAuthStore(s => s.user);
+  const location = useLocation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -71,7 +75,7 @@ export default function EmployeeList() {
   const [sortField, setSortField] = useState<SortField>('firstName');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filters, setFilters] = useState<{ department?: string; status?: string }>({});
+  const [filters, setFilters] = useState<{ department?: string; status?: string; role?: string; designation?: string; manager?: string }>({});
   const [showFilters, setShowFilters] = useState(false);
   const perPage = 10;
 
@@ -82,10 +86,10 @@ export default function EmployeeList() {
       const q = search.toLowerCase();
       result = result.filter(
         (e) =>
-          `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
-          e.email.toLowerCase().includes(q) ||
-          e.employeeId.toLowerCase().includes(q) ||
-          e.department.toLowerCase().includes(q)
+          `${e.firstName || ''} ${e.lastName || ''}`.toLowerCase().includes(q) ||
+          (e.email || '').toLowerCase().includes(q) ||
+          (e.employeeId || '').toLowerCase().includes(q) ||
+          (e.department || '').toLowerCase().includes(q)
       );
     }
     if (filters.department) {
@@ -93,6 +97,15 @@ export default function EmployeeList() {
     }
     if (filters.status) {
       result = result.filter((e) => e.status === filters.status);
+    }
+    if (filters.role) {
+      result = result.filter((e) => e.role?.toLowerCase() === filters.role?.toLowerCase());
+    }
+    if (filters.designation) {
+      result = result.filter((e) => e.designation === filters.designation);
+    }
+    if (filters.manager) {
+      result = result.filter((e) => e.manager === filters.manager);
     }
 
     result.sort((a, b) => {
@@ -102,7 +115,7 @@ export default function EmployeeList() {
     });
 
     return result;
-  }, [search, filters, sortField, sortDir]);
+  }, [employees, search, filters, sortField, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -141,7 +154,8 @@ export default function EmployeeList() {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const data = await getEmployees();
+      const isManagerTeamView = user?.role === 'manager' && location.pathname.includes('/manager/team');
+      const data = isManagerTeamView ? await getTeamMembers() : await getEmployees();
       // Map data to match Employee interface
       const mapped = data.map((e: any) => ({
         id: String(e.id),
@@ -212,6 +226,9 @@ export default function EmployeeList() {
   );
 
   const DEPARTMENTS = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
+  const ROLES = Array.from(new Set(employees.map(e => e.role).filter(Boolean)));
+  const DESIGNATIONS = Array.from(new Set(employees.map(e => e.designation).filter(Boolean)));
+  const MANAGERS = Array.from(new Set(employees.map(e => e.manager).filter(Boolean)));
 
   return (
     <div className={`p-4 sm:p-8 space-y-6 min-h-full transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -295,7 +312,40 @@ export default function EmployeeList() {
                   {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                 </select>
               </div>
-              {(filters.department || filters.status) && (
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Role</label>
+                <select
+                  value={filters.role || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, role: e.target.value || undefined })); setPage(1); }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">All Roles</option>
+                  {ROLES.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Designation</label>
+                <select
+                  value={filters.designation || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, designation: e.target.value || undefined })); setPage(1); }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">All Designations</option>
+                  {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Manager</label>
+                <select
+                  value={filters.manager || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, manager: e.target.value || undefined })); setPage(1); }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">All Managers</option>
+                  {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              {(filters.department || filters.status || filters.role || filters.designation || filters.manager) && (
                 <div className="flex items-end">
                   <button
                     onClick={() => setFilters({})}
@@ -311,160 +361,170 @@ export default function EmployeeList() {
       </AnimatePresence>
 
       <div className={`rounded-3xl border overflow-hidden transition-all ${isDark ? 'border-white/5 bg-zinc-900/40 backdrop-blur-xl' : 'border-slate-200 bg-white/60 backdrop-blur-xl shadow-md'}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className={`border-b ${isDark ? 'border-zinc-800 bg-zinc-800/30' : 'border-slate-200 bg-slate-50'}`}>
-                <th className="px-4 py-3 w-10">
-                  <button onClick={toggleSelectAll} className="text-zinc-400 hover:text-white">
-                    {selected.size === paginated.length && paginated.length > 0
-                      ? <CheckSquare className="h-4 w-4 text-blue-400" />
-                      : <Square className="h-4 w-4" />
-                    }
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('firstName')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Employee <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase text-zinc-400">Contact</th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('department')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Department <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('designation')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Designation <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('role')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Role <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Status <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3">
-                  <button onClick={() => toggleSort('joinDate')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                    Joined <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-3 w-10" />
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-slate-200'}`}>
-              {paginated.map((emp, i) => (
-                <motion.tr
-                  key={emp.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`group transition-colors ${isDark ? 'hover:bg-zinc-800/20' : 'hover:bg-slate-50'}`}
-                >
-                  <td className="px-4 py-3">
-                    <button onClick={() => toggleSelect(emp.id)} className={`${isDark ? 'text-zinc-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
-                      {selected.has(emp.id)
+        {!isLoading && filtered.length === 0 ? (
+          <EmptyState
+            icon={<Search className="h-8 w-8 text-zinc-500" />}
+            title={search || filters.department || filters.status ? 'No employees match your filters' : (user?.role === 'manager' ? 'No Team Members Assigned' : 'No employees found')}
+            description={search || filters.department || filters.status ? 'Try adjusting your search or filter criteria.' : (user?.role === 'manager' ? 'You currently do not have any employees reporting to you.' : 'Add your first employee to get started.')}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-zinc-800 bg-zinc-800/30' : 'border-slate-200 bg-slate-50'}`}>
+                  <th className="px-4 py-3 w-10">
+                    <button onClick={toggleSelectAll} className="text-zinc-400 hover:text-white">
+                      {selected.size === paginated.length && paginated.length > 0
                         ? <CheckSquare className="h-4 w-4 text-blue-400" />
                         : <Square className="h-4 w-4" />
                       }
                     </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-                        <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                          {emp.firstName[0]}{emp.lastName[0]}
-                        </span>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('firstName')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Employee <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-xs font-medium uppercase text-zinc-400">Contact</th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('department')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Department <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('designation')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Designation <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('role')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Role <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Status <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('joinDate')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Joined <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 w-10" />
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-slate-200'}`}>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-blue-600"></div>
+                        <p className="text-zinc-500 font-medium">Loading employees...</p>
                       </div>
-                      <div>
-                        <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>
-                          {emp.firstName} {emp.lastName}
+                    </td>
+                  </tr>
+                ) : (
+                  paginated.map((emp, i) => (
+                  <motion.tr
+                    key={emp.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className={`group transition-colors ${isDark ? 'hover:bg-zinc-800/20' : 'hover:bg-slate-50'}`}
+                  >
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleSelect(emp.id)} className={`${isDark ? 'text-zinc-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>
+                        {selected.has(emp.id)
+                          ? <CheckSquare className="h-4 w-4 text-blue-400" />
+                          : <Square className="h-4 w-4" />
+                        }
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+                          <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                            {emp.firstName?.[0] || ''}{emp.lastName?.[0] || ''}
+                          </span>
+                        </div>
+                        <div>
+                          <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>
+                            {emp.firstName} {emp.lastName}
+                          </p>
+                          <p className={`text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{emp.employeeId}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-0.5">
+                        <p className="flex items-center gap-1.5 text-zinc-300">
+                          <Mail className="h-3 w-3 text-zinc-500" /> {emp.email}
                         </p>
-                        <p className={`text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{emp.employeeId}</p>
+                        <p className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                          <Phone className="h-3 w-3 text-zinc-500" /> {emp.phone || 'N/A'}
+                        </p>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="space-y-0.5">
-                      <p className="flex items-center gap-1.5 text-zinc-300">
-                        <Mail className="h-3 w-3 text-zinc-500" /> {emp.email}
-                      </p>
-                      <p className="flex items-center gap-1.5 text-zinc-400 text-xs">
-                        <Phone className="h-3 w-3 text-zinc-500" /> {emp.phone}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
-                      {emp.department}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-300">{emp.designation}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
-                      emp.role === 'admin' || emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
-                      emp.role === 'hr' || emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
-                      emp.role === 'manager' || emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
-                      'bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20'
-                    }`}>
-                      {emp.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                      emp.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
-                      emp.status === 'inactive' ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' :
-                      'bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20'
-                    }`}>
-                      {emp.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="h-3 w-3" />
-                      {emp.joinDate}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                      <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setAssigningDept(emp)} title="Assign Department" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
-                        <Building className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setAssigningMgr(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
-                        <UserCheck className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setTogglingStatus(emp)} title="Activate/Deactivate" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400' : 'hover:bg-amber-50 text-slate-500 hover:text-amber-600'}`}>
-                        <PowerOff className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filtered.length === 0 && (
-          <EmptyState
-            icon={<Search className="h-8 w-8 text-zinc-500" />}
-            title={search || filters.department || filters.status ? 'No employees match your filters' : 'No employees found'}
-            description={search || filters.department || filters.status ? 'Try adjusting your search or filter criteria.' : 'Add your first employee to get started.'}
-          />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                        {emp.department || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-300">{emp.designation}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
+                        emp.role === 'admin' || emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
+                        emp.role === 'hr' || emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
+                        emp.role === 'manager' || emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
+                        'bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20'
+                      }`}>
+                        {emp.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+                        emp.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
+                        emp.status === 'inactive' ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' :
+                        'bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20'
+                      }`}>
+                        {emp.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-400 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3" />
+                        {emp.joinDate}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                        <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setAssigningDept(emp)} title="Transfer Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
+                          <Building className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setAssigningMgr(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
+                          <UserCheck className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setTogglingStatus(emp)} title="Activate/Deactivate" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400' : 'hover:bg-amber-50 text-slate-500 hover:text-amber-600'}`}>
+                          <PowerOff className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-zinc-400">
             Showing {(page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
@@ -524,14 +584,14 @@ export default function EmployeeList() {
         }}
       />
 
-      <ModalWrapper isOpen={!!assigningDept} onClose={() => setAssigningDept(null)} title="Assign Department">
+      <ModalWrapper isOpen={!!assigningDept} onClose={() => setAssigningDept(null)} title="Transfer Employee">
         <div>
-          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Department for {assigningDept?.firstName}</label>
+          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Transfer {assigningDept?.firstName} to New Department</label>
           <select className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
             {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
           </select>
           <button onClick={() => setAssigningDept(null)} className={`w-full mt-6 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-600 hover:bg-purple-700'}`}>
-            Confirm Assignment
+            Confirm Transfer
           </button>
         </div>
       </ModalWrapper>

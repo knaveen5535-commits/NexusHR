@@ -31,14 +31,17 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final DesignationRepository designationRepository;
     private final RestTemplate restTemplate;
+    private final JwtService jwtService;
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
                            DesignationRepository designationRepository,
-                           RestTemplate restTemplate) {
+                           RestTemplate restTemplate,
+                           JwtService jwtService) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.designationRepository = designationRepository;
-        this.restTemplate=restTemplate;
+        this.restTemplate = restTemplate;
+        this.jwtService = jwtService;
     }
 
     public EmployeeResponse createEmployee(CreateEmployeeRequest request,String authHeader) {
@@ -53,6 +56,14 @@ public class EmployeeService {
                         .orElseThrow(() ->
                                 new DesignationNotFoundException("Designation not found"));
 
+        if (!designation.getDepartment().getId().equals(department.getId())) {
+            throw new IllegalArgumentException("Designation does not belong to the selected department");
+        }
+
+        if (designation.getDesignationType() != request.getRole()) {
+            throw new IllegalArgumentException("Designation does not match the selected role");
+        }
+
         Employee manager = null;
         if (request.getManagerId() != null) {
 
@@ -63,6 +74,10 @@ public class EmployeeService {
                             "Manager not found"
                     )
             );
+
+            if (!manager.getDepartment().getId().equals(department.getId())) {
+                throw new IllegalArgumentException("Manager must belong to the same department");
+            }
         }
 
         if (employeeRepository.existsByEmail(
@@ -240,6 +255,14 @@ public class EmployeeService {
                         .orElseThrow(() ->
                                 new DesignationNotFoundException("Designation not found"));
 
+        if (!designation.getDepartment().getId().equals(department.getId())) {
+            throw new IllegalArgumentException("Designation does not belong to the selected department");
+        }
+
+        if (designation.getDesignationType() != request.getRole()) {
+            throw new IllegalArgumentException("Designation does not match the selected role");
+        }
+
         if(employeeRepository.existsByEmail(request.getEmail())
                 &&
                 !employee.getEmail().equals(request.getEmail())) {
@@ -295,10 +318,20 @@ public class EmployeeService {
     }
 
     public List<EmployeeResponse> getTeamMembers(
-            Long managerId) {
+            String authHeader) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+
+        String token = authHeader.substring(7);
+        String email = jwtService.extractClaims(token).getSubject();
+
+        Employee manager = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new EmployeeNotFoundException("Logged in manager not found"));
 
         List<Employee> employees =
-                employeeRepository.findByManagerId(managerId);
+                employeeRepository.findByManagerId(manager.getId());
 
         return employees.stream()
                 .map(employee ->
@@ -322,6 +355,31 @@ public class EmployeeService {
         return managers.stream()
                 .map(emp -> new EmployeeBasicResponse(emp.getId(), emp.getFirstName(), emp.getLastName()))
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<EmployeeBasicResponse> getManagersByDepartment(Long departmentId) {
+        List<Employee> managers = employeeRepository.findByRoleAndDepartmentId(com.nexushr.enums.Role.MANAGER, departmentId);
+        return managers.stream()
+                .map(emp -> new EmployeeBasicResponse(emp.getId(), emp.getFirstName(), emp.getLastName()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public com.nexushr.dto.DashboardStatsDTO getDashboardStats() {
+        long totalEmployees = employeeRepository.count();
+        long activeEmployees = employeeRepository.countByStatus(com.nexushr.enums.EmployeeStatus.ACTIVE);
+        long departmentsCount = departmentRepository.count();
+        long managersCount = employeeRepository.countByRole(com.nexushr.enums.Role.MANAGER);
+        long hrStaffCount = employeeRepository.countByRole(com.nexushr.enums.Role.HR);
+        java.math.BigDecimal monthlyPayrollCost = employeeRepository.sumSalary();
+
+        return new com.nexushr.dto.DashboardStatsDTO(
+                totalEmployees,
+                activeEmployees,
+                departmentsCount,
+                managersCount,
+                hrStaffCount,
+                monthlyPayrollCost
+        );
     }
 
 }

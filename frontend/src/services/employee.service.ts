@@ -46,6 +46,11 @@ export const getEmployees = async (): Promise<Employee[]> => {
   return response.data;
 };
 
+export const getTeamMembers = async (): Promise<Employee[]> => {
+  const response = await api.get('/employees/manager/team');
+  return response.data;
+};
+
 export const createEmployee = async (employeeData: CreateEmployeeRequest): Promise<Employee> => {
   const response = await api.post('/employees', employeeData);
   return response.data;
@@ -58,5 +63,24 @@ export const updateEmployee = async (id: number, employeeData: UpdateEmployeeReq
 
 export const getManagers = async (): Promise<EmployeeBasic[]> => {
   const response = await api.get('/employees/managers');
+  return response.data;
+};
+
+export const getManagersByDepartment = async (departmentId: number): Promise<EmployeeBasic[]> => {
+  const response = await api.get(`/employees/department/${departmentId}/managers`);
+  return response.data;
+};
+
+export interface DashboardStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  departmentsCount: number;
+  managersCount: number;
+  hrStaffCount: number;
+  monthlyPayrollCost: number;
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const response = await api.get('/employees/dashboard');
   return response.data;
 };
