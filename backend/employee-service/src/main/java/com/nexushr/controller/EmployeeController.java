@@ -1,6 +1,7 @@
 package com.nexushr.controller;
 
 import com.nexushr.dto.CreateEmployeeRequest;
+import com.nexushr.dto.EmployeeBasicResponse;
 import com.nexushr.dto.EmployeeResponse;
 import com.nexushr.dto.UpdateEmployeeRequest;
 import com.nexushr.service.EmployeeService;
@@ -81,5 +82,10 @@ public class EmployeeController {
         return ResponseEntity.ok(
                 employeeService.getTeamMembers(managerId)
         );
+    }
+
+    @GetMapping("/managers")
+    public ResponseEntity<List<EmployeeBasicResponse>> getManagers() {
+        return ResponseEntity.ok(employeeService.getManagers());
     }
 }

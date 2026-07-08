@@ -4,6 +4,7 @@ export const adminNav: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: 'LayoutDashboard' },
   { name: 'Employee Management', href: '/admin/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
+  { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
   {
     name: 'Reports',

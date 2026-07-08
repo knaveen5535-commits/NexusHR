@@ -1,6 +1,7 @@
 package com.nexushr.dto;
 
 import com.nexushr.enums.EmployeeStatus;
+import com.nexushr.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,4 +26,6 @@ public class EmployeeResponse {
     private String designation;
 
     private EmployeeStatus status;
+
+    private Role role;
 }

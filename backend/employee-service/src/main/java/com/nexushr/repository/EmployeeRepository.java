@@ -10,4 +10,5 @@ import java.util.List;
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     boolean existsByEmail(String email);
     List<Employee> findByManagerId(Long managerId);
+    List<Employee> findByRole(com.nexushr.enums.Role role);
 }

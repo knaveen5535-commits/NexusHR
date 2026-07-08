@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Users, UserCheck, UserCog, BarChart3, CalendarCheck,
   DollarSign, TrendingUp, Sparkles, ScrollText, Settings, Calendar,
   FileText, UserPlus, FileCheck, User, ChevronDown, LogOut, X, Menu,
+  Badge, Building, Shield, Brain,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -17,6 +18,7 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard, Users, UserCheck, UserCog, BarChart3, CalendarCheck,
   DollarSign, TrendingUp, Sparkles, ScrollText, Settings, Calendar,
   FileText, UserPlus, FileCheck, User, ChevronDown, LogOut, X, Menu,
+  Badge, Building, Shield, Brain
 };
 
 interface SidebarProps {
@@ -97,7 +99,7 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
                       className="overflow-hidden"
                     >
                       <div className={`ml-5 mt-1 space-y-1 border-l pl-3 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
-                        {item.children.filter((c): c is typeof c & { href: string } => !!c.href).map((child) => {
+                        {item.children.filter((c): c is NavItem & { href: string } => !!c.href).map((child) => {
                           const ChildIcon = iconMap[child.icon] || LayoutDashboard;
                           return (
                             <Link

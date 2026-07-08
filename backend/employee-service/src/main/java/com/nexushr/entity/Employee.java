@@ -1,6 +1,7 @@
 package com.nexushr.entity;
 
 import com.nexushr.enums.EmployeeStatus;
+import com.nexushr.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -49,4 +50,7 @@ public class Employee {
     @ManyToOne
     @JoinColumn(name = "manager_id")
     private Employee manager;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router';
-import { useAuthStore, demoLogin } from '../../store/authStore';
+import { useAuthStore } from '../../store/authStore';
+import { login } from '../../services/auth.service';
+import { decodeJWT } from '../../utils/jwt';
 import { useTheme } from '../../hooks/useTheme';
 import { Shield, Users, UserCog, User, ArrowRight, Sparkles, Mail, Lock, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -103,24 +105,48 @@ export default function Login() {
     return <Navigate to={path} replace />;
   }
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) return;
+    if (!selectedRole || !email || !password) return;
     setIsLoading(true);
-    
-    // Simulate network delay for effect
-    setTimeout(() => {
-      demoLogin(selectedRole);
-      const path =
-        selectedRole === 'admin'
-          ? '/admin/dashboard'
-          : selectedRole === 'hr'
-          ? '/hr/dashboard'
-          : selectedRole === 'manager'
-          ? '/manager/dashboard'
-          : '/employee/dashboard';
-      navigate(path, { replace: true });
-    }, 800);
+
+    try {
+      const token = await login({ email, password });
+      const decodedUser = decodeJWT(token);
+      
+      if (decodedUser) {
+        // Build user object, assume role and email are in JWT payload.
+        // Fallback to selected role and entered email if claims are missing.
+        const userObj = {
+          id: decodedUser.id || '0',
+          username: decodedUser.email || email,
+          email: decodedUser.email || email,
+          role: String(decodedUser.role || selectedRole).toLowerCase() as typeof selectedRole,
+          firstName: decodedUser.firstName || 'User',
+          lastName: decodedUser.lastName || '',
+          employeeId: decodedUser.employeeId || '001',
+        };
+
+        useAuthStore.getState().setAuth(token, userObj);
+
+        const path =
+          userObj.role === 'admin'
+            ? '/admin/dashboard'
+            : userObj.role === 'hr'
+            ? '/hr/dashboard'
+            : userObj.role === 'manager'
+            ? '/manager/dashboard'
+            : '/employee/dashboard';
+        navigate(path, { replace: true });
+      } else {
+        alert('Failed to decode authentication token');
+      }
+    } catch (error) {
+      console.error('Login failed', error);
+      alert('Invalid credentials or server error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const activeRoleData = demoRoles.find(r => r.id === selectedRole);

@@ -238,4 +238,12 @@ public class AuthService {
 
         return "Password changed successfully";
     }
+
+    public String updateUserRole(UpdateUserRoleRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setRole(request.getRole());
+        userRepository.save(user);
+        return "User role updated successfully";
+    }
 }

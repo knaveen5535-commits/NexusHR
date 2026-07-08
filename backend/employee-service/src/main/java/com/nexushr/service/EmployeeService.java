@@ -2,6 +2,7 @@ package com.nexushr.service;
 
 import com.nexushr.dto.AuthRegisterRequest;
 import com.nexushr.dto.CreateEmployeeRequest;
+import com.nexushr.dto.EmployeeBasicResponse;
 import com.nexushr.dto.EmployeeResponse;
 import com.nexushr.dto.UpdateEmployeeRequest;
 import com.nexushr.entity.Department;
@@ -93,8 +94,8 @@ public class EmployeeService {
 
         employee.setDepartment(department);
         employee.setDesignation(designation);
-        employee.setManager(manager);   // added
-
+        employee.setManager(manager);
+        employee.setRole(request.getRole());
 
         /*
         String tempPassword =
@@ -168,8 +169,9 @@ public class EmployeeService {
                 savedEmployee.getLastName(),
                 savedEmployee.getEmail(),
                 savedEmployee.getDepartment().getDepartmentName(),
-                savedEmployee.getDesignation().getTitle(),
-                savedEmployee.getStatus()
+                savedEmployee.getDesignation().getDesignationName(),
+                savedEmployee.getStatus(),
+                savedEmployee.getRole()
         );
     }
 
@@ -183,8 +185,9 @@ public class EmployeeService {
                         employee.getLastName(),
                         employee.getEmail(),
                         employee.getDepartment().getDepartmentName(),
-                        employee.getDesignation().getTitle(),
-                        employee.getStatus()
+                        employee.getDesignation().getDesignationName(),
+                        employee.getStatus(),
+                        employee.getRole()
                 ))
                 .toList();
     }
@@ -202,8 +205,9 @@ public class EmployeeService {
                 employee.getLastName(),
                 employee.getEmail(),
                 employee.getDepartment().getDepartmentName(),
-                employee.getDesignation().getTitle(),
-                employee.getStatus()
+                employee.getDesignation().getDesignationName(),
+                employee.getStatus(),
+                employee.getRole()
         );
     }
 
@@ -254,8 +258,28 @@ public class EmployeeService {
         employee.setDepartment(department);
         employee.setDesignation(designation);
 
+        boolean roleChanged = employee.getRole() != request.getRole();
+        employee.setRole(request.getRole());
+
         Employee updatedEmployee =
                 employeeRepository.save(employee);
+
+        if (roleChanged) {
+            try {
+                java.util.Map<String, Object> updateRolePayload = new java.util.HashMap<>();
+                updateRolePayload.put("email", updatedEmployee.getEmail());
+                updateRolePayload.put("role", updatedEmployee.getRole().name());
+
+                restTemplate.postForObject(
+                        "http://localhost:8081/api/auth/update-role",
+                        updateRolePayload,
+                        String.class
+                );
+            } catch (Exception e) {
+                // Log exception if auth sync fails, though employee is updated
+                System.err.println("Failed to sync role to auth service: " + e.getMessage());
+            }
+        }
 
         return new EmployeeResponse(
                 updatedEmployee.getId(),
@@ -264,8 +288,9 @@ public class EmployeeService {
                 updatedEmployee.getLastName(),
                 updatedEmployee.getEmail(),
                 updatedEmployee.getDepartment().getDepartmentName(),
-                updatedEmployee.getDesignation().getTitle(),
-                updatedEmployee.getStatus()
+                updatedEmployee.getDesignation().getDesignationName(),
+                updatedEmployee.getStatus(),
+                updatedEmployee.getRole()
         );
     }
 
@@ -284,12 +309,19 @@ public class EmployeeService {
                                 employee.getLastName(),
                                 employee.getEmail(),
                                 employee.getDepartment().getDepartmentName(),
-                                employee.getDesignation().getTitle(),
-                                employee.getStatus()
+                                employee.getDesignation().getDesignationName(),
+                                employee.getStatus(),
+                                employee.getRole()
                         )
                 )
                 .toList();
     }
 
+    public List<EmployeeBasicResponse> getManagers() {
+        List<Employee> managers = employeeRepository.findByRole(com.nexushr.enums.Role.MANAGER);
+        return managers.stream()
+                .map(emp -> new EmployeeBasicResponse(emp.getId(), emp.getFirstName(), emp.getLastName()))
+                .collect(java.util.stream.Collectors.toList());
+    }
 
 }

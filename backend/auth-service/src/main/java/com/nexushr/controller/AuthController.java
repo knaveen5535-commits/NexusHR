@@ -79,4 +79,13 @@ public class AuthController {
                 )
         );
     }
+
+    @PostMapping("/update-role")
+    public ResponseEntity<String> updateRole(
+            @RequestBody UpdateUserRoleRequest request) {
+
+        return ResponseEntity.ok(
+                authService.updateUserRole(request)
+        );
+    }
 }

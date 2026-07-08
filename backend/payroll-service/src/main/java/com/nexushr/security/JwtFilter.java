@@ -44,6 +44,13 @@ public class JwtFilter extends OncePerRequestFilter {
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
 
+        if (role != null) {
+            role = role.toUpperCase();
+            if (role.startsWith("ROLE_")) {
+                role = role.substring(5);
+            }
+        }
+
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         email,

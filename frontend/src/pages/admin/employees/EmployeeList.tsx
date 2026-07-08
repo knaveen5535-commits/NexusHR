@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
@@ -8,8 +8,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
+import CreateUserModal from './CreateUserModal';
+import EditUserModal from './EditUserModal';
 import type { Employee } from '../../../types';
 import { useTheme } from '../../../hooks/useTheme';
+import { getEmployees } from '../../../services/employee.service';
 
 const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
   id: `${i + 1}`,
@@ -33,7 +36,6 @@ const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
 type SortField = 'firstName' | 'department' | 'designation' | 'joinDate' | 'status';
 type SortDir = 'asc' | 'desc';
 
-const DEPARTMENTS = [...new Set(MOCK_EMPLOYEES.map((e) => e.department))];
 const STATUSES = ['active', 'inactive', 'onboarding'] as const;
 
 function exportCSV(employees: Employee[]) {
@@ -61,6 +63,9 @@ function exportCSV(employees: Employee[]) {
 }
 
 export default function EmployeeList() {
+  const { isDark } = useTheme();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('firstName');
@@ -71,7 +76,7 @@ export default function EmployeeList() {
   const perPage = 10;
 
   const filtered = useMemo(() => {
-    let result = [...MOCK_EMPLOYEES];
+    let result = [...employees];
 
     if (search) {
       const q = search.toLowerCase();
@@ -129,8 +134,40 @@ export default function EmployeeList() {
   };
 
 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
-  const { isDark } = useTheme();
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getEmployees();
+      // Map data to match Employee interface
+      const mapped = data.map((e: any) => ({
+        id: String(e.id),
+        employeeId: e.employeeCode || `EMP${String(e.id).padStart(4, '0')}`,
+        firstName: e.firstName,
+        lastName: e.lastName,
+        email: e.email,
+        phone: e.phone || '',
+        department: e.departmentName || '',
+        designation: e.designation || '',
+        role: e.role?.toLowerCase() || 'employee',
+        status: e.status?.toLowerCase() || 'active',
+        joinDate: e.joinDate || new Date().toISOString().split('T')[0],
+        salary: e.salary || 0,
+        manager: e.managerName || undefined,
+        location: e.location || '',
+      }));
+      setEmployees(mapped as any);
+    } catch (error) {
+      toast.error('Failed to load employees');
+      setEmployees(MOCK_EMPLOYEES); // fallback for demo
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   // Modal States
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -173,6 +210,8 @@ export default function EmployeeList() {
       )}
     </AnimatePresence>
   );
+
+  const DEPARTMENTS = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
 
   return (
     <div className={`p-4 sm:p-8 space-y-6 min-h-full transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -301,6 +340,11 @@ export default function EmployeeList() {
                   </button>
                 </th>
                 <th className="px-4 py-3">
+                  <button onClick={() => toggleSort('role')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                    Role <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </th>
+                <th className="px-4 py-3">
                   <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                     Status <ArrowUpDown className="h-3 w-3" />
                   </button>
@@ -361,6 +405,16 @@ export default function EmployeeList() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-zinc-300">{emp.designation}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
+                      emp.role === 'admin' || emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
+                      emp.role === 'hr' || emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
+                      emp.role === 'manager' || emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
+                      'bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20'
+                    }`}>
+                      {emp.role}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
                       emp.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
@@ -453,25 +507,22 @@ export default function EmployeeList() {
       )}
 
       {/* Modals */}
-      <ModalWrapper isOpen={isAddOpen || !!editingEmp} onClose={() => { setIsAddOpen(false); setEditingEmp(null); }} title={editingEmp ? 'Edit Employee' : 'Add New Employee'}>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 sm:col-span-1">
-            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>First Name</label>
-            <input type="text" defaultValue={editingEmp?.firstName || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Last Name</label>
-            <input type="text" defaultValue={editingEmp?.lastName || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
-          </div>
-          <div className="col-span-2">
-            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Email Address</label>
-            <input type="email" defaultValue={editingEmp?.email || ''} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
-          </div>
-          <button onClick={() => { setIsAddOpen(false); setEditingEmp(null); }} className={`col-span-2 mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
-            Save Employee
-          </button>
-        </div>
-      </ModalWrapper>
+      <CreateUserModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSuccess={() => {
+          fetchEmployees();
+        }}
+      />
+
+      <EditUserModal
+        isOpen={!!editingEmp}
+        employee={editingEmp}
+        onClose={() => setEditingEmp(null)}
+        onSuccess={() => {
+          fetchEmployees();
+        }}
+      />
 
       <ModalWrapper isOpen={!!assigningDept} onClose={() => setAssigningDept(null)} title="Assign Department">
         <div>

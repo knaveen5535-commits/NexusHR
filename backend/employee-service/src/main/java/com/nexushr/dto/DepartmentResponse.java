@@ -1,22 +1,14 @@
-package com.nexushr.entity;
+package com.nexushr.dto;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "departments")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Department {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class DepartmentResponse {
     private Long id;
-
     private String departmentName;
-
     private String budget;
 }
