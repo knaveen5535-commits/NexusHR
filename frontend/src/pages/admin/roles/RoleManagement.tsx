@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
-import { Shield, Plus, Key, Lock, Users, X, CheckSquare, Square, UserMinus } from 'lucide-react';
-import { getEmployees, updateRole } from '../../../services/employee.service';
+import { Shield, Plus, Key, Lock, Users, X, CheckSquare, Square } from 'lucide-react';
+import { getEmployees } from '../../../services/employee.service';
 import { toast } from 'sonner';
 
 const ALL_PERMISSIONS = [
@@ -89,7 +89,6 @@ export default function RoleManagement() {
     };
   });
 
-  const usersWithoutRole = employees.filter(e => !e.role || e.role.toUpperCase() === 'NONE');
   return (
     <div className={`min-h-full w-full p-4 sm:p-8 transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       <div className="relative z-10 max-w-7xl mx-auto space-y-6">
