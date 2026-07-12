@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'hr' | 'manager' | 'employee';
+export type UserRole = 'ADMIN' | 'HR' | 'MANAGER' | 'EMPLOYEE' | 'NONE';
 
 export interface User {
   id: string;
@@ -65,22 +65,21 @@ export interface KpiCard {
 }
 
 export interface Employee {
-  id: string;
-  employeeId: string;
+  id: number;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  department: string;
-  designation: string;
-  role: UserRole;
-  status: 'active' | 'inactive' | 'onboarding' | 'offboarding';
-  joinDate: string;
   salary: number;
-  manager?: string;
-  avatar?: string;
-  location?: string;
-  skills?: string[];
+  departmentName: string;
+  designation: string;
+  managerId?: number;
+  managerName?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
+  role: UserRole;
+  joiningDate: string;
+  leaveDate?: string;
 }
 
 export interface AttendanceRecord {

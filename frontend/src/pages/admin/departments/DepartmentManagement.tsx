@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
-import { Building, Plus, Edit2, Trash2, UserPlus, Search, X } from 'lucide-react';
+import { Building, Plus, Edit2, Trash2, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment, type Department } from '../../../services/department.service';
-import { getManagers, getManagersByDepartment, type EmployeeBasic } from '../../../services/employee.service';
+import { getManagersByDepartment, type EmployeeBasic } from '../../../services/employee.service';
 
 const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
   const { isDark } = useTheme();
@@ -46,7 +46,6 @@ export default function DepartmentManagement() {
   const [search, setSearch] = useState('');
   
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [managers, setManagers] = useState<EmployeeBasic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal States
@@ -65,9 +64,8 @@ export default function DepartmentManagement() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [depts, mgrs] = await Promise.all([getDepartments(), getManagers()]);
+      const depts = await getDepartments();
       setDepartments(depts);
-      setManagers(mgrs);
     } catch (error) {
       toast.error('Failed to load data');
     } finally {

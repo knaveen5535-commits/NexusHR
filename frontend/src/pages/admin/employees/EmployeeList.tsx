@@ -2,9 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
-  Mail, Phone, Calendar, CheckSquare,
+  Mail, Phone, CheckSquare,
   Square, UserPlus, ArrowUpDown, X, Edit2, Trash2,
-  Building, UserCheck, PowerOff
+  Building, UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -20,10 +20,10 @@ import { useLocation } from 'react-router';
 
 const MOCK_EMPLOYEES: Employee[] = []; // fallback removed
 
-type SortField = 'firstName' | 'department' | 'designation' | 'joinDate' | 'status' | 'manager';
+type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role';
 type SortDir = 'asc' | 'desc';
 
-const STATUSES = ['active', 'inactive', 'onboarding'] as const;
+const STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] as const;
 
 const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
   const { isDark } = useTheme();
@@ -65,16 +65,15 @@ const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
 function exportCSV(employees: Employee[]) {
   const headers = ['ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Manager', 'Status', 'Join Date', 'Location'];
   const rows = employees.map((e) => [
-    e.employeeId,
+    e.employeeCode,
     `${e.firstName} ${e.lastName}`,
     e.email,
     e.phone,
-    e.department,
+    e.departmentName,
     e.designation,
-    e.manager || 'None',
+    e.managerName || 'None',
     e.status,
-    e.joinDate,
-    e.location || '',
+    e.joiningDate,
   ]);
   const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -97,8 +96,8 @@ export default function EmployeeList() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('firstName');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [filters, setFilters] = useState<{ department?: string; status?: string; role?: string; designation?: string; manager?: string }>({});
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [filters, setFilters] = useState<{ departmentName?: string; status?: string; role?: string; designation?: string; managerName?: string }>({});
   const [showFilters, setShowFilters] = useState(false);
   const perPage = 10;
 
@@ -117,25 +116,25 @@ export default function EmployeeList() {
         (e) =>
           `${e.firstName || ''} ${e.lastName || ''}`.toLowerCase().includes(q) ||
           (e.email || '').toLowerCase().includes(q) ||
-          (e.employeeId || '').toLowerCase().includes(q) ||
-          (e.department || '').toLowerCase().includes(q) ||
-          (e.manager || '').toLowerCase().includes(q)
+          (e.employeeCode || '').toLowerCase().includes(q) ||
+          (e.departmentName || '').toLowerCase().includes(q) ||
+          (e.managerName || '').toLowerCase().includes(q)
       );
     }
-    if (filters.department) {
-      result = result.filter((e) => e.department === filters.department);
+    if (filters.departmentName) {
+      result = result.filter((e) => e.departmentName === filters.departmentName);
     }
     if (filters.status) {
       result = result.filter((e) => e.status === filters.status);
     }
     if (filters.role) {
-      result = result.filter((e) => e.role?.toLowerCase() === filters.role?.toLowerCase());
+      result = result.filter((e) => e.role === filters.role);
     }
     if (filters.designation) {
       result = result.filter((e) => e.designation === filters.designation);
     }
-    if (filters.manager) {
-      result = result.filter((e) => e.manager === filters.manager);
+    if (filters.managerName) {
+      result = result.filter((e) => e.managerName === filters.managerName);
     }
 
     result.sort((a, b) => {
@@ -159,7 +158,7 @@ export default function EmployeeList() {
     }
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -188,20 +187,20 @@ export default function EmployeeList() {
       const isManagerTeamView = user?.role === 'manager' && location.pathname.includes('/manager/team');
       const data = isManagerTeamView ? await getTeamMembers() : await getEmployees();
       const mapped = data.map((e: any) => ({
-        id: String(e.id),
-        employeeId: e.employeeCode || `EMP${String(e.id).padStart(4, '0')}`,
+        id: Number(e.id),
+        employeeCode: e.employeeCode || `EMP${String(e.id).padStart(4, '0')}`,
         firstName: e.firstName,
         lastName: e.lastName,
         email: e.email,
         phone: e.phone || '',
-        department: e.departmentName || '',
+        departmentName: e.departmentName || '',
         designation: e.designation || '',
-        role: e.role?.toLowerCase() || 'employee',
-        status: e.status?.toLowerCase() || 'active',
-        joinDate: e.joinDate || new Date().toISOString().split('T')[0],
+        role: e.role || 'EMPLOYEE',
+        status: e.status || 'ACTIVE',
+        joiningDate: e.joiningDate || e.joinDate || new Date().toISOString().split('T')[0],
         salary: e.salary || 0,
-        manager: e.managerName || undefined,
-        location: e.location || '',
+        managerId: e.managerId || undefined,
+        managerName: e.managerName || undefined,
       }));
       setEmployees(mapped as any);
     } catch (error) {
@@ -288,10 +287,10 @@ export default function EmployeeList() {
   };
 
 
-  const DEPARTMENTS = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
+  const DEPARTMENTS = Array.from(new Set(employees.map(e => e.departmentName).filter(Boolean)));
   const ROLES = Array.from(new Set(employees.map(e => e.role).filter(Boolean)));
   const DESIGNATIONS = Array.from(new Set(employees.map(e => e.designation).filter(Boolean)));
-  const MANAGERS = Array.from(new Set(employees.map(e => e.manager).filter(Boolean)));
+  const MANAGERS = Array.from(new Set(employees.map(e => e.managerName).filter(Boolean)));
 
   return (
     <div className={`p-4 sm:p-8 space-y-6 min-h-full transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -317,7 +316,7 @@ export default function EmployeeList() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`p-2.5 rounded-xl border transition-colors ${
-              showFilters || filters.department || filters.status
+              showFilters || filters.departmentName || filters.status
                 ? isDark ? 'bg-blue-600/10 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'
                 : isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800' : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
             }`}
@@ -356,8 +355,8 @@ export default function EmployeeList() {
               <div>
                 <label className="block text-xs text-zinc-500 mb-1">Department</label>
                 <select
-                  value={filters.department || ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, department: e.target.value || undefined })); setPage(1); }}
+                  value={filters.departmentName || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, departmentName: e.target.value || undefined })); setPage(1); }}
                   className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">All Departments</option>
@@ -400,15 +399,15 @@ export default function EmployeeList() {
               <div>
                 <label className="block text-xs text-zinc-500 mb-1">Manager</label>
                 <select
-                  value={filters.manager || ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, manager: e.target.value || undefined })); setPage(1); }}
+                  value={filters.managerName || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, managerName: e.target.value || undefined })); setPage(1); }}
                   className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">All Managers</option>
                   {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
-              {(filters.department || filters.status || filters.role || filters.designation || filters.manager) && (
+              {(filters.departmentName || filters.status || filters.role || filters.designation || filters.managerName) && (
                 <div className="flex items-end">
                   <button
                     onClick={() => setFilters({})}
@@ -427,8 +426,8 @@ export default function EmployeeList() {
         {!isLoading && filtered.length === 0 ? (
           <EmptyState
             icon={<Search className="h-8 w-8 text-zinc-500" />}
-            title={search || filters.department || filters.status ? 'No employees match your filters' : (user?.role === 'manager' ? 'No Team Members Assigned' : 'No employees found')}
-            description={search || filters.department || filters.status ? 'Try adjusting your search or filter criteria.' : (user?.role === 'manager' ? 'You currently do not have any employees reporting to you.' : 'Add your first employee to get started.')}
+            title={search || filters.departmentName || filters.status ? 'No employees match your filters' : (user?.role === 'manager' ? 'No Team Members Assigned' : 'No employees found')}
+            description={search || filters.departmentName || filters.status ? 'Try adjusting your search or filter criteria.' : (user?.role === 'manager' ? 'You currently do not have any employees reporting to you.' : 'Add your first employee to get started.')}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -450,12 +449,12 @@ export default function EmployeeList() {
                   </th>
                   <th className="px-4 py-3 text-xs font-medium uppercase text-zinc-400">Contact</th>
                   <th className="px-4 py-3">
-                    <button onClick={() => toggleSort('department')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                    <button onClick={() => toggleSort('departmentName')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                       Department <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </th>
                   <th className="px-4 py-3">
-                    <button onClick={() => toggleSort('manager')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                    <button onClick={() => toggleSort('managerName')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                       Manager <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </th>
@@ -515,7 +514,7 @@ export default function EmployeeList() {
                           <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>
                             {emp.firstName} {emp.lastName}
                           </p>
-                          <p className={`text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{emp.employeeId}</p>
+                          <p className={`text-xs font-semibold ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{emp.employeeCode}</p>
                         </div>
                       </div>
                     </td>
@@ -531,22 +530,22 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-400 ring-1 ring-inset ring-purple-500/20">
-                        {emp.department || 'N/A'}
+                        {emp.departmentName || 'N/A'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-400">
                         <UserCheck className="h-3 w-3" />
-                        {emp.manager || 'No Manager'}
+                        {emp.managerName || 'No Manager'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-400 text-xs font-medium">{emp.designation}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
-                        emp.role === 'admin' || emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
-                        emp.role === 'hr' || emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
-                        emp.role === 'manager' || emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
-                        emp.role === 'none' || emp.role === 'NONE' ? 'bg-zinc-500/10 text-zinc-500 ring-1 ring-inset ring-zinc-500/20' :
+                        emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
+                        emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
+                        emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
+                        emp.role === 'NONE' ? 'bg-zinc-500/10 text-zinc-500 ring-1 ring-inset ring-zinc-500/20' :
                         'bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20'
                       }`}>
                         {emp.role}
@@ -554,8 +553,8 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                        emp.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
-                        emp.status === 'inactive' ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' :
+                        emp.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
+                        emp.status === 'INACTIVE' ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' :
                         'bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20'
                       }`}>
                         {emp.status}
@@ -682,7 +681,7 @@ export default function EmployeeList() {
       <ModalWrapper isOpen={!!assigningMgr} onClose={() => setAssigningMgr(null)} title="Assign Manager">
         <div>
           <p className={`text-sm mb-4 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
-            Assign a manager for <strong>{assigningMgr?.firstName} {assigningMgr?.lastName}</strong> ({assigningMgr?.department}).
+            Assign a manager for <strong>{assigningMgr?.firstName} {assigningMgr?.lastName}</strong> ({assigningMgr?.departmentName}).
           </p>
           <div className="space-y-4">
             <div>

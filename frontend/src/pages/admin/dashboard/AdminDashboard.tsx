@@ -5,7 +5,7 @@ import { exportDashboardPdf } from '../../../utils/exportPdf';
 import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
 import { 
   Users, UserCheck, Building, Briefcase,
-  DollarSign, Activity, Brain, UserCog, Calendar, 
+  DollarSign, UserCog,
   ShieldCheck, Download
 } from 'lucide-react';
 

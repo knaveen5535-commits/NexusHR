@@ -4,7 +4,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { getAllResignations, approveResignation, rejectResignation } from '../../../services/resignation.service';
 import type { Resignation } from '../../../services/resignation.service';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Clock, UserMinus, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, UserMinus, Calendar } from 'lucide-react';
 import EmptyState from '../../../components/ui/EmptyState';
 
 export default function ResignationManagement() {

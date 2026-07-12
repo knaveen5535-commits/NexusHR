@@ -408,7 +408,7 @@ export default function HrDashboard() {
       case 'payroll': return <PayrollTab />;
       case 'notifications': return <NotificationsTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
-      default: return <OverviewTab />;
+      default: return <OverviewTab stats={stats} isLoading={isLoading} />;
     }
   };
 

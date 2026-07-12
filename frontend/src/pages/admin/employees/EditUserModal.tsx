@@ -21,7 +21,6 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
-  const [managers, setManagers] = useState<EmployeeBasic[]>([]);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -50,12 +49,11 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
       });
       getDepartments().then(depts => {
         setDepartments(depts);
-        if (employee.department) {
-          const match = depts.find(d => d.departmentName === employee.department);
+        if (employee.departmentName) {
+          const match = depts.find(d => d.departmentName === employee.departmentName);
           if (match) setFormData(prev => ({ ...prev, departmentId: match.id.toString() }));
         }
       }).catch(console.error);
-      getManagers().then(setManagers).catch(console.error);
     }
   }, [isOpen, employee]);
 
@@ -100,7 +98,7 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
     if (!employee) return;
     setIsLoading(true);
     try {
-      await updateEmployee(employee.id, {
+      await updateEmployee(Number(employee.id), {
         ...formData,
         salary: Number(formData.salary) || 0,
         departmentId: Number(formData.departmentId),
