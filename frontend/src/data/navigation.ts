@@ -81,7 +81,7 @@ export const employeeNav: NavItem[] = [
 ];
 
 export function getNavForRole(role: string | undefined): NavItem[] {
-  switch (role) {
+  switch (role?.toLowerCase()) {
     case 'admin': return adminNav;
     case 'hr': return hrNav;
     case 'manager': return managerNav;
