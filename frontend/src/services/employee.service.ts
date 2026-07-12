@@ -2,12 +2,59 @@ import api from './api';
 
 export interface Employee {
   id: number;
-  employeeId: string;
+  employeeCode: string;
   firstName: string;
   lastName: string;
   email: string;
-  department: string;
+  phone: string;
+  salary: number;
+  departmentName: string;
   designation: string;
+  managerId?: number;
+  managerName?: string;
+  status: string;
+  role: string;
+  joiningDate?: string;
+  leaveDate?: string;
+}
+
+export interface EmployeeBasic {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdateEmployeeRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  salary: number;
+  departmentId: number;
+  designationId: number;
+  role: 'HR' | 'MANAGER' | 'EMPLOYEE' | 'ADMIN' | 'NONE';
+}
+
+export interface CreateEmployeeRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  salary: number;
+  departmentId: number;
+  designationId: number;
+  managerId?: number;
+  role: 'HR' | 'MANAGER' | 'EMPLOYEE' | 'ADMIN' | 'NONE';
+}
+
+export interface TransferEmployeeRequest {
+  departmentId: number;
+  designationId: number;
+  managerId?: number;
+}
+
+export interface AssignManagerRequest {
+  managerId?: number;
 }
 
 export const getEmployees = async (): Promise<Employee[]> => {
@@ -15,7 +62,56 @@ export const getEmployees = async (): Promise<Employee[]> => {
   return response.data;
 };
 
-export const createEmployee = async (employeeData: Omit<Employee, 'id' | 'employeeId'>) => {
+export const getTeamMembers = async (): Promise<Employee[]> => {
+  const response = await api.get('/employees/manager/team');
+  return response.data;
+};
+
+export const createEmployee = async (employeeData: CreateEmployeeRequest): Promise<Employee> => {
   const response = await api.post('/employees', employeeData);
+  return response.data;
+};
+
+export const updateEmployee = async (id: number, employeeData: UpdateEmployeeRequest): Promise<Employee> => {
+  const response = await api.put(`/employees/${id}`, employeeData);
+  return response.data;
+};
+
+export const transferEmployee = async (id: number, transferData: TransferEmployeeRequest): Promise<Employee> => {
+  const response = await api.put(`/employees/${id}/transfer`, transferData);
+  return response.data;
+};
+
+export const assignManager = async (id: number, managerData: AssignManagerRequest): Promise<Employee> => {
+  const response = await api.put(`/employees/${id}/manager`, managerData);
+  return response.data;
+};
+
+export const updateRole = async (id: number, role: string): Promise<Employee> => {
+  const response = await api.put(`/employees/${id}/role`, { role });
+  return response.data;
+};
+
+export const getManagers = async (): Promise<EmployeeBasic[]> => {
+  const response = await api.get('/employees/managers');
+  return response.data;
+};
+
+export const getManagersByDepartment = async (departmentId: number): Promise<EmployeeBasic[]> => {
+  const response = await api.get(`/employees/department/${departmentId}/managers`);
+  return response.data;
+};
+
+export interface DashboardStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  departmentsCount: number;
+  managersCount: number;
+  hrStaffCount: number;
+  monthlyPayrollCost: number;
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const response = await api.get('/employees/dashboard');
   return response.data;
 };

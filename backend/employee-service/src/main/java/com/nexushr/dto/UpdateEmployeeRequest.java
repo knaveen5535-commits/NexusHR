@@ -1,5 +1,6 @@
 package com.nexushr.dto;
 
+import com.nexushr.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,4 +36,7 @@ public class UpdateEmployeeRequest {
 
     @NotNull(message = "Designation is required")
     private Long designationId;
+
+    @NotNull(message = "Role is required")
+    private Role role;
 }

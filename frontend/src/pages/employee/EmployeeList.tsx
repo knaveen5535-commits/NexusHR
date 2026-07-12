@@ -45,7 +45,7 @@ export default function EmployeeList() {
   const filtered = employees?.filter((emp: Employee) =>
     `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
     emp.email?.toLowerCase().includes(search.toLowerCase()) ||
-    emp.department?.toLowerCase().includes(search.toLowerCase())
+    emp.departmentName?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -64,7 +64,7 @@ export default function EmployeeList() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Total Employees', value: employees?.length || 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { label: 'Departments', value: [...new Set(employees?.map((e: Employee) => e.department) || [])].length, icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+          { label: 'Departments', value: [...new Set(employees?.map((e: Employee) => e.departmentName) || [])].length, icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
           { label: 'Active', value: employees?.length || 0, icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
           { label: 'New This Month', value: '3', icon: Users, color: 'text-amber-400', bg: 'bg-amber-500/10' },
         ].map((stat) => (
@@ -140,14 +140,14 @@ export default function EmployeeList() {
                           <p className="font-medium text-foreground group-hover:text-blue-400 transition-colors">
                             {emp.firstName} {emp.lastName}
                           </p>
-                          <p className="text-xs text-muted-foreground">ID: {emp.employeeId}</p>
+                          <p className="text-xs text-muted-foreground">ID: {emp.employeeCode}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">{emp.email}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
-                        {emp.department}
+                        {emp.departmentName}
                       </span>
                     </td>
                     <td className="px-6 py-4">{emp.designation}</td>

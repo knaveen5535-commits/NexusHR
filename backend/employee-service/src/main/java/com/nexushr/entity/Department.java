@@ -17,4 +17,9 @@ public class Department {
     private Long id;
 
     private String departmentName;
+
+    private String budget;
+
+    @Column(name = "department_head_id")
+    private Long departmentHeadId;
 }

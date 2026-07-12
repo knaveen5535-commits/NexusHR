@@ -1,8 +1,9 @@
 import api from './api';
 
 interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
+  expectedRole?: string;
 }
 
 interface RegisterData {
@@ -13,6 +14,11 @@ interface RegisterData {
 
 export const login = async (credentials: LoginCredentials) => {
   const response = await api.post('/auth/login', credentials);
+  return response.data;
+};
+
+export const registerAdmin = async (data: Record<string, string>) => {
+  const response = await api.post('/auth/register-admin', data);
   return response.data;
 };
 

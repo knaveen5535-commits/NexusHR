@@ -33,6 +33,9 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
+
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -51,13 +54,17 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/employees/**"
+                                "/api/employees/**",
+                                "/api/employees"
                         ).hasAnyRole("ADMIN", "HR", "MANAGER")
 
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/employees/manager/**"
                         ).hasAnyRole("ADMIN","HR","MANAGER")
+
+                        .requestMatchers("/api/departments/**").hasAnyRole("ADMIN", "HR", "MANAGER")
+                        .requestMatchers("/api/designations/**").hasAnyRole("ADMIN", "HR", "MANAGER")
 
                         .anyRequest()
                         .authenticated()

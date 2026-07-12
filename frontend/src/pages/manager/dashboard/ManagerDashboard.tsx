@@ -8,14 +8,11 @@ import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
+import { useState, useEffect } from 'react';
+import { getTeamMembers } from '../../../services/employee.service';
+import { useAuthStore } from '../../../store/authStore';
 
-const kpiData: KpiCardType[] = [
-  { label: 'Team Members', value: '12', change: '+1 this month', trend: 'up', icon: 'Users', color: 'blue-500' },
-  { label: 'Team Attendance', value: '96.2%', change: '+1.5%', trend: 'up', icon: 'Calendar', color: 'emerald-500' },
-  { label: 'Pending Approvals', value: '5', change: '3 urgent', trend: 'down', icon: 'FileText', color: 'amber-500' },
-  { label: 'Team Performance', value: '4.6', change: '+0.3 this quarter', trend: 'up', icon: 'TrendingUp', color: 'purple-500' },
-];
-
+// kpiData moved inside OverviewTab to be dynamic
 const teamAttendance = [
   { name: 'Mon', value: 12, value2: 11 },
   { name: 'Tue', value: 11, value2: 10 },
@@ -48,6 +45,26 @@ const pendingApprovals = [
 
 
 function OverviewTab() {
+  const user = useAuthStore(s => s.user);
+  const [teamCount, setTeamCount] = useState<number | string>('--');
+
+  useEffect(() => {
+    if (user?.id) {
+      getTeamMembers().then(data => {
+        setTeamCount(data.length);
+      }).catch(() => {
+        setTeamCount('--');
+      });
+    }
+  }, [user]);
+
+  const kpiData: KpiCardType[] = [
+    { label: 'Team Members', value: String(teamCount), trend: 'neutral', icon: 'Users', color: 'blue-500' },
+    { label: 'Team Attendance', value: '--', trend: 'neutral', icon: 'Calendar', color: 'emerald-500' },
+    { label: 'Pending Approvals', value: '--', trend: 'neutral', icon: 'FileText', color: 'amber-500' },
+    { label: 'Team Performance', value: '--', trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -4,11 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useThemeStore } from './hooks/useTheme';
 import Login from './pages/auth/Login';
+import RegisterAdmin from './pages/auth/RegisterAdmin';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
 import HrDashboard from './pages/hr/dashboard/HrDashboard';
 import ManagerDashboard from './pages/manager/dashboard/ManagerDashboard';
 import EmployeeDashboard from './pages/employee/dashboard/EmployeeDashboard';
+import ResignationManagement from './pages/admin/employees/ResignationManagement';
 import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
@@ -16,6 +18,7 @@ import ProtectedRoute from './components/guards/ProtectedRoute';
 
 // New Admin Pages
 import DepartmentManagement from './pages/admin/departments/DepartmentManagement';
+import DesignationManagement from './pages/admin/designations/DesignationManagement';
 import RoleManagement from './pages/admin/roles/RoleManagement';
 import Reports from './pages/admin/reports/Reports';
 import SystemSettings from './pages/admin/settings/SystemSettings';
@@ -37,13 +40,14 @@ export default function App() {
         <ThemeSync />
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login/:role?" element={<Login />} />
+          <Route path="/register" element={<RegisterAdmin />} />
 
           {/* Admin Routes */}
           <Route
             path="/admin"
             element={
-              <ProtectedRoute requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['ADMIN']} requiredPermissions={['view:analytics']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -59,6 +63,8 @@ export default function App() {
               }
             />
             <Route path="departments" element={<DepartmentManagement />} />
+            <Route path="designations" element={<DesignationManagement />} />
+            <Route path="resignations" element={<ResignationManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -69,7 +75,7 @@ export default function App() {
           <Route
             path="/hr"
             element={
-              <ProtectedRoute requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['HR']} requiredPermissions={['manage:employees']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -90,6 +96,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="resignations" element={<ResignationManagement />} />
             <Route path="ai-reports" element={<AiAssistant />} />
           </Route>
 
@@ -97,7 +104,7 @@ export default function App() {
           <Route
             path="/manager"
             element={
-              <ProtectedRoute requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['MANAGER']} requiredPermissions={['access:team']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -123,7 +130,7 @@ export default function App() {
           <Route
             path="/employee"
             element={
-              <ProtectedRoute requiredPermissions={['view:own-profile']}>
+              <ProtectedRoute requiredRoles={['EMPLOYEE']} requiredPermissions={['view:own-profile']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -155,3 +162,4 @@ export default function App() {
     </QueryClientProvider>
   );
 }
+

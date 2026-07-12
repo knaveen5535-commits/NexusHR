@@ -1,30 +1,44 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { exportDashboardPdf } from '../../../utils/exportPdf';
+import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
 import { 
   Users, UserCheck, Building, Briefcase,
-  DollarSign, Activity, Brain, UserCog, Calendar, 
+  DollarSign, UserCog,
   ShieldCheck, Download
 } from 'lucide-react';
 
-// Overview KPIs
-const kpis = [
-  { label: 'Total Employees', value: '1,247', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
-  { label: 'Active Employees', value: '1,180', icon: UserCheck, color: 'text-emerald-500', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-500/10' },
-  { label: 'Departments Count', value: '12', icon: Building, color: 'text-purple-500', glow: 'shadow-purple-500/20', bg: 'bg-purple-500/10' },
-  { label: 'Managers Count', value: '84', icon: Briefcase, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
-  { label: 'HR Staff Count', value: '12', icon: UserCog, color: 'text-rose-500', glow: 'shadow-rose-500/20', bg: 'bg-rose-500/10' },
-  { label: 'Monthly Payroll Cost', value: '$4.2M', icon: DollarSign, color: 'text-cyan-500', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-500/10' },
-  { label: 'Attendance %', value: '94.7%', icon: Calendar, color: 'text-indigo-500', glow: 'shadow-indigo-500/20', bg: 'bg-indigo-500/10' },
-  { label: 'Attrition Rate', value: '4.2%', icon: Activity, color: 'text-red-500', glow: 'shadow-red-500/20', bg: 'bg-red-500/10' },
-  { label: 'AI Workforce Score', value: '88/100', icon: Brain, color: 'text-fuchsia-500', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-500/10' },
-];
 
 export default function AdminDashboard() {
   const { isDark } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await getDashboardStats();
+        setStats(data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const dynamicKpis = [
+    { label: 'Total Employees', value: isLoading ? '...' : stats?.totalEmployees.toString() || '0', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
+    { label: 'Active Employees', value: isLoading ? '...' : stats?.activeEmployees.toString() || '0', icon: UserCheck, color: 'text-emerald-500', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-500/10' },
+    { label: 'Departments Count', value: isLoading ? '...' : stats?.departmentsCount.toString() || '0', icon: Building, color: 'text-purple-500', glow: 'shadow-purple-500/20', bg: 'bg-purple-500/10' },
+    { label: 'Managers Count', value: isLoading ? '...' : stats?.managersCount.toString() || '0', icon: Briefcase, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
+    { label: 'HR Staff Count', value: isLoading ? '...' : stats?.hrStaffCount.toString() || '0', icon: UserCog, color: 'text-rose-500', glow: 'shadow-rose-500/20', bg: 'bg-rose-500/10' },
+    { label: 'Monthly Payroll Cost', value: isLoading ? '...' : `$${(stats?.monthlyPayrollCost || 0).toLocaleString()}`, icon: DollarSign, color: 'text-cyan-500', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-500/10' },
+  ];
 
   const handleDownloadReport = async () => {
     if (!reportRef.current || downloading) return;
@@ -135,7 +149,7 @@ export default function AdminDashboard() {
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5"
           >
-            {kpis.map((kpi) => {
+            {dynamicKpis.map((kpi) => {
               const Icon = kpi.icon;
               return (
                 <motion.div
