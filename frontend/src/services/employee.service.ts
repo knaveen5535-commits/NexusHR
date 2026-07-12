@@ -15,6 +15,7 @@ export interface Employee {
   status: string;
   role: string;
   joiningDate?: string;
+  leaveDate?: string;
 }
 
 export interface EmployeeBasic {

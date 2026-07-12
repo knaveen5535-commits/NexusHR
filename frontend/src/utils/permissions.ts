@@ -24,6 +24,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view:own-profile', 'apply:leave', 'view:own-payroll',
     'view:attendance', 'view:performance', 'chat:ai',
   ],
+  NONE: [],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {

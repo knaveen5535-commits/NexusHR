@@ -25,6 +25,7 @@ export default function ProtectedRoute({ children, requiredPermissions, required
       HR: '/hr/dashboard',
       MANAGER: '/manager/dashboard',
       EMPLOYEE: '/employee/dashboard',
+      NONE: '/login',
     } as const;
     
     // Redirect to their own dashboard if they lack permission/role for the current route
