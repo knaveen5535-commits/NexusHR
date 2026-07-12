@@ -40,7 +40,7 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
   const { isDark } = useTheme();
 
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'hr') {
+    if (user?.role === 'ADMIN' || user?.role === 'HR') {
       getAllResignations()
         .then(data => {
           setPendingResignationsCount(data.filter(r => r.status === 'PENDING').length);

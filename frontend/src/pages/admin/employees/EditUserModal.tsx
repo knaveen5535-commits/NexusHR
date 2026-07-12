@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateEmployee, getManagers, type EmployeeBasic } from '../../../services/employee.service';
+import { updateEmployee } from '../../../services/employee.service';
 import { getDepartments, type Department } from '../../../services/department.service';
 import { getDesignations, type Designation } from '../../../services/designation.service';
 import { useTheme } from '../../../hooks/useTheme';

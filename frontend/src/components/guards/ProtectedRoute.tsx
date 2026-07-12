@@ -21,10 +21,10 @@ export default function ProtectedRoute({ children, requiredPermissions, required
 
   if (!hasRole || !hasPermission) {
     const dashboardMap = {
-      admin: '/admin/dashboard',
-      hr: '/hr/dashboard',
-      manager: '/manager/dashboard',
-      employee: '/employee/dashboard',
+      ADMIN: '/admin/dashboard',
+      HR: '/hr/dashboard',
+      MANAGER: '/manager/dashboard',
+      EMPLOYEE: '/employee/dashboard',
     } as const;
     
     // Redirect to their own dashboard if they lack permission/role for the current route

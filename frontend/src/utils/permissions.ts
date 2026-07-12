@@ -1,7 +1,7 @@
 import type { Permission, UserRole } from '../types';
 
 const rolePermissions: Record<UserRole, Permission[]> = {
-  admin: [
+  ADMIN: [
     'manage:users', 'manage:hrs', 'manage:managers', 'manage:employees',
     'view:analytics', 'view:attendance', 'view:payroll',
     'configure:system', 'manage:permissions', 'access:ai-insights', 'view:audit-logs',
@@ -9,18 +9,18 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     'view:performance', 'approve:leave', 'manage:goals', 'generate:reports',
     'chat:ai',
   ],
-  hr: [
+  HR: [
     'manage:employees', 'manage:leave', 'manage:onboarding',
     'assign:managers', 'view:attendance', 'view:payroll',
     'view:performance', 'view:analytics', 'access:ai-insights',
     'generate:reports', 'approve:leave', 'chat:ai',
   ],
-  manager: [
+  MANAGER: [
     'access:team', 'approve:leave', 'view:performance',
     'manage:goals', 'view:attendance', 'generate:reports',
     'view:analytics', 'chat:ai',
   ],
-  employee: [
+  EMPLOYEE: [
     'view:own-profile', 'apply:leave', 'view:own-payroll',
     'view:attendance', 'view:performance', 'chat:ai',
   ],

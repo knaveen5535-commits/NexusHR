@@ -50,7 +50,7 @@ function OverviewTab() {
 
   useEffect(() => {
     if (user?.id) {
-      getTeamMembers(user.id).then(data => {
+      getTeamMembers().then(data => {
         setTeamCount(data.length);
       }).catch(() => {
         setTeamCount('--');

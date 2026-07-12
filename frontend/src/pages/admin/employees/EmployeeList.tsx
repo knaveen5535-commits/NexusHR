@@ -184,7 +184,7 @@ export default function EmployeeList() {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const isManagerTeamView = user?.role === 'manager' && location.pathname.includes('/manager/team');
+      const isManagerTeamView = user?.role === 'MANAGER' && location.pathname.includes('/manager/team');
       const data = isManagerTeamView ? await getTeamMembers() : await getEmployees();
       const mapped = data.map((e: any) => ({
         id: Number(e.id),
@@ -217,7 +217,7 @@ export default function EmployeeList() {
   const [editingEmp, setEditingEmp] = useState<any>(null);
   const [assigningDept, setAssigningDept] = useState<any>(null);
   const [assigningMgr, setAssigningMgr] = useState<any>(null);
-  const [togglingStatus, setTogglingStatus] = useState<any>(null);
+
   const [deletingEmp, setDeletingEmp] = useState<any>(null);
 
 
@@ -426,8 +426,8 @@ export default function EmployeeList() {
         {!isLoading && filtered.length === 0 ? (
           <EmptyState
             icon={<Search className="h-8 w-8 text-zinc-500" />}
-            title={search || filters.departmentName || filters.status ? 'No employees match your filters' : (user?.role === 'manager' ? 'No Team Members Assigned' : 'No employees found')}
-            description={search || filters.departmentName || filters.status ? 'Try adjusting your search or filter criteria.' : (user?.role === 'manager' ? 'You currently do not have any employees reporting to you.' : 'Add your first employee to get started.')}
+            title={search || filters.departmentName || filters.status ? 'No employees match your filters' : (user?.role === 'MANAGER' ? 'No Team Members Assigned' : 'No employees found')}
+            description={search || filters.departmentName || filters.status ? 'Try adjusting your search or filter criteria.' : (user?.role === 'MANAGER' ? 'You currently do not have any employees reporting to you.' : 'Add your first employee to get started.')}
           />
         ) : (
           <div className="overflow-x-auto">

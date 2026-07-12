@@ -47,7 +47,7 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute requiredRoles={['admin']} requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['ADMIN']} requiredPermissions={['view:analytics']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -75,7 +75,7 @@ export default function App() {
           <Route
             path="/hr"
             element={
-              <ProtectedRoute requiredRoles={['hr']} requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['HR']} requiredPermissions={['manage:employees']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -104,7 +104,7 @@ export default function App() {
           <Route
             path="/manager"
             element={
-              <ProtectedRoute requiredRoles={['manager']} requiredPermissions={['view:analytics']}>
+              <ProtectedRoute requiredRoles={['MANAGER']} requiredPermissions={['access:team']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
@@ -130,7 +130,7 @@ export default function App() {
           <Route
             path="/employee"
             element={
-              <ProtectedRoute requiredRoles={['employee']} requiredPermissions={['view:own-profile']}>
+              <ProtectedRoute requiredRoles={['EMPLOYEE']} requiredPermissions={['view:own-profile']}>
                 <DashboardLayout />
               </ProtectedRoute>
             }

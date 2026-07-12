@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const demoRoles = [
   {
-    id: 'admin' as const,
+    id: 'ADMIN' as const,
     label: 'Admin',
     desc: 'Full system access & analytics',
     Icon: Shield,
@@ -19,7 +19,7 @@ const demoRoles = [
     email: 'admin@nexushr.com',
   },
   {
-    id: 'hr' as const,
+    id: 'HR' as const,
     label: 'HR ',
     desc: 'Employee management & payroll',
     Icon: Users,
@@ -29,7 +29,7 @@ const demoRoles = [
     email: 'hr@nexushr.com',
   },
   {
-    id: 'manager' as const,
+    id: 'MANAGER' as const,
     label: 'Team Manager',
     desc: 'Team oversight & performance',
     Icon: UserCog,
@@ -39,7 +39,7 @@ const demoRoles = [
     email: 'manager@nexushr.com',
   },
   {
-    id: 'employee' as const,
+    id: 'EMPLOYEE' as const,
     label: 'Employee',
     desc: 'SelfHR Mana-service & profile portal',
     Icon: User,
@@ -108,11 +108,11 @@ export default function Login() {
 
   if (isAuthenticated && user?.role) {
     const path =
-      user.role === 'admin'
+      user.role === 'ADMIN'
         ? '/admin/dashboard'
-        : user.role === 'hr'
+        : user.role === 'HR'
         ? '/hr/dashboard'
-        : user.role === 'manager'
+        : user.role === 'MANAGER'
         ? '/manager/dashboard'
         : '/employee/dashboard';
     return <Navigate to={path} replace />;
@@ -133,7 +133,7 @@ export default function Login() {
           id: decodedUser.id || '0',
           username: decodedUser.email || email,
           email: decodedUser.email || email,
-          role: String(decodedUser.role).toLowerCase() as typeof selectedRole,
+          role: String(decodedUser.role).toUpperCase() as typeof selectedRole,
           firstName: decodedUser.firstName || 'User',
           lastName: decodedUser.lastName || '',
           employeeId: decodedUser.employeeId || '001',
@@ -142,11 +142,11 @@ export default function Login() {
         useAuthStore.getState().setAuth(token, userObj);
 
         const path =
-          userObj.role === 'admin'
+          userObj.role === 'ADMIN'
             ? '/admin/dashboard'
-            : userObj.role === 'hr'
+            : userObj.role === 'HR'
             ? '/hr/dashboard'
-            : userObj.role === 'manager'
+            : userObj.role === 'MANAGER'
             ? '/manager/dashboard'
             : '/employee/dashboard';
         navigate(path, { replace: true });
