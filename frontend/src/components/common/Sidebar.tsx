@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useFilteredNav } from '../../hooks/useFilteredNav';
 import { getNavForRole } from '../../data/navigation';
 import { useTheme } from '../../hooks/useTheme';
+import { getAllResignations } from '../../services/resignation.service';
 import type { NavItem } from '../../types';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -34,7 +35,19 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
   const navItems = getNavForRole(user?.role);
   const filteredNav = useFilteredNav(navItems, user?.role ?? null);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [pendingResignationsCount, setPendingResignationsCount] = useState(0);
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    if (user?.role === 'admin' || user?.role === 'hr') {
+      getAllResignations()
+        .then(data => {
+          setPendingResignationsCount(data.filter(r => r.status === 'PENDING').length);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const toggleMenu = (name: string) => {
     setExpandedMenus((prev) =>
@@ -141,7 +154,13 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
               {!collapsed && (
                 <span className="flex-1">{item.name}</span>
               )}
-              {!collapsed && item.badge && (
+              {!collapsed && item.name === 'Resignations' && pendingResignationsCount > 0 ? (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider shadow-sm ${
+                  isDark ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-red-100 text-red-600 border border-red-200'
+                }`}>
+                  {pendingResignationsCount} NEW
+                </span>
+              ) : !collapsed && item.badge ? (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase shadow-sm ${
                   item.badge === 'AI' 
                     ? isDark ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' : 'bg-purple-100 text-purple-600 border border-purple-200' 
@@ -149,7 +168,7 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
                 }`}>
                   {item.badge}
                 </span>
-              )}
+              ) : null}
             </Link>
           );
         })}
@@ -170,7 +189,7 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
           </div>
         )}
         <button
-          onClick={logout}
+          onClick={() => setShowLogoutModal(true)}
           className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold transition-all ${
             isDark ? 'text-zinc-400 hover:text-red-400 hover:bg-red-500/10' : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
           }`}
@@ -218,6 +237,29 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
               {sidebarContent}
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Logout Modal */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLogoutModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={`relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border p-6 ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
+              <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${isDark ? 'bg-red-500/10' : 'bg-red-100'} mb-4`}>
+                <LogOut className={`h-6 w-6 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
+              </div>
+              <h2 className={`text-xl font-bold text-center mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sign Out</h2>
+              <p className={`text-sm text-center mb-6 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+                Are you sure you want to sign out of your account?
+              </p>
+              
+              <div className="flex gap-3">
+                <button onClick={() => setShowLogoutModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>Cancel</button>
+                <button onClick={() => { setShowLogoutModal(false); logout(); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all hover:-translate-y-0.5">Sign Out</button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

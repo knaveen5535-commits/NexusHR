@@ -10,6 +10,7 @@ import EmployeeList from './pages/admin/employees/EmployeeList';
 import HrDashboard from './pages/hr/dashboard/HrDashboard';
 import ManagerDashboard from './pages/manager/dashboard/ManagerDashboard';
 import EmployeeDashboard from './pages/employee/dashboard/EmployeeDashboard';
+import ResignationManagement from './pages/admin/employees/ResignationManagement';
 import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
@@ -63,6 +64,7 @@ export default function App() {
             />
             <Route path="departments" element={<DepartmentManagement />} />
             <Route path="designations" element={<DesignationManagement />} />
+            <Route path="resignations" element={<ResignationManagement />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -94,6 +96,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="resignations" element={<ResignationManagement />} />
             <Route path="ai-reports" element={<AiAssistant />} />
           </Route>
 

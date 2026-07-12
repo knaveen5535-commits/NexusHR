@@ -12,36 +12,58 @@ import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import type { Employee } from '../../../types';
 import { useTheme } from '../../../hooks/useTheme';
-import { getEmployees, getTeamMembers } from '../../../services/employee.service';
+import { getEmployees, getTeamMembers, transferEmployee, assignManager, getManagersByDepartment } from '../../../services/employee.service';
+import { getDepartments } from '../../../services/department.service';
+import { getDesignations } from '../../../services/designation.service';
 import { useAuthStore } from '../../../store/authStore';
 import { useLocation } from 'react-router';
 
-const MOCK_EMPLOYEES: Employee[] = Array.from({ length: 50 }, (_, i) => ({
-  id: `${i + 1}`,
-  employeeId: `EMP${String(i + 1).padStart(4, '0')}`,
-  firstName: ['John', 'Jane', 'Mike', 'Sarah', 'Alex', 'Emily', 'David', 'Lisa', 'James', 'Emma'][i % 10],
-  lastName: ['Doe', 'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Wilson'][i % 10],
-  email: `employee${i + 1}@nexushr.com`,
-  phone: `+1 (555) ${String(100 + i).padStart(3, '0')}-${String(1000 + i).slice(0, 4)}`,
-  department: ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Design', 'Operations', 'Legal'][i % 8],
-  designation: ['Software Engineer', 'Product Manager', 'Designer', 'Data Analyst', 'DevOps', 'QA Engineer', 'UX Designer', 'Marketing Lead'][i % 8],
-  role: i === 0 ? 'admin' : i < 3 ? 'manager' : i < 6 ? 'hr' : 'employee',
-  status: i % 7 === 0 ? 'inactive' : i % 11 === 0 ? 'onboarding' : 'active',
-  joinDate: `202${i % 5}-${String((i % 12) + 1).padStart(2, '0')}-01`,
-  salary: 50000 + (i * 1500),
-  manager: i < 3 ? undefined : ['John Doe', 'Jane Smith', 'Mike Johnson'][i % 3],
-  avatar: undefined,
-  location: ['New York', 'San Francisco', 'Chicago', 'Austin', 'Seattle'][i % 5],
-  skills: ['React', 'TypeScript', 'Node.js', 'Python', 'AWS', 'Docker', 'Kubernetes', 'GraphQL'].slice(0, (i % 5) + 2),
-}));
+const MOCK_EMPLOYEES: Employee[] = []; // fallback removed
 
-type SortField = 'firstName' | 'department' | 'designation' | 'joinDate' | 'status';
+type SortField = 'firstName' | 'department' | 'designation' | 'joinDate' | 'status' | 'manager';
 type SortDir = 'asc' | 'desc';
 
 const STATUSES = ['active', 'inactive', 'onboarding'] as const;
 
+const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
+  const { isDark } = useTheme();
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={`relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl shadow-2xl border ${
+              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+            }`}
+          >
+            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+              <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h2>
+              <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-500'}`}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 function exportCSV(employees: Employee[]) {
-  const headers = ['ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Status', 'Join Date', 'Location'];
+  const headers = ['ID', 'Name', 'Email', 'Phone', 'Department', 'Designation', 'Manager', 'Status', 'Join Date', 'Location'];
   const rows = employees.map((e) => [
     e.employeeId,
     `${e.firstName} ${e.lastName}`,
@@ -49,6 +71,7 @@ function exportCSV(employees: Employee[]) {
     e.phone,
     e.department,
     e.designation,
+    e.manager || 'None',
     e.status,
     e.joinDate,
     e.location || '',
@@ -79,6 +102,12 @@ export default function EmployeeList() {
   const [showFilters, setShowFilters] = useState(false);
   const perPage = 10;
 
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [eligibleManagers, setEligibleManagers] = useState<any[]>([]);
+  const [transferForm, setTransferForm] = useState({ departmentId: '', designationId: '', managerId: '' });
+  const [managerForm, setManagerForm] = useState({ managerId: '' });
+
   const filtered = useMemo(() => {
     let result = [...employees];
 
@@ -89,7 +118,8 @@ export default function EmployeeList() {
           `${e.firstName || ''} ${e.lastName || ''}`.toLowerCase().includes(q) ||
           (e.email || '').toLowerCase().includes(q) ||
           (e.employeeId || '').toLowerCase().includes(q) ||
-          (e.department || '').toLowerCase().includes(q)
+          (e.department || '').toLowerCase().includes(q) ||
+          (e.manager || '').toLowerCase().includes(q)
       );
     }
     if (filters.department) {
@@ -149,6 +179,7 @@ export default function EmployeeList() {
 
   useEffect(() => {
     fetchEmployees();
+    getDepartments().then(setDepartments).catch(console.error);
   }, []);
 
   const fetchEmployees = async () => {
@@ -156,7 +187,6 @@ export default function EmployeeList() {
     try {
       const isManagerTeamView = user?.role === 'manager' && location.pathname.includes('/manager/team');
       const data = isManagerTeamView ? await getTeamMembers() : await getEmployees();
-      // Map data to match Employee interface
       const mapped = data.map((e: any) => ({
         id: String(e.id),
         employeeId: e.employeeCode || `EMP${String(e.id).padStart(4, '0')}`,
@@ -176,7 +206,7 @@ export default function EmployeeList() {
       setEmployees(mapped as any);
     } catch (error) {
       toast.error('Failed to load employees');
-      setEmployees(MOCK_EMPLOYEES); // fallback for demo
+      setEmployees(MOCK_EMPLOYEES); 
     } finally {
       setIsLoading(false);
     }
@@ -191,39 +221,72 @@ export default function EmployeeList() {
   const [togglingStatus, setTogglingStatus] = useState<any>(null);
   const [deletingEmp, setDeletingEmp] = useState<any>(null);
 
-  const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl shadow-2xl border ${
-              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
-            }`}
-          >
-            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
-              <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h2>
-              <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-4">
-              {children}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
+
+
+  const handleOpenTransfer = (emp: any) => {
+    setAssigningDept(emp);
+    setTransferForm({ departmentId: '', designationId: '', managerId: '' });
+    setDesignations([]);
+    setEligibleManagers([]);
+  };
+
+  const handleDepartmentChange = async (deptId: string) => {
+    setTransferForm({ ...transferForm, departmentId: deptId, designationId: '', managerId: '' });
+    if (deptId) {
+      const [desigs, mgrs] = await Promise.all([
+        getDesignations(Number(deptId)),
+        getManagersByDepartment(Number(deptId))
+      ]);
+      setDesignations(desigs);
+      setEligibleManagers(mgrs.filter(m => m.id !== Number(assigningDept?.id)));
+    } else {
+      setDesignations([]);
+      setEligibleManagers([]);
+    }
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!transferForm.departmentId || !transferForm.designationId) {
+      return toast.error('Department and Designation are required');
+    }
+    try {
+      await transferEmployee(Number(assigningDept.id), {
+        departmentId: Number(transferForm.departmentId),
+        designationId: Number(transferForm.designationId),
+        managerId: transferForm.managerId ? Number(transferForm.managerId) : undefined
+      });
+      toast.success('Employee transferred successfully');
+      setAssigningDept(null);
+      fetchEmployees();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to transfer employee');
+    }
+  };
+
+  const handleOpenAssignManager = async (emp: any) => {
+    setAssigningMgr(emp);
+    setManagerForm({ managerId: '' });
+    // find employee's department ID to load managers
+    const dept = departments.find(d => d.departmentName === emp.department);
+    if (dept) {
+      const mgrs = await getManagersByDepartment(dept.id);
+      setEligibleManagers(mgrs.filter(m => m.id !== Number(emp.id)));
+    }
+  };
+
+  const handleConfirmAssignManager = async () => {
+    try {
+      await assignManager(Number(assigningMgr.id), {
+        managerId: managerForm.managerId ? Number(managerForm.managerId) : undefined
+      });
+      toast.success('Manager assigned successfully');
+      setAssigningMgr(null);
+      fetchEmployees();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Failed to assign manager');
+    }
+  };
+
 
   const DEPARTMENTS = Array.from(new Set(employees.map(e => e.department).filter(Boolean)));
   const ROLES = Array.from(new Set(employees.map(e => e.role).filter(Boolean)));
@@ -392,6 +455,11 @@ export default function EmployeeList() {
                     </button>
                   </th>
                   <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('manager')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Manager <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
                     <button onClick={() => toggleSort('designation')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                       Designation <ArrowUpDown className="h-3 w-3" />
                     </button>
@@ -404,11 +472,6 @@ export default function EmployeeList() {
                   <th className="px-4 py-3">
                     <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                       Status <ArrowUpDown className="h-3 w-3" />
-                    </button>
-                  </th>
-                  <th className="px-4 py-3">
-                    <button onClick={() => toggleSort('joinDate')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
-                      Joined <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </th>
                   <th className="px-4 py-3 w-10" />
@@ -458,25 +521,32 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="space-y-0.5">
-                        <p className="flex items-center gap-1.5 text-zinc-300">
+                        <p className="flex items-center gap-1.5 text-zinc-400 text-xs">
                           <Mail className="h-3 w-3 text-zinc-500" /> {emp.email}
                         </p>
-                        <p className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                        <p className="flex items-center gap-1.5 text-zinc-500 text-xs">
                           <Phone className="h-3 w-3 text-zinc-500" /> {emp.phone || 'N/A'}
                         </p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                      <span className="inline-flex items-center rounded-full bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-400 ring-1 ring-inset ring-purple-500/20">
                         {emp.department || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-300">{emp.designation}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-400">
+                        <UserCheck className="h-3 w-3" />
+                        {emp.manager || 'No Manager'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-400 text-xs font-medium">{emp.designation}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase ${
                         emp.role === 'admin' || emp.role === 'ADMIN' ? 'bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/20' :
                         emp.role === 'hr' || emp.role === 'HR' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
                         emp.role === 'manager' || emp.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
+                        emp.role === 'none' || emp.role === 'NONE' ? 'bg-zinc-500/10 text-zinc-500 ring-1 ring-inset ring-zinc-500/20' :
                         'bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20'
                       }`}>
                         {emp.role}
@@ -491,25 +561,16 @@ export default function EmployeeList() {
                         {emp.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-400 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-3 w-3" />
-                        {emp.joinDate}
-                      </div>
-                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setAssigningDept(emp)} title="Transfer Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
+                        <button onClick={() => handleOpenTransfer(emp)} title="Transfer Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
                           <Building className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setAssigningMgr(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
+                        <button onClick={() => handleOpenAssignManager(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
                           <UserCheck className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setTogglingStatus(emp)} title="Activate/Deactivate" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400' : 'hover:bg-amber-50 text-slate-500 hover:text-amber-600'}`}>
-                          <PowerOff className="h-4 w-4" />
                         </button>
                         <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
                           <Trash2 className="h-4 w-4" />
@@ -586,40 +647,54 @@ export default function EmployeeList() {
 
       <ModalWrapper isOpen={!!assigningDept} onClose={() => setAssigningDept(null)} title="Transfer Employee">
         <div>
-          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Transfer {assigningDept?.firstName} to New Department</label>
-          <select className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
-          </select>
-          <button onClick={() => setAssigningDept(null)} className={`w-full mt-6 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-purple-600 hover:bg-purple-500' : 'bg-purple-600 hover:bg-purple-700'}`}>
-            Confirm Transfer
-          </button>
+          <p className={`text-sm mb-4 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+            Transferring <strong>{assigningDept?.firstName} {assigningDept?.lastName}</strong> to a new department.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>New Department</label>
+              <select value={transferForm.departmentId} onChange={(e) => handleDepartmentChange(e.target.value)} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <option value="">Select a department...</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.departmentName}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>New Designation</label>
+              <select value={transferForm.designationId} onChange={(e) => setTransferForm({...transferForm, designationId: e.target.value})} disabled={!transferForm.departmentId} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white disabled:opacity-50' : 'bg-white border-slate-200 text-slate-900 disabled:opacity-50'}`}>
+                <option value="">{designations.length === 0 ? 'Select a department first...' : 'Select a designation...'}</option>
+                {designations.map(d => <option key={d.id} value={d.id}>{d.designationName}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>New Manager (Optional)</label>
+              <select value={transferForm.managerId} onChange={(e) => setTransferForm({...transferForm, managerId: e.target.value})} disabled={!transferForm.departmentId} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white disabled:opacity-50' : 'bg-white border-slate-200 text-slate-900 disabled:opacity-50'}`}>
+                <option value="">{eligibleManagers.length === 0 ? 'No managers available...' : 'Select a manager...'}</option>
+                {eligibleManagers.map(m => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
+              </select>
+            </div>
+            <button onClick={handleConfirmTransfer} className={`w-full mt-2 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${isDark ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/20' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20'}`}>
+              Confirm Transfer
+            </button>
+          </div>
         </div>
       </ModalWrapper>
 
       <ModalWrapper isOpen={!!assigningMgr} onClose={() => setAssigningMgr(null)} title="Assign Manager">
         <div>
-          <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Manager for {assigningMgr?.firstName}</label>
-          <select className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-            <option>John Doe</option>
-            <option>Sarah Smith</option>
-          </select>
-          <button onClick={() => setAssigningMgr(null)} className={`w-full mt-6 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'}`}>
-            Confirm Manager
-          </button>
-        </div>
-      </ModalWrapper>
-
-      <ModalWrapper isOpen={!!togglingStatus} onClose={() => setTogglingStatus(null)} title="Change Status">
-        <div>
-          <p className={`text-sm mb-4 ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
-            Are you sure you want to change the status of <strong>{togglingStatus?.firstName} {togglingStatus?.lastName}</strong>?
+          <p className={`text-sm mb-4 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+            Assign a manager for <strong>{assigningMgr?.firstName} {assigningMgr?.lastName}</strong> ({assigningMgr?.department}).
           </p>
-          <div className="flex gap-3">
-            <button onClick={() => setTogglingStatus(null)} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${isDark ? 'border-zinc-800 text-zinc-300 hover:bg-zinc-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-              Cancel
-            </button>
-            <button onClick={() => setTogglingStatus(null)} className={`flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all ${isDark ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-600 hover:bg-amber-700'}`}>
-              Yes, Toggle Status
+          <div className="space-y-4">
+            <div>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Manager</label>
+              <select value={managerForm.managerId} onChange={(e) => setManagerForm({ managerId: e.target.value })} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                <option value="">{eligibleManagers.length === 0 ? 'No eligible managers found...' : 'Select a manager...'}</option>
+                <option value="">None (Remove Manager)</option>
+                {eligibleManagers.map(m => <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>)}
+              </select>
+            </div>
+            <button onClick={handleConfirmAssignManager} className={`w-full mt-2 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${isDark ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
+              Confirm Manager
             </button>
           </div>
         </div>

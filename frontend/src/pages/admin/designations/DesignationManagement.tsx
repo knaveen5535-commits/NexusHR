@@ -6,6 +6,41 @@ import { toast } from 'sonner';
 import { getDesignations, createDesignation, updateDesignation, toggleDesignationStatus, deleteDesignation, type Designation } from '../../../services/designation.service';
 import { getDepartments, type Department } from '../../../services/department.service';
 
+const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
+  const { isDark } = useTheme();
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className={`relative w-full max-w-lg rounded-3xl p-6 shadow-2xl border ${
+              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h2>
+              <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-500'}`}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {children}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export default function DesignationManagement() {
   const { isDark } = useTheme();
   const [search, setSearch] = useState('');
@@ -99,37 +134,7 @@ export default function DesignationManagement() {
     setEditingDesig(desig);
   };
 
-  const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative w-full max-w-lg rounded-3xl p-6 shadow-2xl border ${
-              isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-slate-200'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h2>
-              <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {children}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
+
 
   return (
     <div className={`min-h-full w-full p-4 sm:p-8 transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>

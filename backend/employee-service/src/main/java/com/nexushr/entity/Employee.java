@@ -36,6 +36,8 @@ public class Employee {
 
     private LocalDate joiningDate;
 
+    private LocalDate leaveDate;
+
     @Enumerated(EnumType.STRING)
     private EmployeeStatus status;
 

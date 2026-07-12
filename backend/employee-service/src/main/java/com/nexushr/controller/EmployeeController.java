@@ -93,6 +93,36 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getManagersByDepartment(departmentId));
     }
 
+    @PutMapping("/{id}/transfer")
+    public ResponseEntity<EmployeeResponse> transferEmployee(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.TransferEmployeeRequest request) {
+
+        return ResponseEntity.ok(
+                employeeService.transferEmployee(id, request)
+        );
+    }
+
+    @PutMapping("/{id}/manager")
+    public ResponseEntity<EmployeeResponse> assignManager(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.AssignManagerRequest request) {
+
+        return ResponseEntity.ok(
+                employeeService.assignManager(id, request)
+        );
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<EmployeeResponse> updateRole(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.UpdateRoleRequest request) {
+
+        return ResponseEntity.ok(
+                employeeService.updateRole(id, request)
+        );
+    }
+
     @GetMapping("/dashboard")
     public ResponseEntity<com.nexushr.dto.DashboardStatsDTO> getDashboardStats() {
         return ResponseEntity.ok(employeeService.getDashboardStats());

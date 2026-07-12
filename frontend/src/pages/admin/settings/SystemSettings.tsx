@@ -11,11 +11,9 @@ const SETTING_MODULES = [
   { id: 'notif', name: 'Notification Settings', desc: 'Email/SMS triggers and templates.', icon: Bell },
 ];
 
-export default function SystemSettings() {
+const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
   const { isDark } = useTheme();
-  const [activeSetting, setActiveSetting] = useState<string | null>(null);
-
-  const ModalWrapper = ({ isOpen, onClose, title, children }: any) => (
+  return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -60,6 +58,13 @@ export default function SystemSettings() {
       )}
     </AnimatePresence>
   );
+};
+
+export default function SystemSettings() {
+  const { isDark } = useTheme();
+  const [activeSetting, setActiveSetting] = useState<string | null>(null);
+
+
 
   return (
     <div className={`min-h-full w-full p-4 sm:p-8 transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>

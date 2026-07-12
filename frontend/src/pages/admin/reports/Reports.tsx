@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { exportDashboardPdf } from '../../../utils/exportPdf';
+import { getEmployees } from '../../../services/employee.service';
+import type { Employee } from '../../../services/employee.service';
 import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import PieChartCard from '../../../components/charts/PieChartCard';
@@ -153,6 +155,8 @@ export default function Reports() {
   const navigate = useNavigate();
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [employeesData, setEmployeesData] = useState<Employee[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   const pathParts = location.pathname.split('/');
   const subPath = pathParts[pathParts.length - 1];
@@ -168,8 +172,94 @@ export default function Reports() {
   const filteredReportId = pathMap[subPath];
   const isSingleReportMode = !!filteredReportId;
   
+  useEffect(() => {
+    if (filteredReportId === 'emp') {
+      setIsLoadingData(true);
+      getEmployees().then(data => {
+        setEmployeesData(data);
+      }).catch(err => {
+        console.error('Failed to fetch employees', err);
+      }).finally(() => {
+        setIsLoadingData(false);
+      });
+    }
+  }, [filteredReportId]);
+
   const activeReport = isSingleReportMode ? REPORT_TYPES.find(r => r.id === filteredReportId) : null;
-  const reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
+  let reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
+
+  if (activeReport?.id === 'emp' && employeesData.length > 0) {
+    const total = employeesData.length;
+    const active = employeesData.filter(e => e.status?.toLowerCase() === 'active').length;
+    
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const newHires = employeesData.filter(e => {
+      if (!e.joiningDate) return false;
+      const date = new Date(e.joiningDate);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    }).length;
+
+    const leftThisMonthCount = employeesData.filter(e => {
+      if (!e.leaveDate) return false;
+      const date = new Date(e.leaveDate);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    }).length;
+    
+    const globalTurnover = total > 0 ? ((leftThisMonthCount / total) * 100).toFixed(1) + '%' : '0%';
+    
+    const deptMap: Record<string, { total: number, active: number, newHires: number, leftThisMonth: number }> = {};
+    employeesData.forEach(e => {
+      const dept = e.departmentName || 'Unknown';
+      if (!deptMap[dept]) deptMap[dept] = { total: 0, active: 0, newHires: 0, leftThisMonth: 0 };
+      deptMap[dept].total++;
+      if (e.status?.toLowerCase() === 'active') deptMap[dept].active++;
+      
+      if (e.joiningDate) {
+        const date = new Date(e.joiningDate);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          deptMap[dept].newHires++;
+        }
+      }
+      
+      if (e.leaveDate) {
+        const date = new Date(e.leaveDate);
+        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+          deptMap[dept].leftThisMonth++;
+        }
+      }
+    });
+
+    const tableRows = Object.keys(deptMap).map(dept => {
+      const dTotal = deptMap[dept].total;
+      const dLeft = deptMap[dept].leftThisMonth;
+      const dTurnover = dTotal > 0 ? ((dLeft / dTotal) * 100).toFixed(1) + '%' : '0%';
+      return [
+        dept,
+        String(dTotal),
+        String(deptMap[dept].active),
+        String(deptMap[dept].newHires),
+        dTurnover
+      ];
+    });
+    
+    const chartData = Object.keys(deptMap).map(dept => ({
+      name: dept,
+      value: deptMap[dept].total
+    }));
+
+    reportData = {
+      kpis: [
+        { label: 'Total Employees', value: String(total), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { label: 'Active Employees', value: String(active), icon: BadgeCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: 'New Hires (MTD)', value: String(newHires), icon: UserPlus, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+        { label: 'Turnover Rate (MTD)', value: globalTurnover, icon: UserMinus, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+      ],
+      chart: { type: 'bar', title: 'Employees by Department', data: chartData },
+      tableHeaders: ['Department', 'Total', 'Active', 'New Hires', 'Turnover Rate'],
+      tableRows: tableRows
+    };
+  }
 
   const reversePathMap: Record<string, string> = {
     emp: 'employees',
@@ -319,7 +409,13 @@ export default function Reports() {
               <div className={`absolute top-0 left-0 w-full h-32 opacity-20 pointer-events-none ${isDark ? 'bg-gradient-to-b from-emerald-500/30 to-transparent' : 'bg-gradient-to-b from-emerald-500/20 to-transparent'}`} />
 
                 <div className="relative overflow-y-auto max-h-[70vh] p-6 sm:p-8 space-y-8">
-                  {/* Filters Section */}
+                  {isLoadingData ? (
+                    <div className="flex justify-center p-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Filters Section */}
                   <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-slate-50/50 border-slate-200'}`}>
                     <div className="space-y-2">
                       <label className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Date Range</label>
@@ -452,6 +548,8 @@ export default function Reports() {
                       </table>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Footer */}

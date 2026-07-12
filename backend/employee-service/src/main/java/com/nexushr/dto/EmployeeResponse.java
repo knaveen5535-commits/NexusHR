@@ -21,11 +21,23 @@ public class EmployeeResponse {
 
     private String email;
 
+    private String phone;
+
+    private java.math.BigDecimal salary;
+
     private String departmentName;
 
     private String designation;
 
+    private Long managerId;
+
+    private String managerName;
+
     private EmployeeStatus status;
 
     private Role role;
+
+    private java.time.LocalDate joiningDate;
+
+    private java.time.LocalDate leaveDate;
 }
