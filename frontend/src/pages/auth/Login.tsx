@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate, useParams } from 'react-router';
 import { useAuthStore } from '../../store/authStore';
 import { login } from '../../services/auth.service';
 import { decodeJWT } from '../../utils/jwt';
@@ -74,6 +74,7 @@ function Shape({
 
 export default function Login() {
   const navigate = useNavigate();
+  const { role: urlRole } = useParams<{ role: string }>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const { isDark, toggle } = useTheme();
@@ -84,13 +85,25 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSelectRole = (roleId: (typeof demoRoles)[0]['id']) => {
-    setSelectedRole(roleId);
-    const role = demoRoles.find((r) => r.id === roleId);
-    if (role) {
-      setEmail(role.email);
-      setPassword('password123');
+  useEffect(() => {
+    const validRole = demoRoles.find((r) => r.id === urlRole);
+    if (validRole) {
+      setSelectedRole(validRole.id);
+      setEmail(validRole.email);
+      setPassword(''); // Never auto-fill password
+    } else {
+      setSelectedRole(null);
+      setEmail('');
+      setPassword('');
     }
+  }, [urlRole]);
+
+  const handleSelectRole = (roleId: (typeof demoRoles)[0]['id']) => {
+    navigate(`/login/${roleId}`);
+  };
+
+  const handleBack = () => {
+    navigate('/login');
   };
 
   if (isAuthenticated && user?.role) {
@@ -111,17 +124,16 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const token = await login({ email, password });
+      const token = await login({ email, password, expectedRole: selectedRole });
       const decodedUser = decodeJWT(token);
       
-      if (decodedUser) {
-        // Build user object, assume role and email are in JWT payload.
-        // Fallback to selected role and entered email if claims are missing.
+      if (decodedUser && decodedUser.role) {
+        // Build user object. We strict-trust decodedUser.role.
         const userObj = {
           id: decodedUser.id || '0',
           username: decodedUser.email || email,
           email: decodedUser.email || email,
-          role: String(decodedUser.role || selectedRole).toLowerCase() as typeof selectedRole,
+          role: String(decodedUser.role).toLowerCase() as typeof selectedRole,
           firstName: decodedUser.firstName || 'User',
           lastName: decodedUser.lastName || '',
           employeeId: decodedUser.employeeId || '001',
@@ -139,11 +151,12 @@ export default function Login() {
             : '/employee/dashboard';
         navigate(path, { replace: true });
       } else {
-        alert('Failed to decode authentication token');
+        alert('Authentication failed: Missing role information from server.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed', error);
-      alert('Invalid credentials or server error. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Invalid credentials or server error. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -442,7 +455,7 @@ export default function Login() {
                 {/* Mobile back button & role display */}
                 <div className="mb-8 flex items-center md:hidden gap-3">
                    <button 
-                     onClick={() => setSelectedRole(null)}
+                     onClick={handleBack}
                      className={`p-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-200 text-slate-700'}`}
                    >
                      <ArrowRight className="h-4 w-4 rotate-180" />
@@ -570,7 +583,7 @@ export default function Login() {
                 {/* Back button for desktop */}
                 <div className="mt-6 text-center hidden md:block">
                   <button 
-                    onClick={() => setSelectedRole(null)}
+                    onClick={handleBack}
                     className={`text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-800'}`}
                   >
                     &larr; Back to roles

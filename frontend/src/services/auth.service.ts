@@ -3,6 +3,7 @@ import api from './api';
 interface LoginCredentials {
   email: string;
   password: string;
+  expectedRole?: string;
 }
 
 interface RegisterData {

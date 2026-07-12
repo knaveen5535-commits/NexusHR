@@ -40,7 +40,7 @@ export default function App() {
         <ThemeSync />
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login/:role?" element={<Login />} />
           <Route path="/register" element={<RegisterAdmin />} />
 
           {/* Admin Routes */}
