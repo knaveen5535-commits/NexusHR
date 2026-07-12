@@ -40,10 +40,10 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
         firstName: employee.firstName || '',
         lastName: employee.lastName || '',
         email: employee.email || '',
-        phone: '', // Need to add phone to employee type if used
-        salary: '0', 
-        departmentId: '', // Ideally map from employee.department
-        designationId: '', // Ideally map from employee.designation
+        phone: (employee as any).phone || '',
+        salary: (employee as any).salary ? (employee as any).salary.toString() : '0', 
+        departmentId: '', 
+        designationId: '', 
         managerId: '',
         role: (employee.role?.toUpperCase() as 'HR' | 'MANAGER' | 'EMPLOYEE') || 'EMPLOYEE',
       });
@@ -60,13 +60,14 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
   useEffect(() => {
     if (formData.departmentId && formData.role) {
       getDesignations(Number(formData.departmentId), formData.role).then((res) => {
-        setDesignations(res);
-        const existing = res.find(d => d.designationName === employee?.designation);
+        const activeDesignations = res.filter(d => d.active);
+        setDesignations(activeDesignations);
+        const existing = activeDesignations.find(d => d.designationName === employee?.designation);
         if (existing) {
           setFormData(prev => ({ ...prev, designationId: existing.id.toString() }));
-        } else if (res.length > 0 && !res.find(d => d.id.toString() === formData.designationId)) {
-          setFormData(prev => ({ ...prev, designationId: res[0].id.toString() }));
-        } else if (res.length === 0) {
+        } else if (activeDesignations.length > 0 && !activeDesignations.find(d => d.id.toString() === formData.designationId)) {
+          setFormData(prev => ({ ...prev, designationId: activeDesignations[0].id.toString() }));
+        } else if (activeDesignations.length === 0) {
           setFormData(prev => ({ ...prev, designationId: '' }));
         }
       }).catch(console.error);
@@ -96,6 +97,18 @@ export default function EditUserModal({ isOpen, employee, onClose, onSuccess }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employee) return;
+
+    if (!formData.email.includes('@')) {
+      toast.error('Please enter a valid email address containing "@"');
+      return;
+    }
+
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error('Phone number must be exactly 10 digits.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await updateEmployee(Number(employee.id), {

@@ -41,11 +41,12 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   useEffect(() => {
     if (formData.departmentId && formData.role) {
       getDesignations(Number(formData.departmentId), formData.role).then((res) => {
-        setDesignations(res);
+        const activeDesignations = res.filter(d => d.active);
+        setDesignations(activeDesignations);
         // Automatically select the first designation if available
-        if (res.length > 0 && !res.find(d => d.id.toString() === formData.designationId)) {
-          setFormData(prev => ({ ...prev, designationId: res[0].id.toString() }));
-        } else if (res.length === 0) {
+        if (activeDesignations.length > 0 && !activeDesignations.find(d => d.id.toString() === formData.designationId)) {
+          setFormData(prev => ({ ...prev, designationId: activeDesignations[0].id.toString() }));
+        } else if (activeDesignations.length === 0) {
           setFormData(prev => ({ ...prev, designationId: '' }));
         }
       }).catch(console.error);
@@ -83,6 +84,18 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.email.includes('@')) {
+      toast.error('Please enter a valid email address containing "@"');
+      return;
+    }
+
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error('Phone number must be exactly 10 digits.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await createEmployee({

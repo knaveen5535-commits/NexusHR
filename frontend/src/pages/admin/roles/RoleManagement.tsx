@@ -55,7 +55,6 @@ export default function RoleManagement() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [managingPermsRole, setManagingPermsRole] = useState<any>(null);
   const [viewingUsersRole, setViewingUsersRole] = useState<any>(null);
-  const [addingUserToRole, setAddingUserToRole] = useState<any>(null);
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,22 +90,6 @@ export default function RoleManagement() {
   });
 
   const usersWithoutRole = employees.filter(e => !e.role || e.role.toUpperCase() === 'NONE');
-
-
-
-  const handleAssignRole = async (userId: number, roleKey: string) => {
-    try {
-      await updateRole(userId, roleKey.toUpperCase());
-      toast.success('Role assigned successfully');
-      fetchEmployees();
-      setAddingUserToRole(null);
-    } catch (error) {
-      toast.error('Failed to assign role');
-    }
-  };
-
-
-
   return (
     <div className={`min-h-full w-full p-4 sm:p-8 transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       <div className="relative z-10 max-w-7xl mx-auto space-y-6">
@@ -132,27 +115,7 @@ export default function RoleManagement() {
           </button>
         </motion.div>
 
-        {/* Users Without Role Section */}
-        {usersWithoutRole.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`p-6 rounded-3xl border mb-8 ${isDark ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50 border-red-200'}`}>
-            <h2 className={`text-xl font-extrabold mb-4 flex items-center gap-2 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-              <UserMinus className="h-6 w-6" /> Users Without Role ({usersWithoutRole.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {usersWithoutRole.map(u => (
-                <div key={u.id} className={`p-4 rounded-xl border flex flex-col justify-between ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-slate-200'}`}>
-                  <div>
-                    <p className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{u.firstName} {u.lastName}</p>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>{u.employeeCode} • {u.departmentName || 'No Dept'}</p>
-                  </div>
-                  <button onClick={() => setAddingUserToRole({ user: u })} className="mt-4 py-2 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors">
-                    Assign Role
-                  </button>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {isLoading ? (
@@ -221,13 +184,19 @@ export default function RoleManagement() {
         {/* Create Role Modal */}
         <ModalWrapper isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create New Role">
             <div>
-              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Role Name</label>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Role Name *</label>
               <input type="text" className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors ${
                 isDark ? 'bg-zinc-900/50 border-zinc-800 text-white placeholder-zinc-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
               }`} placeholder="e.g. Guest" />
             </div>
             <div>
-              <label className={`block text-xs font-bold mb-3 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Initial Permissions</label>
+              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Description</label>
+              <textarea className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors ${
+                isDark ? 'bg-zinc-900/50 border-zinc-800 text-white placeholder-zinc-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+              }`} placeholder="Brief description of this role's responsibilities" rows={2} />
+            </div>
+            <div>
+              <label className={`block text-xs font-bold mb-3 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Initial Permissions *</label>
               <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-xl border ${isDark ? 'border-zinc-800 bg-zinc-900/30' : 'border-slate-200 bg-slate-50'}`}>
                 {ALL_PERMISSIONS.slice(0, 6).map(perm => (
                   <label key={perm} className="flex items-center gap-2 cursor-pointer group">
@@ -240,23 +209,24 @@ export default function RoleManagement() {
                 ))}
               </div>
             </div>
-            <button onClick={() => setIsCreateOpen(false)} className={`w-full mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${
+            <button onClick={() => { setIsCreateOpen(false); toast.info('Role creation will be fully functional in the next update.'); }} className={`w-full mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${
               isDark ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-600 hover:bg-amber-700'
             }`}>
               Save Role
             </button>
         </ModalWrapper>
 
-        {/* Manage Permissions Modal */}
+        {/* View Permissions Modal */}
         <ModalWrapper isOpen={!!managingPermsRole} onClose={() => setManagingPermsRole(null)} title={`Permissions for ${managingPermsRole?.name}`}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {ALL_PERMISSIONS.map((perm) => {
-                const hasPerm = managingPermsRole?.permissions.includes(perm);
+                const isSystemAdmin = managingPermsRole?.key === 'admin';
+                const hasPerm = isSystemAdmin || managingPermsRole?.permissions.includes(perm);
                 return (
-                  <label key={perm} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                  <div key={perm} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors opacity-80 cursor-not-allowed ${
                     hasPerm 
                       ? isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'
-                      : isDark ? 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700' : 'bg-white border-slate-200 hover:border-slate-300'
+                      : isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-slate-200'
                   }`}>
                     {hasPerm ? (
                       <CheckSquare className={`h-5 w-5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
@@ -264,15 +234,13 @@ export default function RoleManagement() {
                       <Square className={`h-5 w-5 ${isDark ? 'text-zinc-600' : 'text-slate-400'}`} />
                     )}
                     <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{perm}</span>
-                  </label>
+                  </div>
                 );
               })}
             </div>
-            <button onClick={() => setManagingPermsRole(null)} className={`w-full mt-4 py-3 rounded-xl text-sm font-bold text-white transition-all ${
-              isDark ? 'bg-amber-600 hover:bg-amber-500' : 'bg-amber-600 hover:bg-amber-700'
-            }`}>
-              Update Permissions
-            </button>
+            <div className={`mt-4 p-3 rounded-xl text-sm text-center font-medium ${isDark ? 'bg-zinc-900/50 text-zinc-400 border border-zinc-800' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+              Role permissions are statically defined in the system and cannot be modified.
+            </div>
         </ModalWrapper>
 
         {/* View Users Modal */}
@@ -294,37 +262,6 @@ export default function RoleManagement() {
             {viewingUsersRole?.userList?.length === 0 && (
               <p className="text-center py-4 text-zinc-500 text-sm">No users found in this role.</p>
             )}
-            
-            <button onClick={() => setAddingUserToRole({ role: viewingUsersRole })} className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border border-dashed transition-colors ${
-              isDark ? 'border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'border-slate-300 text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`}>
-              <Plus className="h-4 w-4" /> Add User to Role
-            </button>
-        </ModalWrapper>
-
-        {/* Assign User to Role Modal */}
-        <ModalWrapper isOpen={!!addingUserToRole} onClose={() => setAddingUserToRole(null)} title={addingUserToRole?.role ? `Assign ${addingUserToRole.role.name}` : `Assign Role to ${addingUserToRole?.user?.firstName}`}>
-          {addingUserToRole?.role ? (
-            <div>
-              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select User</label>
-              <select onChange={(e) => handleAssignRole(Number(e.target.value), addingUserToRole.role.key)} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                <option value="">Select a user...</option>
-                {employees.filter(e => e.role?.toLowerCase() !== addingUserToRole.role.key.toLowerCase()).map(e => (
-                  <option key={e.id} value={e.id}>{e.firstName} {e.lastName} ({e.email})</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Select Role</label>
-              <select onChange={(e) => handleAssignRole(addingUserToRole.user.id, e.target.value)} className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                <option value="">Select a role...</option>
-                {rolesData.map(r => (
-                  <option key={r.id} value={r.key}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </ModalWrapper>
 
       </div>

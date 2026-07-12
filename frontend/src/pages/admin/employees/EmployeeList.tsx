@@ -179,12 +179,13 @@ export default function EmployeeList() {
   useEffect(() => {
     fetchEmployees();
     getDepartments().then(setDepartments).catch(console.error);
-  }, []);
+  }, [location.pathname, user?.role]); // Re-fetch if location or role changes
+
+  const isManagerTeamView = user?.role === 'MANAGER' && location.pathname.includes('/manager/team');
 
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const isManagerTeamView = user?.role === 'MANAGER' && location.pathname.includes('/manager/team');
       const data = isManagerTeamView ? await getTeamMembers() : await getEmployees();
       const mapped = data.map((e: any) => ({
         id: Number(e.id),
@@ -266,10 +267,12 @@ export default function EmployeeList() {
     setAssigningMgr(emp);
     setManagerForm({ managerId: '' });
     // find employee's department ID to load managers
-    const dept = departments.find(d => d.departmentName === emp.department);
+    const dept = departments.find(d => d.departmentName === emp.departmentName);
     if (dept) {
       const mgrs = await getManagersByDepartment(dept.id);
       setEligibleManagers(mgrs.filter(m => m.id !== Number(emp.id)));
+    } else {
+      setEligibleManagers([]);
     }
   };
 
@@ -337,9 +340,11 @@ export default function EmployeeList() {
           <button onClick={() => exportCSV(filtered)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-colors ${isDark ? 'border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800' : 'border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>
             <Download className="h-4 w-4" /> Export
           </button>
-          <button onClick={() => setIsAddOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg ${isDark ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
-            <UserPlus className="h-4 w-4" /> Add Employee
-          </button>
+          {!isManagerTeamView && (
+            <button onClick={() => setIsAddOpen(true)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg ${isDark ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'}`}>
+              <UserPlus className="h-4 w-4" /> Add Employee
+            </button>
+          )}
         </div>
       </div>
 
@@ -352,17 +357,19 @@ export default function EmployeeList() {
             className="overflow-hidden"
           >
             <div className="flex flex-wrap gap-3 p-4 rounded-xl border border-zinc-800 bg-zinc-900/30">
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Department</label>
-                <select
-                  value={filters.departmentName || ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, departmentName: e.target.value || undefined })); setPage(1); }}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">All Departments</option>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
+              {!isManagerTeamView && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Department</label>
+                  <select
+                    value={filters.departmentName || ''}
+                    onChange={(e) => { setFilters((f) => ({ ...f, departmentName: e.target.value || undefined })); setPage(1); }}
+                    className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">All Departments</option>
+                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-zinc-500 mb-1">Status</label>
                 <select
@@ -374,17 +381,19 @@ export default function EmployeeList() {
                   {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Role</label>
-                <select
-                  value={filters.role || ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, role: e.target.value || undefined })); setPage(1); }}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">All Roles</option>
-                  {ROLES.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
-                </select>
-              </div>
+              {!isManagerTeamView && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Role</label>
+                  <select
+                    value={filters.role || ''}
+                    onChange={(e) => { setFilters((f) => ({ ...f, role: e.target.value || undefined })); setPage(1); }}
+                    className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">All Roles</option>
+                    {ROLES.map((r) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-xs text-zinc-500 mb-1">Designation</label>
                 <select
@@ -396,17 +405,19 @@ export default function EmployeeList() {
                   {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Manager</label>
-                <select
-                  value={filters.managerName || ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, managerName: e.target.value || undefined })); setPage(1); }}
-                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">All Managers</option>
-                  {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
+              {!isManagerTeamView && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Manager</label>
+                  <select
+                    value={filters.managerName || ''}
+                    onChange={(e) => { setFilters((f) => ({ ...f, managerName: e.target.value || undefined })); setPage(1); }}
+                    className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">All Managers</option>
+                    {MANAGERS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              )}
               {(filters.departmentName || filters.status || filters.role || filters.designation || filters.managerName) && (
                 <div className="flex items-end">
                   <button
@@ -473,7 +484,7 @@ export default function EmployeeList() {
                       Status <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </th>
-                  <th className="px-4 py-3 w-10" />
+                  {!isManagerTeamView && <th className="px-4 py-3 w-10" />}
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDark ? 'divide-zinc-800' : 'divide-slate-200'}`}>
@@ -560,22 +571,26 @@ export default function EmployeeList() {
                         {emp.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                        <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleOpenTransfer(emp)} title="Transfer Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
-                          <Building className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleOpenAssignManager(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
-                          <UserCheck className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {!isManagerTeamView && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                          <button onClick={() => setEditingEmp(emp)} title="Edit Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => handleOpenTransfer(emp)} title="Transfer Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-purple-500/20 text-zinc-400 hover:text-purple-400' : 'hover:bg-purple-50 text-slate-500 hover:text-purple-600'}`}>
+                            <Building className="h-4 w-4" />
+                          </button>
+                          {emp.role === 'EMPLOYEE' && (
+                            <button onClick={() => handleOpenAssignManager(emp)} title="Assign Manager" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400' : 'hover:bg-blue-50 text-slate-500 hover:text-blue-600'}`}>
+                              <UserCheck className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </motion.tr>
                 )))}
               </tbody>
