@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
-  FileText, Download, Upload, Target, Shield, Heart, UserMinus
+  FileText, Upload, Shield, Heart, UserMinus
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
