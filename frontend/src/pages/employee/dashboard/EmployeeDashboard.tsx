@@ -13,6 +13,8 @@ import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 import { submitResignation, getMyResignations } from '../../../services/resignation.service';
 import type { Resignation } from '../../../services/resignation.service';
+import api from '../../../services/api';
+import { useAuthStore } from '../../../store/authStore';
 
 // Dummy Data
 const kpiData: KpiCardType[] = [
@@ -143,6 +145,63 @@ function ProfileTab() {
 }
 
 function AttendanceTab() {
+  const [loading, setLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const user = useAuthStore(s => s.user);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+
+  const fetchHistory = async () => {
+    try {
+      const empId = user?.id || 1;
+      const res = await api.get(`/attendance/employee/${empId}`);
+      setAttendanceHistory(res.data);
+    } catch (err) {
+      console.error('Failed to fetch attendance history', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      await api.post('/attendance/check-in', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkInTime: new Date().toISOString(),
+        source: 'WEB'
+      });
+      toast.success('Successfully checked in!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      setLoading(true);
+      await api.post('/attendance/check-out', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkOutTime: new Date().toISOString(),
+        remarks: 'Standard checkout'
+      });
+      toast.success('Successfully checked out!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check out');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -150,14 +209,13 @@ function AttendanceTab() {
           <div className="w-32 h-32 rounded-full border-4 border-blue-500/20 mx-auto mb-6 flex flex-col items-center justify-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
             <Clock size={24} className="text-blue-400 mb-2 z-10" />
-            <span className="text-2xl font-bold text-foreground z-10">09:14</span>
-            <span className="text-xs text-blue-400 z-10">AM</span>
+            <span className="text-2xl font-bold text-foreground z-10">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
           </div>
           <div className="flex gap-4">
-            <button className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20">
+            <button onClick={handleCheckIn} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50">
               Check In
             </button>
-            <button className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border">
+            <button onClick={handleCheckOut} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border disabled:opacity-50">
               Check Out
             </button>
           </div>
@@ -178,25 +236,29 @@ function AttendanceTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-foreground">
-                {[
-                  { date: 'Today', in: '09:14 AM', out: '--', hrs: '--', status: 'Present', color: 'emerald' },
-                  { date: 'Yesterday', in: '08:55 AM', out: '06:05 PM', hrs: '9h 10m', status: 'Present', color: 'emerald' },
-                  { date: 'Jul 03, 2026', in: '09:05 AM', out: '06:15 PM', hrs: '9h 10m', status: 'Present', color: 'emerald' },
-                  { date: 'Jul 02, 2026', in: '09:45 AM', out: '06:30 PM', hrs: '8h 45m', status: 'Late', color: 'amber' },
-                  { date: 'Jul 01, 2026', in: '--', out: '--', hrs: '--', status: 'Absent', color: 'red' },
-                ].map((row, i) => (
+                {attendanceHistory.length > 0 ? attendanceHistory.map((row, i) => (
                   <tr key={i} className="hover:bg-muted transition-colors">
-                    <td className="py-3">{row.date}</td>
-                    <td className="py-3">{row.in}</td>
-                    <td className="py-3">{row.out}</td>
-                    <td className="py-3">{row.hrs}</td>
+                    <td className="py-3">{row.attendanceDate}</td>
+                    <td className="py-3">{row.checkInTime}</td>
+                    <td className="py-3">{row.checkOutTime}</td>
+                    <td className="py-3">{row.totalHours}</td>
                     <td className="py-3">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium bg-${row.color}-500/10 text-${row.color}-400 border border-${row.color}-500/20`}>
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
+                        row.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        row.status === 'late' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        'bg-red-500/10 text-red-400 border-red-500/20'
+                      } capitalize`}>
                         {row.status}
                       </span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      No attendance records found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

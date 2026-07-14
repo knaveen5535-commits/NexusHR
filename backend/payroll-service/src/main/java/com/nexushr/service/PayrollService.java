@@ -1,250 +1,145 @@
 package com.nexushr.service;
 
-import com.nexushr.dto.CreatePayrollRequest;
-import com.nexushr.dto.EmployeeResponse;
-import com.nexushr.dto.PayrollResponse;
-import com.nexushr.entity.Payroll;
+import com.nexushr.dto.EmployeeDTO;
+import com.nexushr.dto.PayrollDTO;
+import com.nexushr.entity.*;
+import com.nexushr.enums.ComponentType;
 import com.nexushr.enums.PayrollStatus;
-import com.nexushr.exception.EmployeeNotFoundException;
+import com.nexushr.enums.ValueType;
 import com.nexushr.repository.PayrollRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import com.nexushr.repository.SalaryStructureRepository;
+import com.nexushr.repository.TaxSlabRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Arrays;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PayrollService {
 
-    @Autowired
-    private PayrollRepository payrollRepository;
+    private final PayrollRepository payrollRepository;
+    private final SalaryStructureRepository salaryStructureRepository;
+    private final TaxSlabRepository taxSlabRepository;
+    private final EmployeeClient employeeClient;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    public Payroll generatePayroll(Long employeeId, Integer month, Integer year) {
+        payrollRepository.findByEmployeeIdAndPayrollMonthAndPayrollYear(employeeId, month, year)
+                .ifPresent(p -> { throw new RuntimeException("Payroll already generated for this month"); });
 
-    public PayrollResponse createPayroll(
-            CreatePayrollRequest request,
-            String authHeader) {
+        SalaryStructure structure = salaryStructureRepository.findByEmployeeId(employeeId)
+                .orElseThrow(() -> new RuntimeException("Salary structure not found for employee"));
 
-        BigDecimal bonus =
-                request.getBonus() != null
-                        ? request.getBonus()
-                        : BigDecimal.ZERO;
+        BigDecimal grossSalary = structure.getBaseSalary();
+        BigDecimal totalDeductions = BigDecimal.ZERO;
+        List<PayrollComponent> payrollComponents = new ArrayList<>();
 
-        BigDecimal deductions =
-                request.getDeductions() != null
-                        ? request.getDeductions()
-                        : BigDecimal.ZERO;
+        // Process dynamic components
+        for (SalaryComponent sc : structure.getComponents()) {
+            BigDecimal amount = sc.getComponentValue();
+            if (sc.getValueType() == ValueType.PERCENTAGE) {
+                amount = structure.getBaseSalary().multiply(sc.getComponentValue()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            }
 
-        BigDecimal netSalary =
-                request.getBaseSalary()
-                        .add(bonus)
-                        .subtract(deductions);
+            PayrollComponent pc = PayrollComponent.builder()
+                    .name(sc.getName())
+                    .componentType(sc.getComponentType())
+                    .amount(amount)
+                    .build();
+            payrollComponents.add(pc);
 
-        Payroll payroll = new Payroll();
-
-        payroll.setEmployeeId(
-                request.getEmployeeId()
-        );
-
-        payroll.setBaseSalary(
-                request.getBaseSalary()
-        );
-
-        payroll.setBonus(bonus);
-
-        payroll.setDeductions(deductions);
-
-        payroll.setNetSalary(netSalary);
-
-        payroll.setPayDate(
-                LocalDate.now()
-        );
-
-        payroll.setStatus(
-                PayrollStatus.PENDING
-        );
-
-        // check employee exists in employee-service
-        try {
-
-            HttpHeaders headers =
-                    new HttpHeaders();
-
-            headers.set(
-                    "Authorization",
-                    authHeader
-            );
-
-            HttpEntity<String> entity =
-                    new HttpEntity<>(headers);
-
-            ResponseEntity<String> response =
-                    restTemplate.exchange(
-                            "http://localhost:8082/api/employees/" +
-                                    request.getEmployeeId(),
-                            HttpMethod.GET,
-                            entity,
-                            String.class
-                    );
-
-        } catch (Exception e) {
-            throw new EmployeeNotFoundException(
-                    "Employee does not exist"
-            );
+            if (sc.getComponentType() == ComponentType.EARNING) {
+                grossSalary = grossSalary.add(amount);
+            } else {
+                totalDeductions = totalDeductions.add(amount);
+            }
         }
 
-        Payroll savedPayroll =
-                payrollRepository.save(payroll);
+        // Calculate Tax (Simplified Annualized Calculation)
+        BigDecimal annualizedSalary = grossSalary.multiply(BigDecimal.valueOf(12));
+        List<TaxSlab> slabs = taxSlabRepository.findByFinancialYearOrderByMinSalaryAsc("2026-2027");
+        
+        BigDecimal annualTax = BigDecimal.ZERO;
+        for (TaxSlab slab : slabs) {
+            if (annualizedSalary.compareTo(slab.getMinSalary()) > 0) {
+                BigDecimal taxableAmountInSlab = annualizedSalary;
+                if (slab.getMaxSalary() != null && annualizedSalary.compareTo(slab.getMaxSalary()) > 0) {
+                    taxableAmountInSlab = slab.getMaxSalary();
+                }
+                taxableAmountInSlab = taxableAmountInSlab.subtract(slab.getMinSalary());
+                
+                BigDecimal taxForSlab = taxableAmountInSlab.multiply(slab.getTaxPercentage()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                annualTax = annualTax.add(taxForSlab);
+            }
+        }
+        
+        BigDecimal monthlyTax = annualTax.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+        totalDeductions = totalDeductions.add(monthlyTax);
 
-        return new PayrollResponse(
-                savedPayroll.getId(),
-                savedPayroll.getEmployeeId(),
-                savedPayroll.getBaseSalary(),
-                savedPayroll.getBonus(),
-                savedPayroll.getDeductions(),
-                savedPayroll.getNetSalary(),
-                savedPayroll.getPayDate(),
-                savedPayroll.getStatus()
-        );
+        PayrollComponent taxComponent = PayrollComponent.builder()
+                .name("Income Tax")
+                .componentType(ComponentType.DEDUCTION)
+                .amount(monthlyTax)
+                .build();
+        payrollComponents.add(taxComponent);
+
+        BigDecimal netSalary = grossSalary.subtract(totalDeductions);
+
+        Payroll payroll = Payroll.builder()
+                .employeeId(employeeId)
+                .payrollMonth(month)
+                .payrollYear(year)
+                .payslipNumber(generatePayslipNumber(employeeId, month, year))
+                .grossSalary(grossSalary)
+                .totalDeductions(totalDeductions)
+                .totalTaxes(monthlyTax)
+                .netSalary(netSalary)
+                .status(PayrollStatus.PENDING)
+                .build();
+
+        for (PayrollComponent pc : payrollComponents) {
+            pc.setPayroll(payroll);
+        }
+        payroll.setComponents(payrollComponents);
+
+        return payrollRepository.save(payroll);
     }
 
-    public List<PayrollResponse> getPayrollByEmployeeId(
-            Long employeeId) {
-
-        List<Payroll> payrolls =
-                payrollRepository.findByEmployeeId(
-                        employeeId
-                );
-
-        return payrolls.stream()
-                .map(payroll ->
-                        new PayrollResponse(
-                                payroll.getId(),
-                                payroll.getEmployeeId(),
-                                payroll.getBaseSalary(),
-                                payroll.getBonus(),
-                                payroll.getDeductions(),
-                                payroll.getNetSalary(),
-                                payroll.getPayDate(),
-                                payroll.getStatus()
-                        )
-                )
-                .toList();
+    public List<PayrollDTO> getAllPayrolls(Integer month, Integer year) {
+        List<Payroll> payrolls;
+        if (month != null && year != null) {
+            payrolls = payrollRepository.findByPayrollMonthAndPayrollYear(month, year);
+        } else {
+            payrolls = payrollRepository.findAll();
+        }
+        return payrolls.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
-    public List<PayrollResponse> getAllPayrolls() {
+    private PayrollDTO mapToDTO(Payroll payroll) {
+        PayrollDTO dto = new PayrollDTO();
+        dto.setId(payroll.getId());
+        dto.setEmployeeId(payroll.getEmployeeId());
+        dto.setPayrollMonth(payroll.getPayrollMonth());
+        dto.setPayrollYear(payroll.getPayrollYear());
+        dto.setPayslipNumber(payroll.getPayslipNumber());
+        dto.setGrossSalary(payroll.getGrossSalary());
+        dto.setTotalDeductions(payroll.getTotalDeductions());
+        dto.setTotalTaxes(payroll.getTotalTaxes());
+        dto.setNetSalary(payroll.getNetSalary());
+        dto.setStatus(payroll.getStatus().name().toLowerCase());
 
-        List<Payroll> payrolls =
-                payrollRepository.findAll();
+        EmployeeDTO employee = employeeClient.getEmployeeById(payroll.getEmployeeId());
+        dto.setEmployeeName(employee.getFirstName() + " " + employee.getLastName());
+        dto.setPosition(employee.getDesignation());
 
-        return payrolls.stream()
-                .map(payroll ->
-                        new PayrollResponse(
-                                payroll.getId(),
-                                payroll.getEmployeeId(),
-                                payroll.getBaseSalary(),
-                                payroll.getBonus(),
-                                payroll.getDeductions(),
-                                payroll.getNetSalary(),
-                                payroll.getPayDate(),
-                                payroll.getStatus()
-                        )
-                )
-                .toList();
+        return dto;
     }
 
-
-    public void deletePayroll(Long id) {
-
-        Payroll payroll =
-                payrollRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payroll not found"
-                                )
-                        );
-
-        payrollRepository.delete(payroll);
+    private String generatePayslipNumber(Long employeeId, Integer month, Integer year) {
+        return String.format("PAY-%04d%02d-%04d", year, month, employeeId);
     }
-
-    public PayrollResponse markPayrollAsPaid(
-            Long id) {
-
-        Payroll payroll =
-                payrollRepository.findById(id)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payroll not found"
-                                )
-                        );
-
-        payroll.setStatus(
-                PayrollStatus.PAID
-        );
-
-        Payroll updatedPayroll =
-                payrollRepository.save(payroll);
-
-        return new PayrollResponse(
-                updatedPayroll.getId(),
-                updatedPayroll.getEmployeeId(),
-                updatedPayroll.getBaseSalary(),
-                updatedPayroll.getBonus(),
-                updatedPayroll.getDeductions(),
-                updatedPayroll.getNetSalary(),
-                updatedPayroll.getPayDate(),
-                updatedPayroll.getStatus()
-        );
-    }
-
-    public List<PayrollResponse> getTeamPayrolls(
-            Long managerId,
-            String authHeader) {
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", authHeader);
-
-        HttpEntity<String> entity =
-                new HttpEntity<>(headers);
-
-        ResponseEntity<EmployeeResponse[]> response =
-                restTemplate.exchange(
-                        "http://localhost:8082/api/employees/manager/"
-                                + managerId + "/team",
-                        HttpMethod.GET,
-                        entity,
-                        EmployeeResponse[].class
-                );
-
-        List<Long> employeeIds =
-                Arrays.stream(response.getBody())
-                        .map(EmployeeResponse::getId)
-                        .toList();
-
-        List<Payroll> payrolls =
-                payrollRepository.findByEmployeeIdIn(
-                        employeeIds
-                );
-
-        return payrolls.stream()
-                .map(payroll ->
-                        new PayrollResponse(
-                                payroll.getId(),
-                                payroll.getEmployeeId(),
-                                payroll.getBaseSalary(),
-                                payroll.getBonus(),
-                                payroll.getDeductions(),
-                                payroll.getNetSalary(),
-                                payroll.getPayDate(),
-                                payroll.getStatus()
-                        )
-                )
-                .toList();
-    }
-
 }

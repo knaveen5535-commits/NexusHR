@@ -10,6 +10,8 @@ import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
+import AttendanceList from '../../attendance/AttendanceList';
+import PayrollList from '../../payroll/PayrollList';
 
 
 
@@ -403,9 +405,9 @@ export default function HrDashboard() {
     switch (activeTab) {
       case 'overview': return <OverviewTab stats={stats} isLoading={isLoading} />;
       case 'lifecycle': return <LifecycleTab />;
-      case 'attendance': return <AttendanceTab />;
+      case 'attendance': return <div className="-m-8"><AttendanceList /></div>;
       case 'leave': return <LeaveTab />;
-      case 'payroll': return <PayrollTab />;
+      case 'payroll': return <div className="-m-8"><PayrollList /></div>;
       case 'notifications': return <NotificationsTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
       default: return <OverviewTab stats={stats} isLoading={isLoading} />;

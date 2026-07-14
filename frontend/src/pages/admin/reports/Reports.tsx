@@ -2,8 +2,9 @@ import { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
+import { useAuthStore } from '../../../store/authStore';
 import { exportDashboardPdf } from '../../../utils/exportPdf';
-import { getEmployees } from '../../../services/employee.service';
+import { getEmployees, getTeamMembers } from '../../../services/employee.service';
 import type { Employee } from '../../../services/employee.service';
 import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
@@ -12,6 +13,7 @@ import {
   FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck, Brain,
   UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle, Activity
 } from 'lucide-react';
+import api from '../../../services/api';
 
 const REPORT_TYPES = [
   { id: 'emp', name: 'Employee Report', desc: 'Headcount, diversity, and turnover metrics.', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
@@ -153,9 +155,14 @@ export default function Reports() {
   const { isDark } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isManager = user?.role === 'MANAGER';
+  
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [employeesData, setEmployeesData] = useState<Employee[]>([]);
+  const [payrollsData, setPayrollsData] = useState<any[]>([]);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const pathParts = location.pathname.split('/');
@@ -175,17 +182,30 @@ export default function Reports() {
   useEffect(() => {
     if (filteredReportId === 'emp') {
       setIsLoadingData(true);
-      getEmployees().then(data => {
-        setEmployeesData(data);
-      }).catch(err => {
-        console.error('Failed to fetch employees', err);
-      }).finally(() => {
-        setIsLoadingData(false);
-      });
+      const fetchFn = isManager ? getTeamMembers : getEmployees;
+      fetchFn().then(data => setEmployeesData(data))
+        .catch(err => console.error('Failed to fetch employees', err))
+        .finally(() => setIsLoadingData(false));
+    } else if (filteredReportId === 'pay' && !isManager) {
+      setIsLoadingData(true);
+      api.get('/payrolls').then(res => setPayrollsData(res.data))
+        .catch(err => console.error('Failed to fetch payrolls', err))
+        .finally(() => setIsLoadingData(false));
+    } else if (filteredReportId === 'att') {
+      setIsLoadingData(true);
+      const endpoint = isManager ? '/attendance/team' : '/attendance';
+      api.get(endpoint).then(res => setAttendanceData(res.data))
+        .catch(err => console.error('Failed to fetch attendance', err))
+        .finally(() => setIsLoadingData(false));
     }
-  }, [filteredReportId]);
+  }, [filteredReportId, isManager]);
 
-  const activeReport = isSingleReportMode ? REPORT_TYPES.find(r => r.id === filteredReportId) : null;
+  const filteredReportTypes = REPORT_TYPES.filter(r => {
+    if (isManager && r.id === 'pay') return false;
+    return true;
+  });
+
+  const activeReport = filteredReportTypes.find(r => r.id === filteredReportId);
   let reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
 
   if (activeReport?.id === 'emp' && employeesData.length > 0) {
@@ -257,6 +277,87 @@ export default function Reports() {
       ],
       chart: { type: 'bar', title: 'Employees by Department', data: chartData },
       tableHeaders: ['Department', 'Total', 'Active', 'New Hires', 'Turnover Rate'],
+      tableRows: tableRows
+    };
+  }
+
+  if (activeReport?.id === 'pay' && payrollsData.length > 0) {
+    const total = payrollsData.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+    const avg = total / payrollsData.length;
+    const taxes = payrollsData.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
+    
+    const positionMap: Record<string, { totalPayroll: number, bonuses: number, count: number }> = {};
+    payrollsData.forEach(p => {
+      const pos = p.position || 'Unknown';
+      if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, bonuses: 0, count: 0 };
+      positionMap[pos].totalPayroll += p.netSalary || 0;
+      positionMap[pos].count++;
+    });
+
+    const tableRows = Object.keys(positionMap).map(pos => {
+      const pTotal = positionMap[pos].totalPayroll;
+      const pAvg = pTotal / positionMap[pos].count;
+      return [
+        pos,
+        '$' + (pTotal / 1000).toFixed(1) + 'K',
+        '$' + (pAvg / 1000).toFixed(1) + 'K',
+        '$' + (positionMap[pos].bonuses / 1000).toFixed(1) + 'K',
+        String(positionMap[pos].count)
+      ];
+    });
+
+    reportData = {
+      ...reportData!,
+      kpis: [
+        { label: 'Total Payroll', value: '$' + (total / 1000).toFixed(1) + 'K', icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { label: 'Avg Salary', value: '$' + (avg / 1000).toFixed(1) + 'K', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: 'Tax Deductions', value: '$' + (taxes / 1000).toFixed(1) + 'K', icon: FileText, color: 'text-red-500', bg: 'bg-red-500/10' },
+        { label: 'Bonuses (MTD)', value: '$0K', icon: BadgeCheck, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+      ],
+      tableHeaders: ['Role / Position', 'Total Payroll', 'Avg Salary', 'Bonuses', '# Employees'],
+      tableRows: tableRows
+    };
+  }
+
+  if (activeReport?.id === 'att' && attendanceData.length > 0) {
+    const present = attendanceData.filter(a => a.status === 'present').length;
+    const absent = attendanceData.filter(a => a.status === 'absent').length;
+    const late = attendanceData.filter(a => a.status === 'late').length;
+    const total = attendanceData.length;
+    const avgAttendance = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0%';
+    
+    const deptMap: Record<string, { present: number, absent: number, late: number, count: number }> = {};
+    attendanceData.forEach(a => {
+      const dept = a.department || 'Unknown';
+      if (!deptMap[dept]) deptMap[dept] = { present: 0, absent: 0, late: 0, count: 0 };
+      deptMap[dept].count++;
+      if (a.status === 'present') deptMap[dept].present++;
+      if (a.status === 'absent') deptMap[dept].absent++;
+      if (a.status === 'late') deptMap[dept].late++;
+    });
+
+    const tableRows = Object.keys(deptMap).map(dept => {
+      const dTotal = deptMap[dept].count;
+      const rate = dTotal > 0 ? ((deptMap[dept].present / dTotal) * 100).toFixed(1) + '%' : '0%';
+      return [
+        dept,
+        String(deptMap[dept].present),
+        '0', 
+        String(deptMap[dept].late),
+        String(deptMap[dept].absent),
+        rate
+      ];
+    });
+
+    reportData = {
+      ...reportData!,
+      kpis: [
+        { label: 'Avg Attendance', value: avgAttendance, icon: CalendarCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: 'On Leave', value: '0', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        { label: 'Late', value: String(late), icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        { label: 'Absent', value: String(absent), icon: UserMinus, color: 'text-red-500', bg: 'bg-red-500/10' },
+      ],
+      tableHeaders: ['Department', 'Present', 'On Leave', 'Late', 'Absent', 'Attendance Rate'],
       tableRows: tableRows
     };
   }
@@ -336,7 +437,6 @@ export default function Reports() {
         </motion.div>
 
         {/* Reports Grid */}
-        {/* Reports Grid */}
         {!isSingleReportMode && (
           <div className="pt-4">
             <motion.div 
@@ -345,7 +445,7 @@ export default function Reports() {
               animate="visible"
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"
             >
-              {REPORT_TYPES.map((r) => {
+              {filteredReportTypes.map((r) => {
                 const Icon = r.icon;
                 return (
                   <motion.div
