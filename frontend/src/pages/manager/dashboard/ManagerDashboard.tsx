@@ -11,6 +11,7 @@ import type { KpiCard as KpiCardType } from '../../../types';
 import { useState, useEffect } from 'react';
 import { getTeamMembers } from '../../../services/employee.service';
 import { useAuthStore } from '../../../store/authStore';
+import AttendanceList from '../../attendance/AttendanceList';
 
 // kpiData moved inside OverviewTab to be dynamic
 const teamAttendance = [
@@ -272,7 +273,7 @@ export default function ManagerDashboard() {
       case 'leave': return <LeaveTab />;
       case 'performance': return <PerformanceTab />;
       case 'ai': return <AIInsightsTab />;
-      case 'attendance': return <div className="p-6 text-center text-muted-foreground">Attendance tracking coming soon.</div>;
+      case 'attendance': return <div className="-m-8"><AttendanceList /></div>;
       default: return <OverviewTab />;
     }
   };

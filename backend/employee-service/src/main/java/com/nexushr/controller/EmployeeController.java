@@ -46,6 +46,12 @@ public class EmployeeController {
         );
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<EmployeeResponse> getCurrentEmployee(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.getCurrentEmployee(authHeader));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponse> getEmployeeById(
             @PathVariable Long id) {

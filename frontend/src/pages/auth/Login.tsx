@@ -3,6 +3,7 @@ import { useNavigate, Navigate, useParams } from 'react-router';
 import { useAuthStore } from '../../store/authStore';
 import { login } from '../../services/auth.service';
 import { decodeJWT } from '../../utils/jwt';
+import api from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Shield, Users, UserCog, User, ArrowRight, Sparkles, Mail, Lock, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,7 +129,6 @@ export default function Login() {
       const decodedUser = decodeJWT(token);
       
       if (decodedUser && decodedUser.role) {
-        // Build user object. We strict-trust decodedUser.role.
         const userObj = {
           id: decodedUser.id || '0',
           username: decodedUser.email || email,
@@ -139,7 +139,24 @@ export default function Login() {
           employeeId: decodedUser.employeeId || '001',
         };
 
-        useAuthStore.getState().setAuth(token, userObj);
+        // Temporarily set auth to allow api call
+        useAuthStore.getState().setAuth(token, userObj as any);
+
+        if (userObj.role !== 'ADMIN') {
+          try {
+            const empRes = await api.get('/employees/me');
+            if (empRes.data) {
+              userObj.id = String(empRes.data.id);
+              userObj.firstName = empRes.data.firstName;
+              userObj.lastName = empRes.data.lastName;
+              userObj.employeeId = empRes.data.employeeCode;
+            }
+          } catch (e) {
+            console.warn('Could not fetch employee details', e);
+          }
+        }
+
+        useAuthStore.getState().setAuth(token, userObj as any);
 
         const path =
           userObj.role === 'ADMIN'

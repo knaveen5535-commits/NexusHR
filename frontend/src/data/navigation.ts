@@ -54,19 +54,7 @@ export const managerNav: NavItem[] = [
   { name: 'Attendance', href: '/manager/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Performance', href: '/manager/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
   { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
-  {
-    name: 'Reports',
-    href: '/manager/reports',
-    icon: 'BarChart3',
-    permissions: ['generate:reports'],
-    children: [
-      { name: 'Employee Report', href: '/manager/reports/employees', icon: 'Users' },
-      { name: 'Payroll Report', href: '/manager/reports/payroll', icon: 'DollarSign' },
-      { name: 'Attendance Report', href: '/manager/reports/attendance', icon: 'CalendarCheck' },
-      { name: 'Performance Report', href: '/manager/reports/performance', icon: 'TrendingUp' },
-      { name: 'AI Insights', href: '/manager/reports/ai', icon: 'Brain', badge: 'AI' },
-    ],
-  },
+
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 

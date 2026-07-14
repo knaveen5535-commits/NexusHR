@@ -1,13 +1,17 @@
-import { useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const mockAttendance = [
-  { id: 1, employee: 'John Doe', date: '2026-06-12', checkIn: '09:00 AM', checkOut: '06:00 PM', status: 'present' },
-  { id: 2, employee: 'Jane Smith', date: '2026-06-12', checkIn: '09:15 AM', checkOut: '05:45 PM', status: 'present' },
-  { id: 3, employee: 'Mike Johnson', date: '2026-06-12', checkIn: '--', checkOut: '--', status: 'absent' },
-  { id: 4, employee: 'Sarah Williams', date: '2026-06-12', checkIn: '08:50 AM', checkOut: '06:10 PM', status: 'present' },
-  { id: 5, employee: 'Alex Brown', date: '2026-06-12', checkIn: '10:30 AM', checkOut: '--', status: 'late' },
-];
+import { useState, useEffect } from 'react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Filter, ChevronLeft, ChevronRight, Search, Users } from 'lucide-react';
+import api from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
+interface AttendanceRecord {
+  id: number;
+  employeeName: string;
+  department: string;
+  designation: string;
+  attendanceDate: string;
+  checkInTime: string;
+  checkOutTime: string;
+  status: string;
+}
 
 const statusStyles: Record<string, string> = {
   present: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
@@ -22,12 +26,91 @@ const statusIcons: Record<string, typeof CheckCircle> = {
 };
 
 export default function AttendanceList() {
-  const [currentMonth] = useState('June 2026');
+  const user = useAuthStore(s => s.user);
+  const [currentMonth] = useState(() => {
+    return new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  });
   const [filter, setFilter] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredAttendance = filter === 'all'
-    ? mockAttendance
-    : mockAttendance.filter(a => a.status === filter);
+  const [departments, setDepartments] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchAttendance();
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      if (response.data && Array.isArray(response.data)) {
+        setDepartments(response.data.map((d: any) => d.departmentName));
+      }
+    } catch (error) {
+      console.error('Failed to fetch departments', error);
+      // Fallback unique from attendance
+      setDepartments(Array.from(new Set(attendanceData.map(a => a.department || 'Unknown'))));
+    }
+  };
+
+  const fetchAttendance = async () => {
+    setIsLoading(true);
+    try {
+      const endpoint = user?.role?.toUpperCase() === 'MANAGER' ? '/attendance/team' : '/attendance';
+      const response = await api.get(endpoint);
+      setAttendanceData(response.data);
+      if (departments.length === 0) {
+        setDepartments(Array.from(new Set(response.data.map((a: any) => a.department || 'Unknown'))));
+      }
+    } catch (error) {
+      console.error('Failed to fetch attendance records', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredAttendance = attendanceData.filter(a => {
+    const dept = a.department || 'Unknown';
+    const status = a.status || '';
+    const name = a.employeeName || '';
+    
+    const matchesStatus = filter === 'all' || status.toLowerCase() === filter.toLowerCase();
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDept = departmentFilter === 'all' || dept.toLowerCase() === departmentFilter.toLowerCase();
+    return matchesStatus && matchesSearch && matchesDept;
+  });
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+  
+  const todaysAttendance = attendanceData.filter(a => a.attendanceDate === todayStr);
+
+  const presentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'present').length;
+  const absentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'absent').length;
+  const lateCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'late').length;
+
+  const currentMonthPrefix = `${year}-${month}`;
+  const employeeStats: Record<string, { present: number, total: number }> = {};
+  attendanceData.forEach(a => {
+    if (a.attendanceDate && a.attendanceDate.startsWith(currentMonthPrefix)) {
+      const empName = a.employeeName;
+      if (!employeeStats[empName]) {
+        employeeStats[empName] = { present: 0, total: 0 };
+      }
+      employeeStats[empName].total += 1;
+      const status = (a.status || '').toLowerCase();
+      if (status === 'present' || status === 'late') {
+        employeeStats[empName].present += 1;
+      }
+    }
+  });
 
   return (
     <div className="p-4 sm:p-8">
@@ -46,9 +129,9 @@ export default function AttendanceList() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Present', count: '3', icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Absent', count: '1', icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-          { label: 'Late', count: '1', icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { label: "Today's Present", count: presentCount.toString(), icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: "Today's Absent", count: absentCount.toString(), icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+          { label: "Today's Late", count: lateCount.toString(), icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
         ].map((stat) => (
           <div key={stat.label} className="bg-card/50 border border-border rounded-xl p-5 backdrop-blur-xl hover:border-border transition-all">
             <div className="flex items-center justify-between">
@@ -65,29 +148,81 @@ export default function AttendanceList() {
       </div>
 
       <div className="bg-card/50 border border-border rounded-xl overflow-hidden backdrop-blur-xl">
-        <div className="p-4 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Filter:</span>
-            {['all', 'present', 'absent', 'late'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
-                  filter === f
-                    ? 'bg-blue-600 text-foreground'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+        {/* Advanced Filters Bar */}
+        <div className="p-4 border-b border-border flex flex-col gap-4">
+          <div className="flex justify-between items-center w-full">
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+              {['all', 'present', 'absent', 'late'].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-colors whitespace-nowrap ${
+                    filter === f
+                      ? 'bg-blue-600 text-foreground'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            
+            {/* Toggle Advanced Filters */}
+            <button 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                showAdvancedFilters 
+                  ? 'bg-blue-600/10 text-blue-400 border-blue-500/20' 
+                  : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+            </button>
           </div>
+
+          {/* Expandable Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border mt-2">
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search employee..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-zinc-950/50 pl-10 pr-4 py-2 text-sm text-foreground placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Department Filter */}
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-zinc-950/50 pl-10 pr-8 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors appearance-none"
+                >
+                  <option value="all">All Departments</option>
+                  {departments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Date Paginator */}
+        <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/20">
+          <span className="text-sm font-medium text-foreground">Overall Attendance Logs</span>
           <div className="flex items-center gap-2">
             <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm text-foreground">Today</span>
+            <span className="text-sm text-foreground min-w-[80px] text-center">Today</span>
             <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -105,7 +240,16 @@ export default function AttendanceList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {filteredAttendance.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+                      <p className="text-muted-foreground mt-2">Loading attendance records...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredAttendance.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -116,20 +260,37 @@ export default function AttendanceList() {
                 </tr>
               ) : (
                 filteredAttendance.map((record) => {
-                  const StatusIcon = statusIcons[record.status];
+                  const StatusIcon = statusIcons[record.status] || CheckCircle;
+                  const stats = employeeStats[record.employeeName];
+                  const percentage = stats && stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
                   return (
                     <tr key={record.id} className="hover:bg-secondary/30 transition-colors">
-                      <td className="px-6 py-4 font-medium text-foreground">{record.employee}</td>
-                      <td className="px-6 py-4">{record.date}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-foreground">{record.employeeName}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{record.department || 'Unknown'} • {record.designation || 'Employee'}</p>
+                          </div>
+                          {stats && (
+                            <div className="flex flex-col items-end shrink-0">
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${percentage >= 80 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : percentage >= 50 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                {percentage}%
+                              </span>
+                              <span className="text-[10px] text-muted-foreground mt-0.5">This Month</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">{record.attendanceDate}</td>
                       <td className="px-6 py-4">
                         <span className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          {record.checkIn}
+                          {record.checkInTime}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{record.checkOut}</td>
+                      <td className="px-6 py-4">{record.checkOutTime}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset capitalize ${statusStyles[record.status]}`}>
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset capitalize ${statusStyles[record.status] || statusStyles['present']}`}>
                           <StatusIcon className="h-3 w-3" />
                           {record.status}
                         </span>

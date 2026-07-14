@@ -156,6 +156,19 @@ public class EmployeeService {
         return mapToResponse(employee);
     }
 
+    public EmployeeResponse getCurrentEmployee(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+        String token = authHeader.substring(7);
+        String email = jwtService.extractClaims(token).getSubject();
+
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for email: " + email));
+        
+        return mapToResponse(employee);
+    }
+
     public String deleteEmployee(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));

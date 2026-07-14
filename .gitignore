@@ -47,3 +47,11 @@ Thumbs.db
 # Keep Maven wrapper (if using)
 # =========================
 !.mvn/wrapper/maven-wrapper.jar
+
+# =========================
+# SQL Scripts & AI Artifacts
+# =========================
+*.sql
+walkthrough.md
+implementation_plan.md
+task.md
