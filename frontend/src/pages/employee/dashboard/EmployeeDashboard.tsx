@@ -16,28 +16,35 @@ import type { Resignation } from '../../../services/resignation.service';
 import api from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
 
-// Dummy Data
-const kpiData: KpiCardType[] = [
-  { label: 'My Attendance', value: '96%', change: '2 days absent this month', trend: 'up', icon: 'Calendar', color: 'blue-500' },
-  { label: 'Leave Balance', value: '15 days', change: '8 annual, 5 sick, 2 personal', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
-  { label: 'Current Streak', value: '12 days', change: 'Best: 45 days', trend: 'up', icon: 'Activity', color: 'amber-500' },
-  { label: 'Performance', value: '4.5 ⭐', change: 'Top 15% of company', trend: 'up', icon: 'Star', color: 'purple-500' },
-];
-
-const myAttendance = [
-  { name: 'Week 1', value: 100 },
-  { name: 'Week 2', value: 80 },
-  { name: 'Week 3', value: 100 },
-  { name: 'Week 4', value: 100 },
-];
-
-const leaveBalance = [
-  { name: 'Annual', value: 8, total: 15 },
-  { name: 'Sick', value: 5, total: 10 },
-  { name: 'Personal', value: 2, total: 5 },
-];
-
 function OverviewTab() {
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+  const user = useAuthStore(s => s.user);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/attendance/employee/${user.id}`)
+        .then(res => setAttendanceHistory(res.data))
+        .catch(console.error);
+    }
+  }, [user]);
+
+  let presentDays = 0;
+  let totalDays = attendanceHistory.length;
+  attendanceHistory.forEach(r => {
+    if (r.status === 'present' || r.status === 'late') presentDays++;
+  });
+  
+  const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+  const attendanceDisplay = totalDays > 0 ? `${attendancePercentage}%` : '--';
+  const absentDays = totalDays - presentDays;
+
+  const kpiData: KpiCardType[] = [
+    { label: 'My Attendance', value: attendanceDisplay, change: totalDays > 0 ? `${absentDays} days absent` : 'No data available', trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
+    { label: 'Leave Balance', value: '--', change: 'No data available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
+    { label: 'Current Streak', value: '--', change: 'No data available', trend: 'neutral', icon: 'Activity', color: 'amber-500' },
+    { label: 'Performance', value: '--', change: 'No data available', trend: 'neutral', icon: 'Star', color: 'purple-500' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -47,37 +54,38 @@ function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BarChartCard
-          title="Monthly Attendance %"
-          data={myAttendance}
-          bars={[{ key: 'value', color: '#3b82f6', label: 'Attendance %' }]}
-        />
-        <AreaChartCard
-          title="Leave Balance Overview"
-          data={leaveBalance.map((d) => ({ name: d.name, value: d.value, value2: d.total }))}
-          areas={[
-            { key: 'value', color: '#10b981', label: 'Used' },
-            { key: 'value2', color: '#3b82f6', label: 'Total' },
-          ]}
-        />
+        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Monthly Attendance</h3>
+          <div className="py-12 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+            Chart data unavailable
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Leave Balance Overview</h3>
+          <div className="py-12 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+            Chart data unavailable
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 function ProfileTab() {
+  const user = useAuthStore(s => s.user);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-6">
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl text-center">
           <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <User size={40} className="text-foreground" />
+            <span className="text-3xl font-bold text-white">{user?.firstName?.[0] || 'U'}</span>
           </div>
-          <h2 className="text-xl font-bold text-foreground">Alex Johnson</h2>
-          <p className="text-sm text-muted-foreground">Senior Frontend Engineer</p>
+          <h2 className="text-xl font-bold text-foreground">{user?.firstName || '--'} {user?.lastName || ''}</h2>
+          <p className="text-sm text-muted-foreground">{user?.designation || '--'}</p>
           <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            <span className="px-2 py-1 text-xs rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">Engineering</span>
-            <span className="px-2 py-1 text-xs rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Full-time</span>
+            <span className="px-2 py-1 text-xs rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">{user?.department || '--'}</span>
+            <span className="px-2 py-1 text-xs rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
           </div>
         </div>
 
@@ -86,15 +94,15 @@ function ProfileTab() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-sm text-foreground">
               <Mail size={16} className="text-muted-foreground" />
-              <span>alex.johnson@nexushr.com</span>
+              <span className="truncate">{user?.email || '--'}</span>
             </div>
             <div className="flex items-center gap-3 text-sm text-foreground">
               <Phone size={16} className="text-muted-foreground" />
-              <span>+1 (555) 123-4567</span>
+              <span>--</span>
             </div>
             <div className="flex items-center gap-3 text-sm text-foreground">
               <MapPin size={16} className="text-muted-foreground" />
-              <span>San Francisco, CA</span>
+              <span>--</span>
             </div>
           </div>
         </div>
@@ -106,19 +114,19 @@ function ProfileTab() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">Employee ID</p>
-              <p className="text-sm text-foreground font-medium">EMP-2023-045</p>
+              <p className="text-sm text-foreground font-medium">{user?.employeeId || '--'}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Date of Joining</p>
-              <p className="text-sm text-foreground font-medium">Mar 15, 2023</p>
+              <p className="text-sm text-foreground font-medium">--</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Date of Birth</p>
-              <p className="text-sm text-foreground font-medium">Jan 22, 1990</p>
+              <p className="text-sm text-foreground font-medium">--</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Reporting Manager</p>
-              <p className="text-sm text-foreground font-medium">Sarah Miller</p>
+              <p className="text-sm text-foreground font-medium">--</p>
             </div>
           </div>
         </div>
@@ -126,17 +134,9 @@ function ProfileTab() {
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <h3 className="text-sm font-semibold text-foreground mb-4">Documents</h3>
           <div className="space-y-3">
-            {['Offer Letter', 'ID Proof', 'Resume', 'NDA Agreement'].map((doc) => (
-              <div key={doc} className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
-                <div className="flex items-center gap-3">
-                  <FileText size={16} className="text-blue-400" />
-                  <span className="text-sm text-foreground">{doc}</span>
-                </div>
-                <button className="p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-                  <Download size={16} />
-                </button>
-              </div>
-            ))}
+            <div className="py-4 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+              No documents available
+            </div>
           </div>
         </div>
       </div>
@@ -269,6 +269,12 @@ function AttendanceTab() {
 }
 
 function LeaveTab() {
+  const emptyLeaveBalance = [
+    { name: 'Annual', value: 0, total: 0 },
+    { name: 'Sick', value: 0, total: 0 },
+    { name: 'Personal', value: 0, total: 0 },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -276,19 +282,14 @@ function LeaveTab() {
           <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
             <h3 className="text-sm font-semibold text-foreground mb-4">Leave Balances</h3>
             <div className="space-y-4">
-              {leaveBalance.map((leave) => (
+              {emptyLeaveBalance.map((leave) => (
                 <div key={leave.name}>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-foreground">{leave.name} Leave</span>
-                    <span className="text-foreground font-medium">{leave.total - leave.value} / {leave.total}</span>
+                    <span className="text-foreground font-medium">-- / --</span>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        leave.name === 'Annual' ? 'bg-blue-500' : leave.name === 'Sick' ? 'bg-emerald-500' : 'bg-purple-500'
-                      }`} 
-                      style={{ width: `${((leave.total - leave.value) / leave.total) * 100}%` }} 
-                    />
+                    <div className="h-full rounded-full bg-muted w-full" />
                   </div>
                 </div>
               ))}
@@ -302,22 +303,9 @@ function LeaveTab() {
         <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <h3 className="text-sm font-semibold text-foreground mb-4">Leave History</h3>
           <div className="space-y-3">
-            {[
-              { type: 'Annual Leave', dates: 'Aug 10 - Aug 14, 2026', days: 5, status: 'Approved', color: 'emerald' },
-              { type: 'Sick Leave', dates: 'Jun 05 - Jun 06, 2026', days: 2, status: 'Approved', color: 'emerald' },
-              { type: 'Personal Leave', dates: 'May 12, 2026', days: 1, status: 'Rejected', color: 'red' },
-              { type: 'Annual Leave', dates: 'Sep 01 - Sep 03, 2026', days: 3, status: 'Pending', color: 'amber' },
-            ].map((leave, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
-                <div>
-                  <h4 className="text-sm font-medium text-foreground">{leave.type}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">{leave.dates} • {leave.days} Day(s)</p>
-                </div>
-                <span className={`px-2.5 py-1 rounded-md text-xs font-medium bg-${leave.color}-500/10 text-${leave.color}-400 border border-${leave.color}-500/20`}>
-                  {leave.status}
-                </span>
-              </div>
-            ))}
+            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+              No leave history found.
+            </div>
           </div>
         </div>
       </div>
@@ -331,50 +319,18 @@ function PerformanceTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-sm font-semibold text-foreground">Current Goals (Q3)</h3>
-            <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">3 Active</span>
+            <h3 className="text-sm font-semibold text-foreground">Current Goals</h3>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md border border-border">0 Active</span>
           </div>
-          <div className="space-y-5">
-            {[
-              { title: 'Migrate legacy components to React 19', progress: 75, color: 'blue' },
-              { title: 'Reduce bundle size by 15%', progress: 40, color: 'emerald' },
-              { title: 'Complete AWS Cloud Practitioner Cert', progress: 90, color: 'purple' },
-            ].map((goal, i) => (
-              <div key={i}>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-foreground">{goal.title}</span>
-                  <span className="text-foreground font-medium">{goal.progress}%</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 bg-${goal.color}-500`} 
-                    style={{ width: `${goal.progress}%` }} 
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+            No goals set.
           </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <h3 className="text-sm font-semibold text-foreground mb-6">Recent Reviews</h3>
-          <div className="space-y-4">
-            {[
-              { period: 'Q2 2026', rating: '4.5', feedback: 'Excellent leadership in the UI revamp project. Continued growth in technical architecture.', reviewer: 'Sarah Miller' },
-              { period: 'Q1 2026', rating: '4.2', feedback: 'Solid performance. Met all deliverables on time. Needs to focus more on mentoring juniors.', reviewer: 'Sarah Miller' },
-            ].map((review, i) => (
-              <div key={i} className="p-4 rounded-lg bg-muted border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-foreground">{review.period} Review</h4>
-                  <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
-                    <Star size={12} className="text-amber-400 fill-amber-400" />
-                    <span className="text-xs font-medium text-amber-400">{review.rating}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground italic mb-2">"{review.feedback}"</p>
-                <p className="text-xs text-muted-foreground text-right">- {review.reviewer}</p>
-              </div>
-            ))}
+          <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+            No performance reviews available.
           </div>
         </div>
       </div>
@@ -386,26 +342,81 @@ function NotificationsTab() {
   return (
     <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
       <h3 className="text-sm font-semibold text-foreground mb-4">Recent Notifications</h3>
-      <div className="space-y-2">
-        {[
-          { title: 'Company Townhall', desc: 'Join us for the Q3 kickoff meeting next Tuesday.', type: 'announcement', time: '2 hours ago', icon: Bell, color: 'blue' },
-          { title: 'Leave Approved', desc: 'Your Annual Leave request for Aug 10 has been approved.', type: 'leave', time: '1 day ago', icon: CheckCircle, color: 'emerald' },
-          { title: 'Timesheet Reminder', desc: 'Please submit your timesheet for this week.', type: 'reminder', time: '2 days ago', icon: AlertCircle, color: 'amber' },
-          { title: 'IT Maintenance', desc: 'Jira will be down for maintenance this weekend.', type: 'announcement', time: '3 days ago', icon: Bell, color: 'zinc' },
-        ].map((notif, i) => (
-          <div key={i} className="flex items-start gap-4 p-4 rounded-lg bg-muted border border-border hover:bg-secondary/50 transition-colors">
-            <div className={`w-10 h-10 rounded-full bg-${notif.color}-500/10 flex items-center justify-center shrink-0 border border-${notif.color}-500/20`}>
-              <notif.icon size={18} className={`text-${notif.color}-400`} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-foreground">{notif.title}</h4>
-                <span className="text-xs text-muted-foreground">{notif.time}</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">{notif.desc}</p>
-            </div>
-          </div>
-        ))}
+      <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+        No new notifications.
+      </div>
+    </div>
+  );
+}
+
+function PayrollTab() {
+  const [payrolls, setPayrolls] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/payrolls/employee/${user.id}`)
+        .then(res => setPayrolls(res.data))
+        .catch(err => console.error("Failed to fetch payrolls", err))
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading payslips...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-4">My Payslips</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-muted-foreground border-b border-border">
+              <tr>
+                <th className="pb-3 font-medium">Month/Year</th>
+                <th className="pb-3 font-medium">Payslip #</th>
+                <th className="pb-3 font-medium text-right">Basic Salary</th>
+                <th className="pb-3 font-medium text-right">Deductions & Tax</th>
+                <th className="pb-3 font-medium text-right">Net Salary</th>
+                <th className="pb-3 font-medium text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border text-foreground">
+              {payrolls.length > 0 ? payrolls.map((row) => (
+                <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="py-3 font-medium">
+                    {new Date(row.payrollYear, row.payrollMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </td>
+                  <td className="py-3 text-muted-foreground">{row.payslipNumber}</td>
+                  <td className="py-3 text-right">${row.grossSalary?.toLocaleString()}</td>
+                  <td className="py-3 text-right text-red-400">
+                    -${((row.totalDeductions || 0) + (row.totalTaxes || 0)).toLocaleString()}
+                  </td>
+                  <td className="py-3 text-right font-bold text-emerald-400">
+                    ${row.netSalary?.toLocaleString()}
+                  </td>
+                  <td className="py-3 text-center">
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
+                      row.status === 'processed' || row.status === 'paid' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    } capitalize`}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    No payslips found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -423,6 +434,7 @@ export default function EmployeeDashboard() {
       case 'attendance': return <AttendanceTab />;
       case 'leave': return <LeaveTab />;
       case 'performance': return <PerformanceTab />;
+      case 'payroll': return <PayrollTab />;
       case 'notifications': return <NotificationsTab />;
       default: return <OverviewTab />;
     }

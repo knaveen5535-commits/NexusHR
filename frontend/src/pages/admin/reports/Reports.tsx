@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, Fragment } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
@@ -27,7 +27,7 @@ const REPORT_DATA: Record<string, {
   kpis: { label: string; value: string; icon: any; color: string; bg: string }[];
   chart: any;
   tableHeaders: string[];
-  tableRows: string[][];
+  tableRows: any[];
 }> = {
   emp: {
     kpis: [
@@ -164,6 +164,11 @@ export default function Reports() {
   const [payrollsData, setPayrollsData] = useState<any[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  const toggleRow = (i: number) => {
+    setExpandedRows(prev => ({ ...prev, [i]: !prev[i] }));
+  };
 
   const pathParts = location.pathname.split('/');
   const subPath = pathParts[pathParts.length - 1];
@@ -286,24 +291,39 @@ export default function Reports() {
     const avg = total / payrollsData.length;
     const taxes = payrollsData.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
     
-    const positionMap: Record<string, { totalPayroll: number, bonuses: number, count: number }> = {};
+    const positionMap: Record<string, { totalPayroll: number, bonuses: number, count: number, employees: any[] }> = {};
     payrollsData.forEach(p => {
       const pos = p.position || 'Unknown';
-      if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, bonuses: 0, count: 0 };
+      if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, bonuses: 0, count: 0, employees: [] };
       positionMap[pos].totalPayroll += p.netSalary || 0;
       positionMap[pos].count++;
+      positionMap[pos].employees.push(p);
     });
 
     const tableRows = Object.keys(positionMap).map(pos => {
       const pTotal = positionMap[pos].totalPayroll;
       const pAvg = pTotal / positionMap[pos].count;
-      return [
-        pos,
-        '$' + (pTotal / 1000).toFixed(1) + 'K',
-        '$' + (pAvg / 1000).toFixed(1) + 'K',
-        '$' + (positionMap[pos].bonuses / 1000).toFixed(1) + 'K',
-        String(positionMap[pos].count)
-      ];
+      
+      const subRows = positionMap[pos].employees.map(e => {
+        return [
+          e.employeeName || 'Unknown',
+          '$' + ((e.netSalary || 0) / 1000).toFixed(1) + 'K',
+          '$' + ((e.grossSalary || 0) / 1000).toFixed(1) + 'K',
+          '$0.0K',
+          e.status || 'Unknown'
+        ];
+      });
+
+      return {
+        cells: [
+          pos,
+          '$' + (pTotal / 1000).toFixed(1) + 'K',
+          '$' + (pAvg / 1000).toFixed(1) + 'K',
+          '$' + (positionMap[pos].bonuses / 1000).toFixed(1) + 'K',
+          String(positionMap[pos].count)
+        ],
+        subRows
+      };
     });
 
     reportData = {
@@ -326,27 +346,53 @@ export default function Reports() {
     const total = attendanceData.length;
     const avgAttendance = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0%';
     
-    const deptMap: Record<string, { present: number, absent: number, late: number, count: number }> = {};
+    const deptMap: Record<string, { present: number, absent: number, late: number, count: number, employees: Record<string, any> }> = {};
     attendanceData.forEach(a => {
       const dept = a.department || 'Unknown';
-      if (!deptMap[dept]) deptMap[dept] = { present: 0, absent: 0, late: 0, count: 0 };
+      if (!deptMap[dept]) deptMap[dept] = { present: 0, absent: 0, late: 0, count: 0, employees: {} };
       deptMap[dept].count++;
       if (a.status === 'present') deptMap[dept].present++;
       if (a.status === 'absent') deptMap[dept].absent++;
       if (a.status === 'late') deptMap[dept].late++;
+
+      const empName = a.employeeName;
+      if (!deptMap[dept].employees[empName]) {
+        deptMap[dept].employees[empName] = { present: 0, absent: 0, late: 0, count: 0 };
+      }
+      deptMap[dept].employees[empName].count++;
+      if (a.status === 'present') deptMap[dept].employees[empName].present++;
+      if (a.status === 'absent') deptMap[dept].employees[empName].absent++;
+      if (a.status === 'late') deptMap[dept].employees[empName].late++;
     });
 
     const tableRows = Object.keys(deptMap).map(dept => {
       const dTotal = deptMap[dept].count;
       const rate = dTotal > 0 ? ((deptMap[dept].present / dTotal) * 100).toFixed(1) + '%' : '0%';
-      return [
-        dept,
-        String(deptMap[dept].present),
-        '0', 
-        String(deptMap[dept].late),
-        String(deptMap[dept].absent),
-        rate
-      ];
+      
+      const subRows = Object.keys(deptMap[dept].employees).map(emp => {
+        const eData = deptMap[dept].employees[emp];
+        const eRate = eData.count > 0 ? ((eData.present / eData.count) * 100).toFixed(1) + '%' : '0%';
+        return [
+          emp,
+          String(eData.present),
+          '0',
+          String(eData.late),
+          String(eData.absent),
+          eRate
+        ];
+      });
+
+      return {
+        cells: [
+          dept,
+          String(deptMap[dept].present),
+          '0', 
+          String(deptMap[dept].late),
+          String(deptMap[dept].absent),
+          rate
+        ],
+        subRows
+      };
     });
 
     reportData = {
@@ -631,19 +677,45 @@ export default function Reports() {
                           </tr>
                         </thead>
                         <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                          {reportData.tableRows.map((row, i) => (
-                            <tr key={i} className={`transition-colors ${
-                              isDark ? 'hover:bg-zinc-900/50' : 'hover:bg-slate-50'
-                            }`}>
-                              {row.map((cell, j) => (
-                                <td key={j} className={`px-6 py-3.5 text-sm font-semibold ${
-                                  j === 0 ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-zinc-300' : 'text-slate-600')
+                          {reportData.tableRows.map((rowItem, i) => {
+                            const isExpandable = !Array.isArray(rowItem);
+                            const row = isExpandable ? rowItem.cells : rowItem;
+                            const subRows = isExpandable ? rowItem.subRows : [];
+                            const isExpanded = expandedRows[i];
+
+                            return (
+                              <Fragment key={i}>
+                                <tr onClick={() => isExpandable && toggleRow(i)} className={`transition-colors ${isExpandable ? 'cursor-pointer' : ''} ${
+                                  isDark ? 'hover:bg-zinc-900/50' : 'hover:bg-slate-50'
                                 }`}>
-                                  {cell}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
+                                  {row.map((cell: string, j: number) => (
+                                    <td key={j} className={`px-6 py-3.5 text-sm font-semibold ${
+                                      j === 0 ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-zinc-300' : 'text-slate-600')
+                                    }`}>
+                                      {j === 0 && isExpandable && (
+                                        <span className="mr-3 inline-block w-4 text-center text-emerald-500 font-black">
+                                          {isExpanded ? '▼' : '▶'}
+                                        </span>
+                                      )}
+                                      {cell}
+                                    </td>
+                                  ))}
+                                </tr>
+                                {isExpanded && subRows.map((subRow: string[], subI: number) => (
+                                  <tr key={`sub-${i}-${subI}`} className={`${isDark ? 'bg-zinc-900/20' : 'bg-slate-50/50'}`}>
+                                    {subRow.map((cell, j) => (
+                                      <td key={j} className={`px-6 py-2.5 text-sm font-medium ${
+                                        j === 0 ? (isDark ? 'text-zinc-400 pl-12' : 'text-slate-500 pl-12') : (isDark ? 'text-zinc-500' : 'text-slate-400')
+                                      }`}>
+                                        {j === 0 && <span className="mr-2 text-emerald-500/50">↳</span>}
+                                        {cell}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </Fragment>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

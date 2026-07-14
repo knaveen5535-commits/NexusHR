@@ -32,4 +32,9 @@ public class PayrollController {
             @RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(payrollService.getAllPayrolls(month, year));
     }
+
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<PayrollDTO>> getPayrollsByEmployee(@PathVariable Long employeeId) {
+        return ResponseEntity.ok(payrollService.getPayrollsByEmployee(employeeId));
+    }
 }

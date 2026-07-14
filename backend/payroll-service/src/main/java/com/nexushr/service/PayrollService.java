@@ -119,6 +119,11 @@ public class PayrollService {
         return payrolls.stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
+    public List<PayrollDTO> getPayrollsByEmployee(Long employeeId) {
+        List<Payroll> payrolls = payrollRepository.findByEmployeeIdOrderByPayrollYearDescPayrollMonthDesc(employeeId);
+        return payrolls.stream().map(this::mapToDTO).collect(Collectors.toList());
+    }
+
     private PayrollDTO mapToDTO(Payroll payroll) {
         PayrollDTO dto = new PayrollDTO();
         dto.setId(payroll.getId());

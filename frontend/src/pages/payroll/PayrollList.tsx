@@ -45,9 +45,6 @@ export default function PayrollList() {
   const pendingPayroll = payrollData.filter(e => e.status.toLowerCase() === 'pending').reduce((sum, e) => sum + e.netSalary, 0);
   const processingPayroll = payrollData.filter(e => e.status.toLowerCase() === 'processing').reduce((sum, e) => sum + e.netSalary, 0);
 
-  const prevPayroll = 450000;
-  const change = totalPayroll === 0 ? "0.0" : ((totalPayroll - prevPayroll) / prevPayroll * 100).toFixed(1);
-
   return (
     <div className="p-4 sm:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -71,10 +68,6 @@ export default function PayrollList() {
             <div className="bg-blue-500/10 p-3 rounded-lg">
               <DollarSign className="h-6 w-6 text-blue-400" />
             </div>
-          </div>
-          <div className={`flex items-center gap-1 mt-3 text-xs ${Number(change) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {Number(change) >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            <span>{change}% vs last month</span>
           </div>
         </div>
         {[

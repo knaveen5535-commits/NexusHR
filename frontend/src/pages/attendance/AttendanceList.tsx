@@ -27,7 +27,9 @@ const statusIcons: Record<string, typeof CheckCircle> = {
 
 export default function AttendanceList() {
   const user = useAuthStore(s => s.user);
-  const [currentMonth] = useState('June 2026');
+  const [currentMonth] = useState(() => {
+    return new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  });
   const [filter, setFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,9 +37,25 @@ export default function AttendanceList() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [departments, setDepartments] = useState<string[]>([]);
+
   useEffect(() => {
     fetchAttendance();
+    fetchDepartments();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await api.get('/departments');
+      if (response.data && Array.isArray(response.data)) {
+        setDepartments(response.data.map((d: any) => d.departmentName));
+      }
+    } catch (error) {
+      console.error('Failed to fetch departments', error);
+      // Fallback unique from attendance
+      setDepartments(Array.from(new Set(attendanceData.map(a => a.department || 'Unknown'))));
+    }
+  };
 
   const fetchAttendance = async () => {
     setIsLoading(true);
@@ -45,6 +63,9 @@ export default function AttendanceList() {
       const endpoint = user?.role?.toUpperCase() === 'MANAGER' ? '/attendance/team' : '/attendance';
       const response = await api.get(endpoint);
       setAttendanceData(response.data);
+      if (departments.length === 0) {
+        setDepartments(Array.from(new Set(response.data.map((a: any) => a.department || 'Unknown'))));
+      }
     } catch (error) {
       console.error('Failed to fetch attendance records', error);
     } finally {
@@ -54,17 +75,42 @@ export default function AttendanceList() {
 
   const filteredAttendance = attendanceData.filter(a => {
     const dept = a.department || 'Unknown';
-    const matchesStatus = filter === 'all' || a.status === filter;
-    const matchesSearch = a.employeeName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDept = departmentFilter === 'all' || dept === departmentFilter;
+    const status = a.status || '';
+    const name = a.employeeName || '';
+    
+    const matchesStatus = filter === 'all' || status.toLowerCase() === filter.toLowerCase();
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDept = departmentFilter === 'all' || dept.toLowerCase() === departmentFilter.toLowerCase();
     return matchesStatus && matchesSearch && matchesDept;
   });
 
-  const uniqueDepartments = Array.from(new Set(attendanceData.map(a => a.department || 'Unknown')));
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+  
+  const todaysAttendance = attendanceData.filter(a => a.attendanceDate === todayStr);
 
-  const presentCount = attendanceData.filter(a => a.status === 'present').length;
-  const absentCount = attendanceData.filter(a => a.status === 'absent').length;
-  const lateCount = attendanceData.filter(a => a.status === 'late').length;
+  const presentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'present').length;
+  const absentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'absent').length;
+  const lateCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'late').length;
+
+  const currentMonthPrefix = `${year}-${month}`;
+  const employeeStats: Record<string, { present: number, total: number }> = {};
+  attendanceData.forEach(a => {
+    if (a.attendanceDate && a.attendanceDate.startsWith(currentMonthPrefix)) {
+      const empName = a.employeeName;
+      if (!employeeStats[empName]) {
+        employeeStats[empName] = { present: 0, total: 0 };
+      }
+      employeeStats[empName].total += 1;
+      const status = (a.status || '').toLowerCase();
+      if (status === 'present' || status === 'late') {
+        employeeStats[empName].present += 1;
+      }
+    }
+  });
 
   return (
     <div className="p-4 sm:p-8">
@@ -83,9 +129,9 @@ export default function AttendanceList() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Present', count: presentCount.toString(), icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Absent', count: absentCount.toString(), icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-          { label: 'Late', count: lateCount.toString(), icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { label: "Today's Present", count: presentCount.toString(), icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: "Today's Absent", count: absentCount.toString(), icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+          { label: "Today's Late", count: lateCount.toString(), icon: AlertCircle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
         ].map((stat) => (
           <div key={stat.label} className="bg-card/50 border border-border rounded-xl p-5 backdrop-blur-xl hover:border-border transition-all">
             <div className="flex items-center justify-between">
@@ -160,7 +206,7 @@ export default function AttendanceList() {
                   className="w-full rounded-lg border border-border bg-zinc-950/50 pl-10 pr-8 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors appearance-none"
                 >
                   <option value="all">All Departments</option>
-                  {uniqueDepartments.map(dept => (
+                  {departments.map(dept => (
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
                 </select>
@@ -171,7 +217,7 @@ export default function AttendanceList() {
 
         {/* Date Paginator */}
         <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/20">
-          <span className="text-sm font-medium text-foreground">Daily Logs</span>
+          <span className="text-sm font-medium text-foreground">Overall Attendance Logs</span>
           <div className="flex items-center gap-2">
             <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
@@ -215,11 +261,25 @@ export default function AttendanceList() {
               ) : (
                 filteredAttendance.map((record) => {
                   const StatusIcon = statusIcons[record.status] || CheckCircle;
+                  const stats = employeeStats[record.employeeName];
+                  const percentage = stats && stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
                   return (
                     <tr key={record.id} className="hover:bg-secondary/30 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-foreground">{record.employeeName}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{record.department || 'Unknown'} • {record.designation || 'Employee'}</p>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-foreground">{record.employeeName}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{record.department || 'Unknown'} • {record.designation || 'Employee'}</p>
+                          </div>
+                          {stats && (
+                            <div className="flex flex-col items-end shrink-0">
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${percentage >= 80 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : percentage >= 50 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                {percentage}%
+                              </span>
+                              <span className="text-[10px] text-muted-foreground mt-0.5">This Month</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">{record.attendanceDate}</td>
                       <td className="px-6 py-4">

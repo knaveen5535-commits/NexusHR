@@ -41,7 +41,13 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/payroll/**"
+                                "/api/payrolls/employee/**"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/payroll/**",
+                                "/api/payrolls/**"
                         ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
