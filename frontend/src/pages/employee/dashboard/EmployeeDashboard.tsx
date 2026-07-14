@@ -3,13 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 import { 
-  User, FileText, Star, Bell, 
-  Clock, CheckCircle, AlertCircle, Download,
+  Clock,
   Mail, Phone, MapPin
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
-import BarChartCard from '../../../components/charts/BarChartCard';
-import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 import { submitResignation, getMyResignations } from '../../../services/resignation.service';
 import type { Resignation } from '../../../services/resignation.service';

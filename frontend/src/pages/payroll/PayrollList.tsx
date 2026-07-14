@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, Download, Search } from 'lucide-react';
+import { DollarSign, Download, Search } from 'lucide-react';
 import api from '../../services/api';
 
 interface PayrollRecord {

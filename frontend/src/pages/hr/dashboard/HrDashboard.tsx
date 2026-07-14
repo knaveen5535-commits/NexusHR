@@ -155,62 +155,7 @@ function LifecycleTab() {
   );
 }
 
-function AttendanceTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-lg font-semibold text-foreground mb-6">Company Attendance Monitor</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="pb-3 font-medium">Department</th>
-                  <th className="pb-3 font-medium">Total</th>
-                  <th className="pb-3 font-medium">Present</th>
-                  <th className="pb-3 font-medium">On Leave</th>
-                  <th className="pb-3 font-medium">Late</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-foreground">
-                {[
-                  { dept: 'Engineering', total: 145, present: 138, leave: 5, late: 12 },
-                  { dept: 'Sales', total: 85, present: 80, leave: 3, late: 2 },
-                  { dept: 'Marketing', total: 42, present: 39, leave: 2, late: 1 },
-                  { dept: 'HR & Admin', total: 18, present: 17, leave: 1, late: 0 },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-muted transition-colors">
-                    <td className="py-3 font-medium text-foreground">{row.dept}</td>
-                    <td className="py-3">{row.total}</td>
-                    <td className="py-3 text-emerald-400">{row.present}</td>
-                    <td className="py-3 text-amber-400">{row.leave}</td>
-                    <td className="py-3 text-red-400">{row.late}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        <div className="lg:col-span-1 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Overtime & Late Logs</h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
-              <h4 className="text-sm font-medium text-red-400 mb-1">Late Logins (Today)</h4>
-              <p className="text-2xl font-bold text-foreground">15</p>
-              <p className="text-xs text-muted-foreground mt-1">Requires manager review</p>
-            </div>
-            <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-              <h4 className="text-sm font-medium text-blue-400 mb-1">Overtime Hours (Week)</h4>
-              <p className="text-2xl font-bold text-foreground">124 hrs</p>
-              <p className="text-xs text-muted-foreground mt-1">Across 4 departments</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function LeaveTab() {
   return (
@@ -256,77 +201,7 @@ function LeaveTab() {
   );
 }
 
-function PayrollTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl text-center">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Monthly Payroll</h3>
-            <p className="text-3xl font-bold text-foreground mb-4">$452,500</p>
-            <button className="w-full py-2 rounded-lg bg-teal-600 text-foreground text-sm font-medium hover:bg-teal-500 transition-colors">
-              Process Payroll (Jul)
-            </button>
-          </div>
-          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
-            <h3 className="text-sm font-medium text-foreground mb-4">Salary Structure config</h3>
-            <div className="space-y-3">
-              {['Basic Salary', 'Allowances', 'Deductions', 'Bonus'].map((item) => (
-                <button key={item} className="w-full flex justify-between items-center p-3 rounded-lg bg-muted hover:bg-secondary/50 transition-colors text-sm text-foreground">
-                  {item}
-                  <Target size={16} className="text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        <div className="lg:col-span-2 p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Payslip Generation</h3>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm hover:bg-secondary transition-colors border border-border">
-              <Download size={16} /> Batch Download
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="pb-3 font-medium">Employee</th>
-                  <th className="pb-3 font-medium">Gross</th>
-                  <th className="pb-3 font-medium">Net</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-foreground">
-                {[
-                  { name: 'Alice Wang', gross: '$8,500', net: '$6,800', status: 'Ready' },
-                  { name: 'Bob Kim', gross: '$9,200', net: '$7,360', status: 'Ready' },
-                  { name: 'Carol Davis', gross: '$7,800', net: '$6,240', status: 'Pending Review' },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-muted transition-colors">
-                    <td className="py-3 font-medium text-foreground">{row.name}</td>
-                    <td className="py-3">{row.gross}</td>
-                    <td className="py-3">{row.net}</td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${row.status === 'Ready' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <button className="text-blue-400 hover:text-blue-300 text-xs font-medium">View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function NotificationsTab() {
   return (
