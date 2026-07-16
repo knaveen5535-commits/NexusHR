@@ -1,23 +1,26 @@
 import api from './api';
 
-export enum FeedbackType {
-  SELF_REVIEW = 'SELF_REVIEW',
-  PEER_FEEDBACK = 'PEER_FEEDBACK',
-  MANAGER_REVIEW = 'MANAGER_REVIEW'
-}
+export const FeedbackType = {
+  SELF_REVIEW: 'SELF_REVIEW',
+  PEER_FEEDBACK: 'PEER_FEEDBACK',
+  MANAGER_REVIEW: 'MANAGER_REVIEW'
+} as const;
+export type FeedbackType = (typeof FeedbackType)[keyof typeof FeedbackType];
 
-export enum FeedbackStatus {
-  DRAFT = 'DRAFT',
-  SUBMITTED = 'SUBMITTED',
-  LOCKED = 'LOCKED'
-}
+export const FeedbackStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  LOCKED: 'LOCKED'
+} as const;
+export type FeedbackStatus = (typeof FeedbackStatus)[keyof typeof FeedbackStatus];
 
-export enum ManagerRecommendation {
-  OUTSTANDING = 'OUTSTANDING',
-  EXCEEDS_EXPECTATIONS = 'EXCEEDS_EXPECTATIONS',
-  MEETS_EXPECTATIONS = 'MEETS_EXPECTATIONS',
-  NEEDS_IMPROVEMENT = 'NEEDS_IMPROVEMENT'
-}
+export const ManagerRecommendation = {
+  OUTSTANDING: 'OUTSTANDING',
+  EXCEEDS_EXPECTATIONS: 'EXCEEDS_EXPECTATIONS',
+  MEETS_EXPECTATIONS: 'MEETS_EXPECTATIONS',
+  NEEDS_IMPROVEMENT: 'NEEDS_IMPROVEMENT'
+} as const;
+export type ManagerRecommendation = (typeof ManagerRecommendation)[keyof typeof ManagerRecommendation];
 
 export interface SelfReviewRequest {
   reviewYear: number;

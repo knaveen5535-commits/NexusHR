@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
-  Users, FileText, CheckCircle, XCircle, X,
+  Users, FileText, X,
   Brain, AlertTriangle, Target, UserPlus, Star
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
@@ -41,12 +41,6 @@ const teamMembers = [
   { name: 'Bob Kim', role: 'Backend Developer', status: 'On Leave', tasks: 0, rating: 4.5 },
   { name: 'Carol Davis', role: 'UX Designer', status: 'In Meeting', tasks: 2, rating: 4.2 },
   { name: 'David Lee', role: 'DevOps Engineer', status: 'Online', tasks: 8, rating: 4.9 },
-];
-
-const pendingApprovals = [
-  { id: 1, employee: 'Alice Wang', type: 'Annual Leave', dates: 'Aug 12 - Aug 15', days: 4, status: 'pending' },
-  { id: 2, employee: 'David Lee', type: 'Sick Leave', dates: 'Jul 28', days: 1, status: 'pending' },
-  { id: 3, employee: 'Eva Martinez', type: 'Personal Leave', dates: 'Aug 02 - Aug 03', days: 2, status: 'pending' },
 ];
 
 

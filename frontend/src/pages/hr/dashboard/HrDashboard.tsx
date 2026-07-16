@@ -34,13 +34,6 @@ const weeklyAttendance = [
   { name: 'Fri', value: 168, value2: 24 },
 ];
 
-const pendingLeaves = [
-  { employee: 'Alice Wang', type: 'Annual', days: 3, from: 'Jun 15', to: 'Jun 17', status: 'pending' },
-  { employee: 'Bob Kim', type: 'Sick', days: 2, from: 'Jun 12', to: 'Jun 13', status: 'pending' },
-  { employee: 'Carol Davis', type: 'Personal', days: 1, from: 'Jun 18', to: 'Jun 18', status: 'pending' },
-];
-
-
 
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
   const kpiData: KpiCardType[] = [
