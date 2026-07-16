@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
-import { Settings, Building2, Calendar, FileText, DollarSign, Bell, ChevronRight, X } from 'lucide-react';
+import { Settings, Building2, Calendar, FileText, DollarSign, Bell, ChevronRight, X, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 
 const SETTING_MODULES = [
   { id: 'profile', name: 'Company Profile', desc: 'Manage legal entity details and branding.', icon: Building2 },
   { id: 'holidays', name: 'Holiday Calendar', desc: 'Configure regional public holidays.', icon: Calendar },
   { id: 'leave', name: 'Leave Policies', desc: 'Set accruals, carry-overs, and approvals.', icon: FileText },
   { id: 'payroll', name: 'Payroll Settings', desc: 'Tax rules, pay cycles, and bank details.', icon: DollarSign },
+  { id: 'perf', name: 'Performance Settings', desc: 'Review cycles, feedback windows, and goals.', icon: TrendingUp },
   { id: 'notif', name: 'Notification Settings', desc: 'Email/SMS triggers and templates.', icon: Bell },
 ];
 
-const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
+const ModalWrapper = ({ isOpen, onClose, title, children, customSaveAction }: any) => {
   const { isDark } = useTheme();
   return (
     <AnimatePresence>
@@ -47,7 +49,10 @@ const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
               }`}>
                 Cancel
               </button>
-              <button onClick={onClose} className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${
+              <button onClick={() => {
+                if (customSaveAction) customSaveAction();
+                else onClose();
+              }} className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-lg ${
                 isDark ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
               }`}>
                 Save Configuration
@@ -63,9 +68,16 @@ const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
 export default function SystemSettings() {
   const { isDark } = useTheme();
   const [activeSetting, setActiveSetting] = useState<string | null>(null);
+  
+  const [feedbackWindowDays, setFeedbackWindowDays] = useState(
+    localStorage.getItem('feedbackWindowDays') || '5'
+  );
 
-
-
+  const handleSavePerfSettings = () => {
+    localStorage.setItem('feedbackWindowDays', feedbackWindowDays);
+    toast.success('Performance Settings Saved!');
+    setActiveSetting(null);
+  };
   return (
     <div className={`min-h-full w-full p-4 sm:p-8 transition-colors duration-500 ${isDark ? 'bg-zinc-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
       <div className="relative z-10 max-w-4xl mx-auto space-y-6">
@@ -172,6 +184,27 @@ export default function SystemSettings() {
           <div className="flex items-center justify-between mt-4">
             <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Default Overtime Rate (Multiplier)</span>
             <input type="number" step="0.5" defaultValue={1.5} className={`w-24 rounded-xl border px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
+          </div>
+        </ModalWrapper>
+
+        {/* Performance Settings Form Modal */}
+        <ModalWrapper 
+          isOpen={activeSetting === 'perf'} 
+          onClose={() => setActiveSetting(null)} 
+          title="Performance Settings"
+          customSaveAction={handleSavePerfSettings}
+        >
+          <div>
+            <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Feedback Time Window (Days)</label>
+            <p className={`text-xs mb-3 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
+              The number of days at the start of a month employees have to submit feedback for the previous month.
+            </p>
+            <input 
+              type="number" 
+              value={feedbackWindowDays} 
+              onChange={(e) => setFeedbackWindowDays(e.target.value)}
+              className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} 
+            />
           </div>
         </ModalWrapper>
 

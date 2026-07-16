@@ -12,16 +12,37 @@ import { submitResignation, getMyResignations } from '../../../services/resignat
 import type { Resignation } from '../../../services/resignation.service';
 import api from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
+import { leaveService } from '../../../services/leave.service';
+import type { LeaveRequest, LeaveBalance, LeaveRequestSubmit } from '../../../types/leave';
+import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
+import { feedbackService } from '../../../services/feedback.service';
 
 function OverviewTab() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+  const [leaveBalance, setLeaveBalance] = useState<number>(0);
+  const [performanceRating, setPerformanceRating] = useState<string>('--');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
     if (user?.id) {
-      api.get(`/attendance/employee/${user.id}`)
-        .then(res => setAttendanceHistory(res.data))
-        .catch(console.error);
+      setIsLoading(true);
+      Promise.allSettled([
+        api.get(`/attendance/employee/${user.id}`).then(res => setAttendanceHistory(res.data)),
+        leaveService.getMyBalances(new Date().getFullYear()).then(res => {
+          const totalRemaining = res.reduce((acc, curr) => acc + curr.remainingDays, 0);
+          setLeaveBalance(totalRemaining);
+        }),
+        feedbackService.getMyFeedbacks().then(res => {
+          if (res.length > 0) {
+            const sum = res.reduce((acc, curr) => acc + (curr.overallRating || 0), 0);
+            const avg = sum / res.length;
+            setPerformanceRating(avg.toFixed(1));
+          }
+        })
+      ]).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [user]);
 
@@ -34,12 +55,20 @@ function OverviewTab() {
   const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
   const attendanceDisplay = totalDays > 0 ? `${attendancePercentage}%` : '--';
   const absentDays = totalDays - presentDays;
+  let currentStreak = 0;
+  for (let i = attendanceHistory.length - 1; i >= 0; i--) {
+    if (attendanceHistory[i].status === 'present' || attendanceHistory[i].status === 'late') {
+      currentStreak++;
+    } else if (attendanceHistory[i].status === 'absent') {
+      break;
+    }
+  }
 
   const kpiData: KpiCardType[] = [
-    { label: 'My Attendance', value: attendanceDisplay, change: totalDays > 0 ? `${absentDays} days absent` : 'No data available', trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
-    { label: 'Leave Balance', value: '--', change: 'No data available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
-    { label: 'Current Streak', value: '--', change: 'No data available', trend: 'neutral', icon: 'Activity', color: 'amber-500' },
-    { label: 'Performance', value: '--', change: 'No data available', trend: 'neutral', icon: 'Star', color: 'purple-500' },
+    { label: 'My Attendance', value: isLoading ? '...' : attendanceDisplay, change: isLoading ? 'Loading data...' : (totalDays > 0 ? `${absentDays} days absent` : 'No data available'), trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
+    { label: 'Leave Balance', value: isLoading ? '...' : `${leaveBalance} Days`, change: isLoading ? 'Loading data...' : 'Total available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
+    { label: 'Current Streak', value: isLoading ? '...' : `${currentStreak} Days`, change: isLoading ? 'Loading data...' : (currentStreak > 0 ? 'Consecutive present' : 'No active streak'), trend: currentStreak > 3 ? 'up' : 'neutral', icon: 'Activity', color: 'amber-500' },
+    { label: 'Performance', value: isLoading ? '...' : (performanceRating !== '--' ? `${performanceRating} / 5` : '--'), change: isLoading ? 'Loading data...' : (performanceRating !== '--' ? 'Average rating' : 'No data available'), trend: 'neutral', icon: 'Star', color: 'purple-500' },
   ];
 
   return (
@@ -266,33 +295,150 @@ function AttendanceTab() {
 }
 
 function LeaveTab() {
-  const emptyLeaveBalance = [
-    { name: 'Annual', value: 0, total: 0 },
-    { name: 'Sick', value: 0, total: 0 },
-    { name: 'Personal', value: 0, total: 0 },
-  ];
+  const [balances, setBalances] = useState<LeaveBalance[]>([]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [leaveForm, setLeaveForm] = useState<LeaveRequestSubmit>({
+    leaveTypeId: 0,
+    startDate: '',
+    endDate: '',
+    reason: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const getMinDate = () => {
+    const now = new Date();
+    if (now.getHours() >= 18) {
+      now.setDate(now.getDate() + 1);
+    }
+    return now.toISOString().split('T')[0];
+  };
+  const minDate = getMinDate();
+  const hasPendingRequest = requests.some(r => r.status === 'PENDING');
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [b, r] = await Promise.all([
+        leaveService.getMyBalances(),
+        leaveService.getMyRequests()
+      ]);
+      setBalances(b);
+      setRequests(r);
+      if (b.length > 0 && leaveForm.leaveTypeId === 0) {
+        setLeaveForm(prev => ({ ...prev, leaveTypeId: b[0].leaveType.id }));
+      }
+    } catch (err: any) {
+      toast.error('Failed to load leave data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleApply = async () => {
+    try {
+      if (!leaveForm.leaveTypeId || !leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
+        toast.error('Please fill all required fields');
+        return;
+      }
+      setIsSubmitting(true);
+      if (editingId) {
+        await leaveService.editLeaveRequest(editingId, leaveForm);
+        toast.success('Leave request updated');
+      } else {
+        await leaveService.submitLeaveRequest(leaveForm);
+        toast.success('Leave request submitted');
+      }
+      setApplyModalOpen(false);
+      setEditingId(null);
+      setLeaveForm({ leaveTypeId: balances[0]?.leaveType.id || 0, startDate: '', endDate: '', reason: '' });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to submit leave request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!window.confirm('Are you sure you want to cancel this request?')) return;
+    try {
+      await leaveService.cancelLeaveRequest(id);
+      toast.success('Leave request cancelled');
+      fetchData();
+    } catch (err: any) {
+      toast.error('Failed to cancel request');
+    }
+  };
+
+  const openEdit = (req: LeaveRequest) => {
+    setEditingId(req.id);
+    setLeaveForm({
+      leaveTypeId: req.leaveType.id,
+      startDate: req.startDate,
+      endDate: req.endDate,
+      reason: req.reason
+    });
+    setApplyModalOpen(true);
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading leave data...</div>;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
             <h3 className="text-sm font-semibold text-foreground mb-4">Leave Balances</h3>
             <div className="space-y-4">
-              {emptyLeaveBalance.map((leave) => (
-                <div key={leave.name}>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-foreground">{leave.name} Leave</span>
-                    <span className="text-foreground font-medium">-- / --</span>
+              {balances.map((balance) => {
+                const total = balance.totalDays;
+                const used = balance.usedDays;
+                const pending = balance.pendingDays;
+                const percent = total > 0 ? ((used + pending) / total) * 100 : 0;
+                
+                return (
+                  <div key={balance.id}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-foreground">{balance.leaveType.name}</span>
+                      <span className="text-foreground font-medium">{balance.remainingDays} / {total} remaining</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${percent > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                        style={{ width: `${Math.min(percent, 100)}%` }} 
+                      />
+                    </div>
+                    {pending > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1 text-right">{pending} pending approval</p>
+                    )}
                   </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full rounded-full bg-muted w-full" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <button className="w-full mt-6 py-2.5 rounded-lg bg-blue-600 text-foreground text-sm font-medium hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
-              Apply Leave
+            <button 
+              onClick={() => {
+                if (hasPendingRequest) return;
+                setEditingId(null);
+                setLeaveForm({ leaveTypeId: balances[0]?.leaveType.id || 0, startDate: '', endDate: '', reason: '' });
+                setApplyModalOpen(true);
+              }}
+              disabled={hasPendingRequest}
+              className={`w-full mt-6 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-lg ${
+                hasPendingRequest 
+                  ? 'bg-secondary text-muted-foreground cursor-not-allowed shadow-none' 
+                  : 'bg-blue-600 text-foreground hover:bg-blue-500 shadow-blue-500/20'
+              }`}
+            >
+              {hasPendingRequest ? 'Pending Request Exists' : 'Apply Leave'}
             </button>
           </div>
         </div>
@@ -300,12 +446,99 @@ function LeaveTab() {
         <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
           <h3 className="text-sm font-semibold text-foreground mb-4">Leave History</h3>
           <div className="space-y-3">
-            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-              No leave history found.
-            </div>
+            {requests.length > 0 ? requests.map(req => (
+              <div key={req.id} className="p-4 rounded-lg bg-muted/50 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-foreground">{req.leaveType.name}</span>
+                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full border ${
+                      req.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      req.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                      req.status === 'CANCELLED' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
+                      'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    }`}>
+                      {req.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {req.startDate} to {req.endDate} ({req.numberOfDays} {req.numberOfDays === 1 ? 'day' : 'days'})
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{req.reason}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {req.status === 'PENDING' && (
+                    <>
+                      <button onClick={() => openEdit(req)} className="px-3 py-1.5 text-xs font-medium rounded-md bg-secondary text-foreground hover:bg-muted border border-border transition-colors">Edit</button>
+                      <button onClick={() => handleCancel(req.id)} className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 transition-colors">Cancel</button>
+                    </>
+                  )}
+                  {req.approvalHistories && req.approvalHistories.length > 0 && (
+                    <div className="text-xs text-muted-foreground text-right ml-4">
+                      {req.approvalHistories.map((h, i) => (
+                        <div key={i} className="max-w-[200px] mb-1 last:mb-0">
+                          <div className="truncate font-medium">{h.action} by {h.actionByUserName}</div>
+                          {h.comments && (
+                            <div className="italic text-[10px] text-muted-foreground/80 break-words line-clamp-2">"{h.comments}"</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )) : (
+              <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+                No leave history found.
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {applyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setApplyModalOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4">{editingId ? 'Edit Leave Request' : 'Apply for Leave'}</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Leave Type</label>
+                  <select 
+                    value={leaveForm.leaveTypeId} 
+                    onChange={e => setLeaveForm({...leaveForm, leaveTypeId: Number(e.target.value)})}
+                    className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {balances.map(b => (
+                      <option key={b.leaveType.id} value={b.leaveType.id}>{b.leaveType.name} ({b.remainingDays} days left)</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Start Date</label>
+                    <input type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({...leaveForm, startDate: e.target.value})} min={minDate} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">End Date</label>
+                    <input type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({...leaveForm, endDate: e.target.value})} min={leaveForm.startDate || minDate} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Reason</label>
+                  <textarea rows={3} value={leaveForm.reason} onChange={(e) => setLeaveForm({...leaveForm, reason: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Please provide your reason..." />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button onClick={() => setApplyModalOpen(false)} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                  <button onClick={handleApply} disabled={isSubmitting} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 disabled:opacity-50 transition-colors">
+                    {isSubmitting ? 'Submitting...' : 'Submit'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -325,10 +558,7 @@ function PerformanceTab() {
         </div>
 
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-6">Recent Reviews</h3>
-          <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-            No performance reviews available.
-          </div>
+          <FeedbackDashboard />
         </div>
       </div>
     </div>

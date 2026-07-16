@@ -12,6 +12,9 @@ import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 import AttendanceList from '../../attendance/AttendanceList';
 import PayrollList from '../../payroll/PayrollList';
+import { leaveService } from '../../../services/leave.service';
+import type { LeaveRequest } from '../../../types/leave';
+import { toast } from 'sonner';
 
 
 
@@ -30,13 +33,6 @@ const weeklyAttendance = [
   { name: 'Thu', value: 172, value2: 20 },
   { name: 'Fri', value: 168, value2: 24 },
 ];
-
-const pendingLeaves = [
-  { employee: 'Alice Wang', type: 'Annual', days: 3, from: 'Jun 15', to: 'Jun 17', status: 'pending' },
-  { employee: 'Bob Kim', type: 'Sick', days: 2, from: 'Jun 12', to: 'Jun 13', status: 'pending' },
-  { employee: 'Carol Davis', type: 'Personal', days: 1, from: 'Jun 18', to: 'Jun 18', status: 'pending' },
-];
-
 
 
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
@@ -158,30 +154,103 @@ function LifecycleTab() {
 
 
 function LeaveTab() {
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentModal, setCommentModal] = useState<{isOpen: boolean, reqId: number | null, action: 'approve' | 'reject'}>({isOpen: false, reqId: null, action: 'approve'});
+  const [comments, setComments] = useState('');
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const data = await leaveService.getAllRequests();
+      setRequests(data);
+    } catch (err: any) {
+      toast.error('Failed to load company leave requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleAction = async () => {
+    if (!commentModal.reqId) return;
+    try {
+      if (commentModal.action === 'approve') {
+        await leaveService.approveLeaveRequest(commentModal.reqId, { comments });
+        toast.success('Leave request approved (HR Override)');
+      } else {
+        await leaveService.rejectLeaveRequest(commentModal.reqId, { comments });
+        toast.success('Leave request rejected (HR Override)');
+      }
+      setCommentModal({isOpen: false, reqId: null, action: 'approve'});
+      setComments('');
+      fetchRequests();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Action failed');
+    }
+  };
+
+  const pendingCount = requests.filter(r => r.status === 'PENDING').length;
+
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading company leave data...</div>;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
       <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-foreground">Company Leave Applications</h3>
-          <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">18 Pending</span>
+          <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">{pendingCount} Pending</span>
         </div>
-        <div className="space-y-3">
-          {pendingLeaves.map((leave, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
-              <div>
-                <p className="text-sm font-medium text-foreground">{leave.employee}</p>
-                <p className="text-xs text-muted-foreground">{leave.type} Leave - {leave.days} days ({leave.from} - {leave.to})</p>
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+          {requests.length > 0 ? requests.map((leave) => (
+            <div key={leave.id} className="flex flex-col p-4 rounded-lg bg-muted border border-border gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-bold text-foreground">{leave.employeeName}</p>
+                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full border ${
+                      leave.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      leave.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                      leave.status === 'CANCELLED' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
+                      'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    }`}>
+                      {leave.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{leave.leaveType.name} Leave - {leave.numberOfDays} {leave.numberOfDays === 1 ? 'day' : 'days'}</p>
+                  <p className="text-xs text-muted-foreground">{leave.startDate} to {leave.endDate}</p>
+                  <p className="text-xs text-foreground mt-2 line-clamp-2">{leave.reason}</p>
+                </div>
+                {leave.status === 'PENDING' && (
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => setCommentModal({isOpen: true, reqId: leave.id, action: 'approve'})} className="px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Override Approve</button>
+                    <button onClick={() => setCommentModal({isOpen: true, reqId: leave.id, action: 'reject'})} className="px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">Override Reject</button>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button className="px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Approve</button>
-                <button className="px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">Reject</button>
-              </div>
+              {leave.approvalHistories && leave.approvalHistories.length > 0 && (
+                <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground space-y-1">
+                  {leave.approvalHistories.map((h, idx) => (
+                    <div key={idx}>
+                      <span className="font-semibold">{h.actionByUserName}</span> ({h.actionByRole}): {h.action}
+                      {h.comments && <span className="italic"> - "{h.comments}"</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+          )) : (
+            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+              No leave requests found in the system.
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl h-fit">
         <h3 className="text-lg font-semibold text-foreground mb-6">Leave Balance Overview</h3>
         <p className="text-sm text-muted-foreground mb-6">Monitor organizational liability and upcoming mass leaves.</p>
         <div className="space-y-4">
@@ -197,6 +266,33 @@ function LeaveTab() {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {commentModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCommentModal({isOpen: false, reqId: null, action: 'approve'})} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6">
+              <h2 className={`text-xl font-bold mb-4 ${commentModal.action === 'approve' ? 'text-emerald-500' : 'text-red-500'}`}>
+                {commentModal.action === 'approve' ? 'Approve' : 'Reject'} Leave Request (HR Override)
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Comments (Optional)</label>
+                  <textarea rows={3} value={comments} onChange={(e) => setComments(e.target.value)} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a comment..." />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button onClick={() => setCommentModal({isOpen: false, reqId: null, action: 'approve'})} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                  <button onClick={handleAction} className={`flex-1 py-2 rounded-xl text-sm font-bold text-white shadow-lg transition-colors ${
+                    commentModal.action === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                  }`}>
+                    Confirm Override
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

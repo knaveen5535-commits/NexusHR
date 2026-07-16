@@ -233,10 +233,10 @@ export default function Reports() {
     
     const globalTurnover = total > 0 ? ((leftThisMonthCount / total) * 100).toFixed(1) + '%' : '0%';
     
-    const deptMap: Record<string, { total: number, active: number, newHires: number, leftThisMonth: number }> = {};
+    const deptMap: Record<string, { total: number, active: number, newHires: number, leftThisMonth: number, employees: Employee[] }> = {};
     employeesData.forEach(e => {
       const dept = e.departmentName || 'Unknown';
-      if (!deptMap[dept]) deptMap[dept] = { total: 0, active: 0, newHires: 0, leftThisMonth: 0 };
+      if (!deptMap[dept]) deptMap[dept] = { total: 0, active: 0, newHires: 0, leftThisMonth: 0, employees: [] };
       deptMap[dept].total++;
       if (e.status?.toLowerCase() === 'active') deptMap[dept].active++;
       
@@ -253,19 +253,35 @@ export default function Reports() {
           deptMap[dept].leftThisMonth++;
         }
       }
+      
+      deptMap[dept].employees.push(e);
     });
 
     const tableRows = Object.keys(deptMap).map(dept => {
       const dTotal = deptMap[dept].total;
       const dLeft = deptMap[dept].leftThisMonth;
       const dTurnover = dTotal > 0 ? ((dLeft / dTotal) * 100).toFixed(1) + '%' : '0%';
-      return [
-        dept,
-        String(dTotal),
-        String(deptMap[dept].active),
-        String(deptMap[dept].newHires),
-        dTurnover
-      ];
+      
+      const subRows = deptMap[dept].employees.map(e => {
+        return [
+          (e.firstName || '') + ' ' + (e.lastName || ''),
+          e.designation || 'Unknown Role',
+          e.status || 'Unknown',
+          e.joiningDate ? new Date(e.joiningDate).toLocaleDateString() : 'N/A',
+          e.leaveDate ? new Date(e.leaveDate).toLocaleDateString() : '-'
+        ];
+      });
+
+      return {
+        cells: [
+          dept,
+          String(dTotal),
+          String(deptMap[dept].active),
+          String(deptMap[dept].newHires),
+          dTurnover
+        ],
+        subRows
+      };
     });
     
     const chartData = Object.keys(deptMap).map(dept => ({
@@ -344,7 +360,7 @@ export default function Reports() {
     const absent = attendanceData.filter(a => a.status === 'absent').length;
     const late = attendanceData.filter(a => a.status === 'late').length;
     const total = attendanceData.length;
-    const avgAttendance = total > 0 ? ((present / total) * 100).toFixed(1) + '%' : '0%';
+    const avgAttendance = total > 0 ? (((present + late) / total) * 100).toFixed(1) + '%' : '0%';
     
     const deptMap: Record<string, { present: number, absent: number, late: number, count: number, employees: Record<string, any> }> = {};
     attendanceData.forEach(a => {
@@ -367,11 +383,11 @@ export default function Reports() {
 
     const tableRows = Object.keys(deptMap).map(dept => {
       const dTotal = deptMap[dept].count;
-      const rate = dTotal > 0 ? ((deptMap[dept].present / dTotal) * 100).toFixed(1) + '%' : '0%';
+      const rate = dTotal > 0 ? (((deptMap[dept].present + deptMap[dept].late) / dTotal) * 100).toFixed(1) + '%' : '0%';
       
       const subRows = Object.keys(deptMap[dept].employees).map(emp => {
         const eData = deptMap[dept].employees[emp];
-        const eRate = eData.count > 0 ? ((eData.present / eData.count) * 100).toFixed(1) + '%' : '0%';
+        const eRate = eData.count > 0 ? (((eData.present + eData.late) / eData.count) * 100).toFixed(1) + '%' : '0%';
         return [
           emp,
           String(eData.present),
