@@ -53,6 +53,10 @@ public class SecurityConfig {
                         ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
+                                "/api/employees/leaves/**"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/employees/me"
                         ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")

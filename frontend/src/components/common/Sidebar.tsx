@@ -13,6 +13,7 @@ import { useFilteredNav } from '../../hooks/useFilteredNav';
 import { getNavForRole } from '../../data/navigation';
 import { useTheme } from '../../hooks/useTheme';
 import { getAllResignations } from '../../services/resignation.service';
+import { leaveService } from '../../services/leave.service';
 import type { NavItem } from '../../types';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -37,16 +38,36 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [pendingResignationsCount, setPendingResignationsCount] = useState(0);
+  const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
   const { isDark } = useTheme();
 
   useEffect(() => {
-    if (user?.role === 'ADMIN' || user?.role === 'HR') {
-      getAllResignations()
-        .then(data => {
-          setPendingResignationsCount(data.filter(r => r.status === 'PENDING').length);
-        })
-        .catch(() => {});
-    }
+    const fetchCounts = () => {
+      if (user?.role === 'ADMIN' || user?.role === 'HR') {
+        getAllResignations()
+          .then(data => {
+            setPendingResignationsCount(data.filter(r => r.status === 'PENDING').length);
+          })
+          .catch(() => {});
+          
+        leaveService.getAllRequests()
+          .then(data => {
+            setPendingLeavesCount(data.filter(r => r.status === 'PENDING').length);
+          })
+          .catch(() => {});
+      } else if (user?.role === 'MANAGER') {
+        leaveService.getTeamRequests()
+          .then(data => {
+            setPendingLeavesCount(data.filter(r => r.status === 'PENDING').length);
+          })
+          .catch(() => {});
+      }
+    };
+
+    fetchCounts();
+
+    window.addEventListener('leave-requests-updated', fetchCounts);
+    return () => window.removeEventListener('leave-requests-updated', fetchCounts);
   }, [user]);
 
   const toggleMenu = (name: string) => {
@@ -160,7 +181,13 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
                 }`}>
                   {pendingResignationsCount} NEW
                 </span>
-              ) : !collapsed && item.badge ? (
+              ) : !collapsed && item.name === 'Leave Approvals' && pendingLeavesCount > 0 ? (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase shadow-sm ${
+                  isDark ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20' : 'bg-blue-100 text-blue-600 border border-blue-200'
+                }`}>
+                  {pendingLeavesCount}
+                </span>
+              ) : !collapsed && item.badge && item.name !== 'Leave Approvals' ? (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase shadow-sm ${
                   item.badge === 'AI' 
                     ? isDark ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' : 'bg-purple-100 text-purple-600 border border-purple-200' 
