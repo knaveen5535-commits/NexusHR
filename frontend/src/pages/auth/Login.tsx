@@ -139,12 +139,11 @@ export default function Login() {
           employeeId: decodedUser.employeeId || '001',
         };
 
-        // Temporarily set auth to allow api call
-        useAuthStore.getState().setAuth(token, userObj as any);
-
         if (userObj.role !== 'ADMIN') {
           try {
-            const empRes = await api.get('/employees/me');
+            const empRes = await api.get('/employees/me', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
             if (empRes.data) {
               userObj.id = String(empRes.data.id);
               userObj.firstName = empRes.data.firstName;
@@ -156,7 +155,7 @@ export default function Login() {
           }
         }
 
-        useAuthStore.getState().setAuth(token, userObj as any);
+        useAuthStore.getState().setAuth(token, { ...userObj } as any);
 
         const path =
           userObj.role === 'ADMIN'

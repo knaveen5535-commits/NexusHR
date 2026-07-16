@@ -404,7 +404,12 @@ public class LeaveService {
         }
         return leaveRequestRepository.findAll()
                 .stream()
-                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
                 .map(this::mapToDto).collect(Collectors.toList());
     }
 
@@ -423,17 +428,20 @@ public class LeaveService {
     private LeaveRequestDto mapToDto(LeaveRequest entity) {
         LeaveRequestDto dto = new LeaveRequestDto();
         dto.setId(entity.getId());
-        dto.setEmployeeId(entity.getEmployee().getId());
-        dto.setEmployeeName(entity.getEmployee().getFirstName() + " " + entity.getEmployee().getLastName());
-        dto.setDepartmentName(entity.getEmployee().getDepartment() != null ? entity.getEmployee().getDepartment().getDepartmentName() : "");
-        dto.setDesignationName(entity.getEmployee().getDesignation() != null ? entity.getEmployee().getDesignation().getDesignationName() : "");
         
-        if (entity.getEmployee().getManager() != null) {
-            dto.setManagerId(entity.getEmployee().getManager().getId());
-            dto.setManagerName(entity.getEmployee().getManager().getFirstName() + " " + entity.getEmployee().getManager().getLastName());
+        if (entity.getEmployee() != null) {
+            dto.setEmployeeId(entity.getEmployee().getId());
+            dto.setEmployeeName(entity.getEmployee().getFirstName() + " " + entity.getEmployee().getLastName());
+            dto.setDepartmentName(entity.getEmployee().getDepartment() != null ? entity.getEmployee().getDepartment().getDepartmentName() : "");
+            dto.setDesignationName(entity.getEmployee().getDesignation() != null ? entity.getEmployee().getDesignation().getDesignationName() : "");
+            
+            if (entity.getEmployee().getManager() != null) {
+                dto.setManagerId(entity.getEmployee().getManager().getId());
+                dto.setManagerName(entity.getEmployee().getManager().getFirstName() + " " + entity.getEmployee().getManager().getLastName());
+            }
         }
         
-        dto.setLeaveType(mapLeaveTypeToDto(entity.getLeaveType()));
+        dto.setLeaveType(entity.getLeaveType() != null ? mapLeaveTypeToDto(entity.getLeaveType()) : null);
         dto.setStartDate(entity.getStartDate());
         dto.setEndDate(entity.getEndDate());
         dto.setNumberOfDays(entity.getNumberOfDays());

@@ -14,16 +14,35 @@ import api from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
 import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest, LeaveBalance, LeaveRequestSubmit } from '../../../types/leave';
+import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
+import { feedbackService } from '../../../services/feedback.service';
 
 function OverviewTab() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+  const [leaveBalance, setLeaveBalance] = useState<number>(0);
+  const [performanceRating, setPerformanceRating] = useState<string>('--');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const user = useAuthStore(s => s.user);
 
   useEffect(() => {
     if (user?.id) {
-      api.get(`/attendance/employee/${user.id}`)
-        .then(res => setAttendanceHistory(res.data))
-        .catch(console.error);
+      setIsLoading(true);
+      Promise.allSettled([
+        api.get(`/attendance/employee/${user.id}`).then(res => setAttendanceHistory(res.data)),
+        leaveService.getMyBalances(new Date().getFullYear()).then(res => {
+          const totalRemaining = res.reduce((acc, curr) => acc + curr.remainingDays, 0);
+          setLeaveBalance(totalRemaining);
+        }),
+        feedbackService.getMyFeedbacks().then(res => {
+          if (res.length > 0) {
+            const sum = res.reduce((acc, curr) => acc + (curr.overallRating || 0), 0);
+            const avg = sum / res.length;
+            setPerformanceRating(avg.toFixed(1));
+          }
+        })
+      ]).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [user]);
 
@@ -36,12 +55,20 @@ function OverviewTab() {
   const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
   const attendanceDisplay = totalDays > 0 ? `${attendancePercentage}%` : '--';
   const absentDays = totalDays - presentDays;
+  let currentStreak = 0;
+  for (let i = attendanceHistory.length - 1; i >= 0; i--) {
+    if (attendanceHistory[i].status === 'present' || attendanceHistory[i].status === 'late') {
+      currentStreak++;
+    } else if (attendanceHistory[i].status === 'absent') {
+      break;
+    }
+  }
 
   const kpiData: KpiCardType[] = [
-    { label: 'My Attendance', value: attendanceDisplay, change: totalDays > 0 ? `${absentDays} days absent` : 'No data available', trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
-    { label: 'Leave Balance', value: '--', change: 'No data available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
-    { label: 'Current Streak', value: '--', change: 'No data available', trend: 'neutral', icon: 'Activity', color: 'amber-500' },
-    { label: 'Performance', value: '--', change: 'No data available', trend: 'neutral', icon: 'Star', color: 'purple-500' },
+    { label: 'My Attendance', value: isLoading ? '...' : attendanceDisplay, change: isLoading ? 'Loading data...' : (totalDays > 0 ? `${absentDays} days absent` : 'No data available'), trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
+    { label: 'Leave Balance', value: isLoading ? '...' : `${leaveBalance} Days`, change: isLoading ? 'Loading data...' : 'Total available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
+    { label: 'Current Streak', value: isLoading ? '...' : `${currentStreak} Days`, change: isLoading ? 'Loading data...' : (currentStreak > 0 ? 'Consecutive present' : 'No active streak'), trend: currentStreak > 3 ? 'up' : 'neutral', icon: 'Activity', color: 'amber-500' },
+    { label: 'Performance', value: isLoading ? '...' : (performanceRating !== '--' ? `${performanceRating} / 5` : '--'), change: isLoading ? 'Loading data...' : (performanceRating !== '--' ? 'Average rating' : 'No data available'), trend: 'neutral', icon: 'Star', color: 'purple-500' },
   ];
 
   return (
@@ -531,10 +558,7 @@ function PerformanceTab() {
         </div>
 
         <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-6">Recent Reviews</h3>
-          <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-            No performance reviews available.
-          </div>
+          <FeedbackDashboard />
         </div>
       </div>
     </div>

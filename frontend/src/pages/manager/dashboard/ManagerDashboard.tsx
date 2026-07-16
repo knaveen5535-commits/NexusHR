@@ -17,6 +17,7 @@ import AttendanceList from '../../attendance/AttendanceList';
 import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest } from '../../../types/leave';
 import { toast } from 'sonner';
+import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 
 // kpiData moved inside OverviewTab to be dynamic
 const teamAttendance = [
@@ -53,21 +54,48 @@ const pendingApprovals = [
 function OverviewTab() {
   const user = useAuthStore(s => s.user);
   const [teamCount, setTeamCount] = useState<number | string>('--');
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('--');
+  const [attendancePercent, setAttendancePercent] = useState<number | string>('--');
 
   useEffect(() => {
     if (user?.id) {
       getTeamMembers().then(data => {
         setTeamCount(data.length);
+        
+        // Fetch pending approvals
+        leaveService.getTeamRequests().then(requests => {
+          const pending = requests.filter(r => r.status === 'PENDING').length;
+          setPendingApprovalsCount(pending);
+        }).catch(() => setPendingApprovalsCount(0));
+
+        // Fetch team attendance for today
+        api.get('/attendance/team').then(res => {
+          const attendanceData: any[] = res.data;
+          const today = new Date().toISOString().split('T')[0];
+          
+          const todayRecords = attendanceData.filter(record => record.date === today);
+          const uniqueEmployeesPresent = new Set(todayRecords.map(r => r.employeeId)).size;
+          
+          if (data.length > 0) {
+            const percent = Math.round((uniqueEmployeesPresent / data.length) * 100);
+            setAttendancePercent(`${percent}%`);
+          } else {
+            setAttendancePercent('--');
+          }
+        }).catch(() => setAttendancePercent('--'));
+
       }).catch(() => {
         setTeamCount('--');
+        setPendingApprovalsCount(0);
+        setAttendancePercent('--');
       });
     }
   }, [user]);
 
   const kpiData: KpiCardType[] = [
     { label: 'Team Members', value: String(teamCount), trend: 'neutral', icon: 'Users', color: 'blue-500' },
-    { label: 'Team Attendance', value: '--', trend: 'neutral', icon: 'Calendar', color: 'emerald-500' },
-    { label: 'Pending Approvals', value: '--', trend: 'neutral', icon: 'FileText', color: 'amber-500' },
+    { label: 'Team Attendance', value: String(attendancePercent), trend: 'neutral', icon: 'Calendar', color: 'emerald-500' },
+    { label: 'Pending Approvals', value: String(pendingApprovalsCount), trend: 'neutral', icon: 'FileText', color: 'amber-500' },
     { label: 'Team Performance', value: '--', trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
   ];
 
@@ -396,23 +424,7 @@ function PerformanceTab() {
       </div>
 
       <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-        <h3 className="text-sm font-semibold text-foreground mb-6">Quarterly Reviews Actionable</h3>
-        <div className="space-y-4">
-          {[
-            { name: 'Carol Davis', status: 'Needs Review', due: 'In 2 days' },
-            { name: 'Bob Kim', status: 'In Progress', due: 'In 5 days' },
-          ].map((review, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
-              <div>
-                <p className="text-sm font-medium text-foreground">{review.name}</p>
-                <p className="text-xs text-amber-400 mt-0.5">Due: {review.due}</p>
-              </div>
-              <button className="px-3 py-1.5 rounded-md bg-secondary text-foreground text-xs hover:bg-secondary transition-colors">
-                Start Review
-              </button>
-            </div>
-          ))}
-        </div>
+        <FeedbackDashboard />
       </div>
     </div>
   );
