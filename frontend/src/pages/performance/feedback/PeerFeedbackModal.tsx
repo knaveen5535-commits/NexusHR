@@ -44,16 +44,33 @@ export default function PeerFeedbackModal({ isOpen, onClose, onSuccess }: PeerFe
 
   const fetchPeers = async () => {
     try {
-      const data = await getEmployees();
+      const [data, submittedFeedbacks] = await Promise.all([
+        getEmployees(),
+        feedbackService.getSubmittedFeedbacks()
+      ]);
+      
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      const alreadyReviewedIds = submittedFeedbacks
+        .filter(f => f.type === 'PEER_FEEDBACK' && f.reviewYear === currentYear && f.reviewMonth === currentMonth)
+        .map(f => f.reviewee.id);
+
       // Find current user's employee record to get their managerId
       const currentEmp = data.find(emp => emp.email === user?.email);
       const managerId = currentEmp?.managerId;
       
-      // Filter out self and only show peers under the same manager
+      // Filter out self and show specific peers based on role
       const otherEmployees = data.filter(emp => {
+        if (emp.status !== 'ACTIVE') return false;
         if (emp.id === currentEmp?.id || emp.email === user?.email) return false;
-        if (managerId) return emp.managerId === managerId;
-        return emp.departmentName === currentEmp?.departmentName;
+        if (alreadyReviewedIds.includes(emp.id)) return false;
+        
+        if (user?.role === 'MANAGER') return emp.role === 'MANAGER';
+        if (user?.role === 'EMPLOYEE') {
+          if (managerId) return emp.managerId === managerId && emp.role === 'EMPLOYEE';
+          return emp.departmentName === currentEmp?.departmentName && emp.role === 'EMPLOYEE';
+        }
+        return false;
       });
       setPeers(otherEmployees);
       if (otherEmployees.length > 0 && formData.revieweeId === 0) {

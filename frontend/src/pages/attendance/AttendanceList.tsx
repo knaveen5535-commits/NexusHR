@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Filter, ChevronLeft, ChevronRight, Search, Users } from 'lucide-react';
 import api from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { getEmployees, getTeamMembers } from '../../services/employee.service';
+import type { Employee } from '../../services/employee.service';
 interface AttendanceRecord {
   id: number;
   employeeName: string;
@@ -17,12 +19,14 @@ const statusStyles: Record<string, string> = {
   present: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
   absent: 'bg-red-500/10 text-red-400 ring-red-500/20',
   late: 'bg-amber-500/10 text-amber-400 ring-amber-500/20',
+  pending: 'bg-slate-500/10 text-slate-400 ring-slate-500/20',
 };
 
 const statusIcons: Record<string, typeof CheckCircle> = {
   present: CheckCircle,
   absent: XCircle,
   late: AlertCircle,
+  pending: Clock,
 };
 
 export default function AttendanceList() {
@@ -35,36 +39,36 @@ export default function AttendanceList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [departments, setDepartments] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchAttendance();
-    fetchDepartments();
+    fetchBaseData();
   }, []);
 
-  const fetchDepartments = async () => {
-    try {
-      const response = await api.get('/departments');
-      if (response.data && Array.isArray(response.data)) {
-        setDepartments(response.data.map((d: any) => d.departmentName));
-      }
-    } catch (error) {
-      console.error('Failed to fetch departments', error);
-      // Fallback unique from attendance
-      setDepartments(Array.from(new Set(attendanceData.map(a => a.department || 'Unknown'))));
-    }
-  };
-
-  const fetchAttendance = async () => {
+  const fetchBaseData = async () => {
     setIsLoading(true);
     try {
-      const endpoint = user?.role?.toUpperCase() === 'MANAGER' ? '/attendance/team' : '/attendance';
-      const response = await api.get(endpoint);
-      setAttendanceData(response.data);
-      if (departments.length === 0) {
-        setDepartments(Array.from(new Set(response.data.map((a: any) => a.department || 'Unknown'))));
+      const isManager = user?.role?.toUpperCase() === 'MANAGER';
+      const [attRes, empRes] = await Promise.all([
+        api.get(isManager ? '/attendance/team' : '/attendance'),
+        isManager ? getTeamMembers() : getEmployees()
+      ]);
+      
+      const attendance = attRes.data;
+      const emps = empRes.filter(e => e.status === 'ACTIVE');
+      
+      setAttendanceData(attendance);
+      setEmployees(emps);
+      
+      const depts = Array.from(new Set(emps.map(e => e.departmentName).filter(Boolean)));
+      if (depts.length > 0) {
+        setDepartments(depts as string[]);
+      } else {
+        setDepartments(Array.from(new Set(attendance.map((a: any) => a.department || 'Unknown'))));
       }
     } catch (error) {
       console.error('Failed to fetch attendance records', error);
@@ -73,7 +77,47 @@ export default function AttendanceList() {
     }
   };
 
-  const filteredAttendance = attendanceData.filter(a => {
+  const year = selectedDate.getFullYear();
+  const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+  const day = String(selectedDate.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  const currentMonthPrefix = `${year}-${month}`;
+
+  const dailyRecords: AttendanceRecord[] = employees.map(emp => {
+    const name = `${emp.firstName} ${emp.lastName}`;
+    const existingRecord = attendanceData.find(a => a.employeeName === name && a.attendanceDate === dateStr);
+    
+    if (existingRecord) return existingRecord;
+    
+    let defaultStatus = 'absent';
+    const now = new Date();
+    const selDate = new Date(selectedDate);
+    
+    // If selected date is today and it is before 9:00 AM, or if the selected date is in the future
+    if (
+      (selDate.getFullYear() === now.getFullYear() && 
+       selDate.getMonth() === now.getMonth() && 
+       selDate.getDate() === now.getDate() && 
+       now.getHours() < 9) || 
+      (selDate > now)
+    ) {
+      defaultStatus = 'pending';
+    }
+
+    return {
+      id: -emp.id,
+      employeeName: name,
+      department: emp.departmentName || 'Unknown',
+      designation: emp.designation || 'Employee',
+      attendanceDate: dateStr,
+      checkInTime: '--',
+      checkOutTime: '--',
+      status: defaultStatus
+    };
+  });
+
+  const filteredAttendance = dailyRecords.filter(a => {
     const dept = a.department || 'Unknown';
     const status = a.status || '';
     const name = a.employeeName || '';
@@ -81,22 +125,33 @@ export default function AttendanceList() {
     const matchesStatus = filter === 'all' || status.toLowerCase() === filter.toLowerCase();
     const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDept = departmentFilter === 'all' || dept.toLowerCase() === departmentFilter.toLowerCase();
+    
     return matchesStatus && matchesSearch && matchesDept;
   });
 
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
+  const presentCount = dailyRecords.filter(a => (a.status || '').toLowerCase() === 'present').length;
+  const absentCount = dailyRecords.filter(a => (a.status || '').toLowerCase() === 'absent').length;
+  const lateCount = dailyRecords.filter(a => (a.status || '').toLowerCase() === 'late').length;
   
-  const todaysAttendance = attendanceData.filter(a => a.attendanceDate === todayStr);
+  const handlePrevDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d);
+  };
 
-  const presentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'present').length;
-  const absentCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'absent').length;
-  const lateCount = todaysAttendance.filter(a => (a.status || '').toLowerCase() === 'late').length;
+  const handleNextDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    setSelectedDate(d);
+  };
+  
+  const isToday = (d: Date) => {
+    const td = new Date();
+    return d.getDate() === td.getDate() && d.getMonth() === td.getMonth() && d.getFullYear() === td.getFullYear();
+  };
+  
+  const dateDisplay = isToday(selectedDate) ? 'Today' : `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
-  const currentMonthPrefix = `${year}-${month}`;
   const employeeStats: Record<string, { present: number, total: number }> = {};
   attendanceData.forEach(a => {
     if (a.attendanceDate && a.attendanceDate.startsWith(currentMonthPrefix)) {
@@ -153,7 +208,7 @@ export default function AttendanceList() {
           <div className="flex justify-between items-center w-full">
             {/* Status Filter Pills */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-              {['all', 'present', 'absent', 'late'].map((f) => (
+              {['all', 'present', 'absent', 'late', 'pending'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -217,13 +272,15 @@ export default function AttendanceList() {
 
         {/* Date Paginator */}
         <div className="px-4 py-3 border-b border-border flex justify-between items-center bg-muted/20">
-          <span className="text-sm font-medium text-foreground">Overall Attendance Logs</span>
+          <span className="text-sm font-medium text-foreground">Daily Attendance Logs</span>
           <div className="flex items-center gap-2">
-            <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
+            <button onClick={handlePrevDay} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm text-foreground min-w-[80px] text-center">Today</span>
-            <button className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
+            <button onClick={() => setSelectedDate(new Date())} className="text-sm text-foreground min-w-[80px] text-center hover:text-blue-400 transition-colors">
+              {dateDisplay}
+            </button>
+            <button onClick={handleNextDay} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>

@@ -23,6 +23,12 @@ import RoleManagement from './pages/admin/roles/RoleManagement';
 import Reports from './pages/admin/reports/Reports';
 import SystemSettings from './pages/admin/settings/SystemSettings';
 
+// Performance Pages
+import AdminPerformanceDashboard from './pages/performance/AdminPerformanceDashboard';
+import HrPerformanceReports from './pages/performance/HrPerformanceReports';
+import ManagerTeamPerformance from './pages/performance/ManagerTeamPerformance';
+import EmployeeMyPerformance from './pages/performance/EmployeeMyPerformance';
+
 const queryClient = new QueryClient();
 
 function ThemeSync() {
@@ -68,6 +74,7 @@ export default function App() {
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
+            <Route path="performance" element={<AdminPerformanceDashboard />} />
             <Route path="ai-insights" element={<AiAssistant />} />
           </Route>
 
@@ -85,7 +92,7 @@ export default function App() {
             <Route path="attendance" element={<HrDashboard />} />
             <Route path="leave" element={<HrDashboard />} />
             <Route path="payroll" element={<HrDashboard />} />
-            <Route path="performance" element={<HrDashboard />} />
+            <Route path="performance" element={<HrPerformanceReports />} />
             <Route path="onboarding" element={<HrDashboard />} />
             <Route path="reports/*" element={<Reports />} />
             <Route
@@ -111,8 +118,12 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ManagerDashboard />} />
-            <Route path="attendance" element={<ManagerDashboard />} />
-            <Route path="performance" element={<ManagerDashboard />} />
+            <Route path="attendance" element={<Navigate to="my-attendance" replace />} />
+            <Route path="my-attendance" element={<ManagerDashboard />} />
+            <Route path="team-attendance" element={<ManagerDashboard />} />
+            <Route path="performance" element={<Navigate to="my-performance" replace />} />
+            <Route path="my-performance" element={<EmployeeMyPerformance />} />
+            <Route path="team-performance" element={<ManagerTeamPerformance />} />
             <Route path="leave-approvals" element={<ManagerDashboard />} />
             <Route path="reports/*" element={<Reports />} />
             <Route
@@ -141,7 +152,7 @@ export default function App() {
             <Route path="attendance" element={<EmployeeDashboard />} />
             <Route path="leave" element={<EmployeeDashboard />} />
             <Route path="payroll" element={<EmployeeDashboard />} />
-            <Route path="performance" element={<EmployeeDashboard />} />
+            <Route path="performance" element={<EmployeeMyPerformance />} />
             <Route path="ai-assistant" element={<AiAssistant />} />
           </Route>
 

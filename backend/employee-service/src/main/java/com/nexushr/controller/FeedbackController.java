@@ -53,6 +53,12 @@ public class FeedbackController {
         return ResponseEntity.ok(feedbackService.getMyFeedbacks(employeeId));
     }
 
+    @GetMapping("/submitted")
+    public ResponseEntity<List<FeedbackResponse>> getSubmittedFeedbacks(HttpServletRequest httpRequest) {
+        Long employeeId = getCurrentUserId(httpRequest);
+        return ResponseEntity.ok(feedbackService.getSubmittedFeedbacks(employeeId));
+    }
+
     @GetMapping("/team")
     public ResponseEntity<List<FeedbackResponse>> getTeamFeedbacks(HttpServletRequest httpRequest) {
         Long managerId = getCurrentUserId(httpRequest);

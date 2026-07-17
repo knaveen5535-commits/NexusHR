@@ -74,17 +74,27 @@ public class FeedbackServiceImpl implements FeedbackService {
             throw new IllegalArgumentException("Cannot submit peer feedback for yourself.");
         }
         
-        if (reviewee.getRole() == Role.HR || reviewee.getRole() == Role.ADMIN) {
-            throw new IllegalArgumentException("Cannot submit peer feedback for HR or Admin.");
+        if (reviewer.getRole() == Role.HR || reviewer.getRole() == Role.ADMIN || reviewee.getRole() == Role.HR || reviewee.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("HR and Admin cannot participate in peer feedback.");
         }
 
-        boolean sameManager = reviewer.getManager() != null && reviewee.getManager() != null && 
-                              reviewer.getManager().getId().equals(reviewee.getManager().getId());
-        boolean sameDepartment = reviewer.getDepartment() != null && reviewee.getDepartment() != null &&
-                                 reviewer.getDepartment().getId().equals(reviewee.getDepartment().getId());
+        if (reviewer.getRole() == Role.MANAGER && reviewee.getRole() != Role.MANAGER) {
+            throw new IllegalArgumentException("Managers can only submit peer feedback for other Managers.");
+        }
+        
+        if (reviewer.getRole() == Role.EMPLOYEE && reviewee.getRole() != Role.EMPLOYEE) {
+            throw new IllegalArgumentException("Employees can only submit peer feedback for other Employees.");
+        }
 
-        if (!sameManager && !sameDepartment) {
-            throw new IllegalArgumentException("Peer feedback can only be submitted for teammates with the same manager or in the same department.");
+        if (reviewer.getRole() == Role.EMPLOYEE) {
+            boolean sameManager = reviewer.getManager() != null && reviewee.getManager() != null && 
+                                  reviewer.getManager().getId().equals(reviewee.getManager().getId());
+            boolean sameDepartment = reviewer.getDepartment() != null && reviewee.getDepartment() != null &&
+                                     reviewer.getDepartment().getId().equals(reviewee.getDepartment().getId());
+
+            if (!sameManager && !sameDepartment) {
+                throw new IllegalArgumentException("Peer feedback can only be submitted for teammates with the same manager or in the same department.");
+            }
         }
 
         if (peerFeedbackRepository.existsByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
@@ -121,8 +131,14 @@ public class FeedbackServiceImpl implements FeedbackService {
         Employee reviewer = getValidEmployee(reviewerId);
         Employee reviewee = getValidEmployee(request.getRevieweeId());
 
-        if (reviewee.getManager() == null || !reviewee.getManager().getId().equals(reviewerId)) {
-            throw new IllegalArgumentException("You can only review employees assigned to you.");
+        if (reviewee.getRole() == Role.MANAGER) {
+            if (reviewer.getRole() != Role.HR) {
+                throw new IllegalArgumentException("Only HR can submit Manager Reviews for Managers.");
+            }
+        } else {
+            if (reviewee.getManager() == null || !reviewee.getManager().getId().equals(reviewerId)) {
+                throw new IllegalArgumentException("You can only review employees assigned to you.");
+            }
         }
 
         if (managerReviewRepository.existsByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
@@ -159,6 +175,13 @@ public class FeedbackServiceImpl implements FeedbackService {
     @Override
     public List<FeedbackResponse> getMyFeedbacks(Long employeeId) {
         return feedbackRepository.findByRevieweeIdAndDeletedFalse(employeeId).stream()
+                .map(feedbackMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FeedbackResponse> getSubmittedFeedbacks(Long employeeId) {
+        return feedbackRepository.findByReviewerIdAndDeletedFalse(employeeId).stream()
                 .map(feedbackMapper::toDto)
                 .collect(Collectors.toList());
     }
