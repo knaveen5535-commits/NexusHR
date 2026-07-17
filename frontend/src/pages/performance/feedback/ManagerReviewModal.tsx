@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { X, Save, Send } from 'lucide-react';
 import { feedbackService, FeedbackStatus, ManagerRecommendation } from '../../../services/feedback.service';
-import { getTeamMembers } from '../../../services/employee.service';
+import { getTeamMembers, getEmployees } from '../../../services/employee.service';
 import type { Employee } from '../../../services/employee.service';
+import { useAuthStore } from '../../../store/authStore';
 import { toast } from 'sonner';
 
 interface ManagerReviewModalProps {
@@ -16,6 +17,7 @@ interface ManagerReviewModalProps {
 
 export default function ManagerReviewModal({ isOpen, onClose, onSuccess }: ManagerReviewModalProps) {
   const { isDark } = useTheme();
+  const user = useAuthStore(s => s.user);
   
   const [loading, setLoading] = useState(false);
   const [teamMembers, setTeamMembers] = useState<Employee[]>([]);
@@ -45,7 +47,14 @@ export default function ManagerReviewModal({ isOpen, onClose, onSuccess }: Manag
 
   const fetchTeamMembers = async () => {
     try {
-      const data = await getTeamMembers();
+      let data: Employee[] = [];
+      if (user?.role === 'HR') {
+        const all = await getEmployees();
+        data = all.filter(emp => emp.role === 'MANAGER' && emp.status === 'ACTIVE');
+      } else {
+        const team = await getTeamMembers();
+        data = team.filter(emp => emp.status === 'ACTIVE');
+      }
       setTeamMembers(data);
       if (data.length > 0 && formData.revieweeId === 0) {
         setFormData(prev => ({ ...prev, revieweeId: data[0].id }));

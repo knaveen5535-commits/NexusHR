@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
-  Users, FileText, X,
+  Users, FileText, X, Clock,
   Brain, AlertTriangle, Target, UserPlus, Star
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
@@ -18,23 +18,9 @@ import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest } from '../../../types/leave';
 import { toast } from 'sonner';
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
+import { performanceService } from '../../../services/performance.service';
 
-// kpiData moved inside OverviewTab to be dynamic
-const teamAttendance = [
-  { name: 'Mon', value: 12, value2: 11 },
-  { name: 'Tue', value: 11, value2: 10 },
-  { name: 'Wed', value: 12, value2: 12 },
-  { name: 'Thu', value: 10, value2: 9 },
-  { name: 'Fri', value: 11, value2: 10 },
-];
-
-const teamPerformance = [
-  { name: 'Alice W.', value: 4.8 },
-  { name: 'Bob K.', value: 4.5 },
-  { name: 'Carol D.', value: 4.2 },
-  { name: 'David L.', value: 4.9 },
-  { name: 'Eva M.', value: 4.6 },
-];
+// Mock data removed in favor of real data fetching
 
 const teamMembers = [
   { name: 'Alice Wang', role: 'Frontend Developer', status: 'Online', tasks: 5, rating: 4.8 },
@@ -43,7 +29,163 @@ const teamMembers = [
   { name: 'David Lee', role: 'DevOps Engineer', status: 'Online', tasks: 8, rating: 4.9 },
 ];
 
+function AttendanceTab() {
+  const [loading, setLoading] = useState(false);
+  const [fetchingHistory, setFetchingHistory] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const user = useAuthStore(s => s.user);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
 
+  const fetchHistory = async () => {
+    try {
+      setFetchingHistory(true);
+      const empId = user?.id || 1;
+      const res = await api.get(`/attendance/employee/${empId}`);
+      
+      const actualRecords = res.data;
+      
+      // Sort history descending by date
+      actualRecords.sort((a: any, b: any) => b.attendanceDate.localeCompare(a.attendanceDate));
+      setAttendanceHistory(actualRecords);
+    } catch (err) {
+      console.error('Failed to fetch attendance history', err);
+    } finally {
+      setFetchingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      await api.post('/attendance/check-in', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkInTime: new Date().toISOString(),
+        source: 'WEB'
+      });
+      toast.success('Successfully checked in!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      setLoading(true);
+      await api.post('/attendance/check-out', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkOutTime: new Date().toISOString(),
+        remarks: 'Standard checkout'
+      });
+      toast.success('Successfully checked out!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check out');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check if current time is within allowed window (05:00 AM - 03:00 PM)
+  const isWithinTimeWindow = currentTime.getHours() >= 5 && currentTime.getHours() < 15;
+
+  // Find today's record in local time
+  const year = currentTime.getFullYear();
+  const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+  const day = String(currentTime.getDate()).padStart(2, '0');
+  const localTodayStr = `${year}-${month}-${day}`;
+  
+  const todayRecord = attendanceHistory.find(r => r.attendanceDate === localTodayStr);
+  const hasCheckedInToday = todayRecord && todayRecord.checkInTime !== '--';
+  const hasCheckedOutToday = todayRecord && todayRecord.checkOutTime !== '--';
+
+  const isCheckInAllowed = isWithinTimeWindow && !hasCheckedInToday;
+  const isCheckOutAllowed = hasCheckedInToday && !hasCheckedOutToday;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl text-center">
+          <div className="w-32 h-32 rounded-full border-4 border-blue-500/20 mx-auto mb-6 flex flex-col items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
+            <Clock size={24} className="text-blue-400 mb-2 z-10" />
+            <span className="text-2xl font-bold text-foreground z-10">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={handleCheckIn} disabled={loading || !isCheckInAllowed} className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedInToday ? 'Checked In' : 'Check In'}
+            </button>
+            <button onClick={handleCheckOut} disabled={loading || !isCheckOutAllowed} className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedOutToday ? 'Checked Out' : 'Check Out'}
+            </button>
+          </div>
+          {!isWithinTimeWindow && !hasCheckedInToday && <p className="text-xs text-amber-500 mt-2 font-medium">Check-in is only available between 05:00 AM and 03:00 PM</p>}
+        </div>
+
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-sm font-semibold text-foreground mb-4">My Recent Attendance History</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="pb-3 font-medium">Date</th>
+                  <th className="pb-3 font-medium">Check In</th>
+                  <th className="pb-3 font-medium">Check Out</th>
+                  <th className="pb-3 font-medium">Total Hours</th>
+                  <th className="pb-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground">
+                {fetchingHistory ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+                        <p className="text-muted-foreground text-sm mt-2">Loading attendance records...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : attendanceHistory.length > 0 ? attendanceHistory.map((row, i) => (
+                  <tr key={i} className="hover:bg-muted transition-colors">
+                    <td className="py-3">{row.attendanceDate}</td>
+                    <td className="py-3">{row.checkInTime}</td>
+                    <td className="py-3">{row.checkOutTime}</td>
+                    <td className="py-3">{row.totalHours}</td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
+                        row.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        row.status === 'late' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        'bg-red-500/10 text-red-400 border-red-500/20'
+                      } capitalize`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      No attendance records found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function OverviewTab() {
   const user = useAuthStore(s => s.user);
@@ -51,37 +193,86 @@ function OverviewTab() {
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('--');
   const [attendancePercent, setAttendancePercent] = useState<number | string>('--');
 
+  const [teamAttendanceData, setTeamAttendanceData] = useState<any[]>([]);
+  const [teamPerformanceData, setTeamPerformanceData] = useState<any[]>([]);
+  const [loadingCharts, setLoadingCharts] = useState(true);
+
   useEffect(() => {
     if (user?.id) {
-      getTeamMembers().then(data => {
-        setTeamCount(data.length);
+      setLoadingCharts(true);
+      Promise.all([
+        getTeamMembers(),
+        leaveService.getTeamRequests(),
+        api.get('/attendance/team'),
+        performanceService.getTeamPerformance(new Date().getFullYear(), new Date().getMonth() + 1).catch(() => ({ data: [] }))
+      ]).then(([membersData, requests, attendanceRes, perfRes]) => {
+        setTeamCount(membersData.length);
         
-        // Fetch pending approvals
-        leaveService.getTeamRequests().then(requests => {
-          const pending = requests.filter(r => r.status === 'PENDING').length;
-          setPendingApprovalsCount(pending);
-        }).catch(() => setPendingApprovalsCount(0));
+        // Pending approvals
+        const pending = requests.filter((r: any) => r.status === 'PENDING').length;
+        setPendingApprovalsCount(pending);
 
-        // Fetch team attendance for today
-        api.get('/attendance/team').then(res => {
-          const attendanceData: any[] = res.data;
-          const today = new Date().toISOString().split('T')[0];
-          
-          const todayRecords = attendanceData.filter(record => record.date === today);
-          const uniqueEmployeesPresent = new Set(todayRecords.map(r => r.employeeId)).size;
-          
-          if (data.length > 0) {
-            const percent = Math.round((uniqueEmployeesPresent / data.length) * 100);
-            setAttendancePercent(`${percent}%`);
-          } else {
-            setAttendancePercent('--');
+        // Attendance processing
+        const attendanceData: any[] = attendanceRes.data;
+        const today = new Date().toISOString().split('T')[0];
+        const todayRecords = attendanceData.filter(record => record.date === today);
+        const uniqueEmployeesPresent = new Set(todayRecords.map(r => r.employeeId)).size;
+        
+        if (membersData.length > 0) {
+          const percent = Math.round((uniqueEmployeesPresent / membersData.length) * 100);
+          setAttendancePercent(`${percent}%`);
+        } else {
+          setAttendancePercent('--');
+        }
+
+        // Process Weekly Attendance for Chart
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const grouped = [
+          { name: 'Mon', value: 0, value2: 0 },
+          { name: 'Tue', value: 0, value2: 0 },
+          { name: 'Wed', value: 0, value2: 0 },
+          { name: 'Thu', value: 0, value2: 0 },
+          { name: 'Fri', value: 0, value2: 0 },
+        ];
+        
+        // Only look at last 7 days
+        const start = new Date();
+        start.setDate(start.getDate() - 7);
+        const recentAttendance = attendanceData.filter(r => new Date(r.attendanceDate) >= start);
+
+        recentAttendance.forEach((record: any) => {
+          const date = new Date(record.attendanceDate);
+          const dayName = days[date.getDay()];
+          const group = grouped.find(g => g.name === dayName);
+          if (group && (record.status === 'present' || record.status === 'late')) {
+            group.value += 1; // Total present
+            if (record.status === 'present') {
+              group.value2 += 1; // On time
+            }
           }
-        }).catch(() => setAttendancePercent('--'));
+        });
+        setTeamAttendanceData(grouped);
+
+        // Process Performance for Chart
+        const perfData: any = perfRes.data || perfRes || [];
+        // Extract array if it returns the raw data or wrapped in data
+        const perfArray = Array.isArray(perfData) ? perfData : perfData.data || [];
+        
+        const topPerformers = perfArray
+          .map((p: any) => ({
+            name: `${p.employee.firstName} ${p.employee.lastName[0]}.`,
+            value: Number(p.finalScore || 0)
+          }))
+          .sort((a: any, b: any) => b.value - a.value)
+          .slice(0, 5); // Top 5
+        setTeamPerformanceData(topPerformers);
 
       }).catch(() => {
         setTeamCount('--');
         setPendingApprovalsCount(0);
         setAttendancePercent('--');
+      }).finally(() => {
+        setLoadingCharts(false);
       });
     }
   }, [user]);
@@ -102,19 +293,41 @@ function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AreaChartCard
-          title="Team Attendance (This Week)"
-          data={teamAttendance}
-          areas={[
-            { key: 'value', color: '#3b82f6', label: 'Total Present' },
-            { key: 'value2', color: '#10b981', label: 'On Time' },
-          ]}
-        />
-        <BarChartCard
-          title="Top Performers (Current Quarter)"
-          data={teamPerformance}
-          bars={[{ key: 'value', color: '#8b5cf6', label: 'Rating' }]}
-        />
+        <div className="relative">
+          {loadingCharts && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          <AreaChartCard
+            title="Team Attendance (This Week)"
+            data={teamAttendanceData}
+            areas={[
+              { key: 'value', color: '#3b82f6', label: 'Total Present' },
+              { key: 'value2', color: '#10b981', label: 'On Time' },
+            ]}
+          />
+        </div>
+        <div className="relative">
+          {loadingCharts && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          {teamPerformanceData.length === 0 && !loadingCharts ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Top Performers (Current Month)</span>
+              <span className="text-xs font-bold px-3 py-1 bg-muted text-muted-foreground rounded-full border border-border">No performance data yet</span>
+            </div>
+          ) : null}
+          <div className={teamPerformanceData.length === 0 && !loadingCharts ? "opacity-30 pointer-events-none" : ""}>
+            <BarChartCard
+              title="Top Performers (Current Month)"
+              data={teamPerformanceData.length > 0 ? teamPerformanceData : [{ name: 'No Data', value: 0 }]}
+              bars={[{ key: 'value', color: '#8b5cf6', label: 'Score' }]}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -473,7 +686,8 @@ export default function ManagerDashboard() {
       case 'leave': return <LeaveTab />;
       case 'performance': return <PerformanceTab />;
       case 'ai': return <AIInsightsTab />;
-      case 'attendance': return <div className="-m-8"><AttendanceList /></div>;
+      case 'my-attendance': return <AttendanceTab />;
+      case 'team-attendance': return <div className="-m-8"><AttendanceList /></div>;
       default: return <OverviewTab />;
     }
   };

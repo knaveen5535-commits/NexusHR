@@ -7,7 +7,15 @@ import SelfReviewModal from './SelfReviewModal';
 import ManagerReviewModal from './ManagerReviewModal';
 import PeerFeedbackModal from './PeerFeedbackModal';
 
-export default function FeedbackDashboard() {
+export default function FeedbackDashboard({ 
+  hideManagerReview = false,
+  hideSelfPeer = false,
+  mode = 'all'
+}: { 
+  hideManagerReview?: boolean;
+  hideSelfPeer?: boolean;
+  mode?: 'my' | 'team' | 'all';
+}) {
   const [feedbacks, setFeedbacks] = useState<FeedbackResponse[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -24,12 +32,28 @@ export default function FeedbackDashboard() {
       if (user?.role === 'HR' || user?.role === 'ADMIN') {
         data = await feedbackService.getAllFeedbacks();
       } else if (user?.role === 'MANAGER') {
-        // Fetch both my feedbacks and team feedbacks for managers
-        const myData = await feedbackService.getMyFeedbacks();
-        const teamData = await feedbackService.getTeamFeedbacks();
-        data = [...myData, ...teamData].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (mode === 'my') {
+          const myData = await feedbackService.getMyFeedbacks();
+          const submittedData = await feedbackService.getSubmittedFeedbacks();
+          const merged = [...myData, ...submittedData];
+          data = Array.from(new Map(merged.map(item => [item.id, item])).values())
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        } else if (mode === 'team') {
+          data = await feedbackService.getTeamFeedbacks();
+        } else {
+          const myData = await feedbackService.getMyFeedbacks();
+          const teamData = await feedbackService.getTeamFeedbacks();
+          const submittedData = await feedbackService.getSubmittedFeedbacks();
+          const merged = [...myData, ...teamData, ...submittedData];
+          data = Array.from(new Map(merged.map(item => [item.id, item])).values())
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
       } else {
-        data = await feedbackService.getMyFeedbacks();
+        const myData = await feedbackService.getMyFeedbacks();
+        const submittedData = await feedbackService.getSubmittedFeedbacks();
+        const merged = [...myData, ...submittedData];
+        data = Array.from(new Map(merged.map(item => [item.id, item])).values())
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
       setFeedbacks(data);
     } catch (err: any) {
@@ -47,18 +71,29 @@ export default function FeedbackDashboard() {
     return <div className="p-8 text-center text-muted-foreground">Loading feedback...</div>;
   }
 
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  const hasSelfReviewThisMonth = feedbacks.some(f => 
+    f.type === FeedbackType.SELF_REVIEW && 
+    f.reviewYear === currentYear && 
+    f.reviewMonth === currentMonth &&
+    f.reviewer.email === user?.email
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h3 className="text-sm font-semibold text-foreground">Feedback & Reviews</h3>
         <div className="flex items-center gap-2">
-          {(user?.role === 'EMPLOYEE') && (
+          {!hideSelfPeer && (user?.role === 'EMPLOYEE' || user?.role === 'MANAGER') && (
             <>
-              <button 
-                onClick={() => setIsSelfReviewOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
-                Submit Self Review
-              </button>
+              {!hasSelfReviewThisMonth && (
+                <button 
+                  onClick={() => setIsSelfReviewOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+                  Submit Self Review
+                </button>
+              )}
               
               <button 
                 onClick={() => setIsPeerFeedbackOpen(true)}
@@ -68,7 +103,7 @@ export default function FeedbackDashboard() {
             </>
           )}
 
-          {user?.role === 'MANAGER' && (
+          {!hideManagerReview && user?.role === 'MANAGER' && (
             <button 
               onClick={() => setIsManagerReviewOpen(true)}
               className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
@@ -99,8 +134,17 @@ export default function FeedbackDashboard() {
               {new Date(feedback.reviewYear, feedback.reviewMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
             </p>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4 pt-3 border-t border-border/50">
-              <div className="text-xs text-muted-foreground flex gap-1 items-center">
-                Reviewer: <span className="font-bold text-foreground truncate max-w-[120px]">{feedback.reviewer?.firstName} {feedback.reviewer?.lastName}</span>
+              <div className="text-xs text-muted-foreground flex flex-col gap-1">
+                <div className="flex gap-1 items-center">
+                  <span className="w-16">Reviewer:</span> 
+                  <span className="font-bold text-foreground truncate max-w-[150px]">{feedback.reviewer?.firstName} {feedback.reviewer?.lastName}</span>
+                </div>
+                {feedback.type !== 'SELF_REVIEW' && (
+                  <div className="flex gap-1 items-center">
+                    <span className="w-16">Reviewee:</span> 
+                    <span className="font-bold text-foreground truncate max-w-[150px]">{feedback.reviewee?.firstName} {feedback.reviewee?.lastName}</span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2 bg-amber-500/10 px-2 py-1 rounded-md">
                 <div className="text-[10px] font-bold text-amber-500/70 uppercase">Rating</div>

@@ -163,10 +163,19 @@ public class EmployeeService {
         String token = authHeader.substring(7);
         String email = jwtService.extractClaims(token).getSubject();
 
-        Employee employee = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found for email: " + email));
-        
-        return mapToResponse(employee);
+        java.util.Optional<Employee> empOpt = employeeRepository.findByEmail(email);
+        if (empOpt.isEmpty()) {
+            String role = jwtService.extractClaims(token).get("role", String.class);
+            if ("ADMIN".equals(role)) {
+                return new EmployeeResponse(
+                        0L, "ADMIN001", "System", "Admin", email, "0000000000",
+                        null, null, null, null, null, EmployeeStatus.ACTIVE, com.nexushr.enums.Role.ADMIN,
+                        java.time.LocalDate.now(), null
+                );
+            }
+            throw new EmployeeNotFoundException("Employee not found for email: " + email);
+        }
+        return mapToResponse(empOpt.get());
     }
 
     public String deleteEmployee(Long id) {

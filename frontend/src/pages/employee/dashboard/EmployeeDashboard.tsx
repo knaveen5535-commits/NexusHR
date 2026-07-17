@@ -7,6 +7,8 @@ import {
   Mail, Phone, MapPin
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
+import AreaChartCard from '../../../components/charts/AreaChartCard';
+import BarChartCard from '../../../components/charts/BarChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 import { submitResignation, getMyResignations } from '../../../services/resignation.service';
 import type { Resignation } from '../../../services/resignation.service';
@@ -19,6 +21,7 @@ import { feedbackService } from '../../../services/feedback.service';
 
 function OverviewTab() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<number>(0);
   const [performanceRating, setPerformanceRating] = useState<string>('--');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -30,6 +33,7 @@ function OverviewTab() {
       Promise.allSettled([
         api.get(`/attendance/employee/${user.id}`).then(res => setAttendanceHistory(res.data)),
         leaveService.getMyBalances(new Date().getFullYear()).then(res => {
+          setLeaveBalances(res);
           const totalRemaining = res.reduce((acc, curr) => acc + curr.remainingDays, 0);
           setLeaveBalance(totalRemaining);
         }),
@@ -46,15 +50,34 @@ function OverviewTab() {
     }
   }, [user]);
 
+  const today = new Date();
+  
+  // Calculate total working days in the current month up to today (Mon-Fri)
+  let workingDays = 0;
+  for (let d = new Date(today.getFullYear(), today.getMonth(), 1); d <= today; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) workingDays++; // Exclude Sunday (0) and Saturday (6)
+  }
+  
+  // Count present days THIS month
   let presentDays = 0;
-  let totalDays = attendanceHistory.length;
   attendanceHistory.forEach(r => {
-    if (r.status === 'present' || r.status === 'late') presentDays++;
+    const d = new Date(r.attendanceDate);
+    if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) {
+      if (r.status === 'present' || r.status === 'late') presentDays++;
+    }
   });
   
-  const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
-  const attendanceDisplay = totalDays > 0 ? `${attendancePercentage}%` : '--';
-  const absentDays = totalDays - presentDays;
+  const attendancePercentage = workingDays > 0 ? Math.round((presentDays / workingDays) * 100) : 0;
+  const attendanceDisplay = workingDays > 0 ? `${attendancePercentage}%` : '--';
+  
+  // Absents is workingDays - presentDays. But if today is before 9 AM, we don't count today as absent yet.
+  let adjustedWorkingDays = workingDays;
+  if (today.getHours() < 9 && today.getDay() !== 0 && today.getDay() !== 6) {
+    adjustedWorkingDays--;
+  }
+  const absentDays = Math.max(0, adjustedWorkingDays - presentDays);
+  
   let currentStreak = 0;
   for (let i = attendanceHistory.length - 1; i >= 0; i--) {
     if (attendanceHistory[i].status === 'present' || attendanceHistory[i].status === 'late') {
@@ -64,8 +87,44 @@ function OverviewTab() {
     }
   }
 
+  // Chart data processing
+  const recentWeeks = [
+    { name: 'Week 1', value: 0, value2: 0 },
+    { name: 'Week 2', value: 0, value2: 0 },
+    { name: 'Week 3', value: 0, value2: 0 },
+    { name: 'Week 4', value: 0, value2: 0 },
+  ];
+  
+  if (attendanceHistory.length > 0) {
+    // Process last 28 days into 4 weeks
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    attendanceHistory.forEach(r => {
+      const d = new Date(r.attendanceDate);
+      const diffTime = Math.abs(today.getTime() - d.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      let weekIndex = -1;
+      if (diffDays <= 7) weekIndex = 3;
+      else if (diffDays <= 14) weekIndex = 2;
+      else if (diffDays <= 21) weekIndex = 1;
+      else if (diffDays <= 28) weekIndex = 0;
+
+      if (weekIndex !== -1) {
+        if (r.status === 'present' || r.status === 'late') recentWeeks[weekIndex].value += 1;
+        if (r.status === 'absent') recentWeeks[weekIndex].value2 += 1;
+      }
+    });
+  }
+
+  const leaveChartData = leaveBalances.map(b => ({
+    name: b.leaveType.name,
+    value: b.remainingDays,
+    value2: b.usedDays
+  }));
+
   const kpiData: KpiCardType[] = [
-    { label: 'My Attendance', value: isLoading ? '...' : attendanceDisplay, change: isLoading ? 'Loading data...' : (totalDays > 0 ? `${absentDays} days absent` : 'No data available'), trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
+    { label: 'My Attendance', value: isLoading ? '...' : attendanceDisplay, change: isLoading ? 'Loading data...' : (workingDays > 0 ? `${absentDays} days absent` : 'No data available'), trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
     { label: 'Leave Balance', value: isLoading ? '...' : `${leaveBalance} Days`, change: isLoading ? 'Loading data...' : 'Total available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
     { label: 'Current Streak', value: isLoading ? '...' : `${currentStreak} Days`, change: isLoading ? 'Loading data...' : (currentStreak > 0 ? 'Consecutive present' : 'No active streak'), trend: currentStreak > 3 ? 'up' : 'neutral', icon: 'Activity', color: 'amber-500' },
     { label: 'Performance', value: isLoading ? '...' : (performanceRating !== '--' ? `${performanceRating} / 5` : '--'), change: isLoading ? 'Loading data...' : (performanceRating !== '--' ? 'Average rating' : 'No data available'), trend: 'neutral', icon: 'Star', color: 'purple-500' },
@@ -80,16 +139,50 @@ function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Monthly Attendance</h3>
-          <div className="py-12 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-            Chart data unavailable
+        <div className="relative">
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          {attendanceHistory.length === 0 && !isLoading ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Monthly Attendance Overview</span>
+              <span className="text-xs font-bold px-3 py-1 bg-muted text-muted-foreground rounded-full border border-border">No attendance records found</span>
+            </div>
+          ) : null}
+          <div className={attendanceHistory.length === 0 && !isLoading ? "opacity-30 pointer-events-none" : ""}>
+            <AreaChartCard
+              title="Recent Attendance (Last 4 Weeks)"
+              data={recentWeeks}
+              areas={[
+                { key: 'value', color: '#10b981', label: 'Days Present' },
+                { key: 'value2', color: '#ef4444', label: 'Days Absent' },
+              ]}
+            />
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Leave Balance Overview</h3>
-          <div className="py-12 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-            Chart data unavailable
+        <div className="relative">
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          {leaveBalances.length === 0 && !isLoading ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Leave Balance Overview</span>
+              <span className="text-xs font-bold px-3 py-1 bg-muted text-muted-foreground rounded-full border border-border">No leave balances found</span>
+            </div>
+          ) : null}
+          <div className={leaveBalances.length === 0 && !isLoading ? "opacity-30 pointer-events-none" : ""}>
+            <BarChartCard
+              title="Leave Balance Overview"
+              data={leaveChartData.length > 0 ? leaveChartData : [{ name: 'No Data', value: 0 }]}
+              bars={[
+                { key: 'value', color: '#10b981', label: 'Remaining' },
+                { key: 'value2', color: '#3b82f6', label: 'Used' }
+              ]}
+            />
           </div>
         </div>
       </div>
@@ -172,17 +265,26 @@ function ProfileTab() {
 
 function AttendanceTab() {
   const [loading, setLoading] = useState(false);
+  const [fetchingHistory, setFetchingHistory] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const user = useAuthStore(s => s.user);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
 
   const fetchHistory = async () => {
     try {
+      setFetchingHistory(true);
       const empId = user?.id || 1;
       const res = await api.get(`/attendance/employee/${empId}`);
-      setAttendanceHistory(res.data);
+      
+      const actualRecords = res.data;
+      
+      // Sort history descending by date
+      actualRecords.sort((a: any, b: any) => b.attendanceDate.localeCompare(a.attendanceDate));
+      setAttendanceHistory(actualRecords);
     } catch (err) {
       console.error('Failed to fetch attendance history', err);
+    } finally {
+      setFetchingHistory(false);
     }
   };
 
@@ -228,6 +330,22 @@ function AttendanceTab() {
     }
   };
 
+  // Check if current time is within allowed window (05:00 AM - 03:00 PM)
+  const isWithinTimeWindow = currentTime.getHours() >= 5 && currentTime.getHours() < 15;
+
+  // Find today's record in local time
+  const year = currentTime.getFullYear();
+  const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+  const day = String(currentTime.getDate()).padStart(2, '0');
+  const localTodayStr = `${year}-${month}-${day}`;
+  
+  const todayRecord = attendanceHistory.find(r => r.attendanceDate === localTodayStr);
+  const hasCheckedInToday = todayRecord && todayRecord.checkInTime !== '--';
+  const hasCheckedOutToday = todayRecord && todayRecord.checkOutTime !== '--';
+
+  const isCheckInAllowed = isWithinTimeWindow && !hasCheckedInToday;
+  const isCheckOutAllowed = hasCheckedInToday && !hasCheckedOutToday;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -238,14 +356,14 @@ function AttendanceTab() {
             <span className="text-2xl font-bold text-foreground z-10">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
           </div>
           <div className="flex gap-4">
-            <button onClick={handleCheckIn} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50">
-              Check In
+            <button onClick={handleCheckIn} disabled={loading || !isCheckInAllowed} className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedInToday ? 'Checked In' : 'Check In'}
             </button>
-            <button onClick={handleCheckOut} disabled={loading} className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border disabled:opacity-50">
-              Check Out
+            <button onClick={handleCheckOut} disabled={loading || !isCheckOutAllowed} className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedOutToday ? 'Checked Out' : 'Check Out'}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">Working hours: 09:00 AM - 06:00 PM</p>
+          {!isWithinTimeWindow && !hasCheckedInToday && <p className="text-xs text-amber-500 mt-2 font-medium">Check-in is only available between 05:00 AM and 03:00 PM</p>}
         </div>
 
         <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
@@ -262,7 +380,16 @@ function AttendanceTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-foreground">
-                {attendanceHistory.length > 0 ? attendanceHistory.map((row, i) => (
+                {fetchingHistory ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+                        <p className="text-muted-foreground text-sm mt-2">Loading attendance records...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : attendanceHistory.length > 0 ? attendanceHistory.map((row, i) => (
                   <tr key={i} className="hover:bg-muted transition-colors">
                     <td className="py-3">{row.attendanceDate}</td>
                     <td className="py-3">{row.checkInTime}</td>

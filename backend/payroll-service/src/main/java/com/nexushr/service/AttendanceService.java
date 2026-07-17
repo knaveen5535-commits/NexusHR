@@ -38,8 +38,13 @@ public class AttendanceService {
         attendanceRepository.findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), today)
                 .ifPresent(a -> { throw new RuntimeException("Already checked in today"); });
 
+        LocalTime checkInLocalTime = request.getCheckInTime().toLocalTime();
+        if (checkInLocalTime.isBefore(LocalTime.of(5, 0)) || checkInLocalTime.isAfter(LocalTime.of(15, 0))) {
+            throw new RuntimeException("The check-in system is only active between 05:00 AM and 03:00 PM.");
+        }
+
         AttendanceStatus status = AttendanceStatus.PRESENT;
-        if (request.getCheckInTime().toLocalTime().isAfter(STANDARD_CHECK_IN_TIME)) {
+        if (checkInLocalTime.isAfter(STANDARD_CHECK_IN_TIME)) {
             status = AttendanceStatus.LATE;
         }
 

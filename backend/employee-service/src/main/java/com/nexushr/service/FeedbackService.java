@@ -13,6 +13,7 @@ public interface FeedbackService {
     FeedbackResponse submitManagerReview(Long reviewerId, ManagerReviewRequest request);
     
     List<FeedbackResponse> getMyFeedbacks(Long employeeId);
+    List<FeedbackResponse> getSubmittedFeedbacks(Long employeeId);
     List<FeedbackResponse> getTeamFeedbacks(Long managerId);
     List<FeedbackResponse> getAllFeedbacks(); // For HR/Admin
 }

@@ -6,6 +6,7 @@ export const adminNav: NavItem[] = [
   { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
   { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
+  { name: 'Performance Admin', href: '/admin/performance', icon: 'TrendingUp', permissions: ['view:analytics'] },
   {
     name: 'Reports',
     href: '/admin/reports',
@@ -51,8 +52,26 @@ export const hrNav: NavItem[] = [
 export const managerNav: NavItem[] = [
   { name: 'Dashboard', href: '/manager/dashboard', icon: 'LayoutDashboard' },
   { name: 'My Team', href: '/manager/team', icon: 'Users', permissions: ['access:team'] },
-  { name: 'Attendance', href: '/manager/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
-  { name: 'Performance', href: '/manager/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
+  {
+    name: 'Attendance',
+    href: '/manager/attendance',
+    icon: 'Calendar',
+    permissions: ['view:attendance'],
+    children: [
+      { name: 'My Attendance', href: '/manager/my-attendance', icon: 'Clock' },
+      { name: 'Team Attendance', href: '/manager/team-attendance', icon: 'Users' },
+    ],
+  },
+  {
+    name: 'Performance',
+    href: '/manager/performance',
+    icon: 'TrendingUp',
+    permissions: ['view:performance'],
+    children: [
+      { name: 'My Performance', href: '/manager/my-performance', icon: 'User' },
+      { name: 'Team Performance', href: '/manager/team-performance', icon: 'Users' },
+    ],
+  },
   { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
 
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },

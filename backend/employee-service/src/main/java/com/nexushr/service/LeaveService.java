@@ -47,8 +47,19 @@ public class LeaveService {
         String token = authHeader.substring(7);
         String email = jwtService.extractClaims(token).getSubject();
 
-        return employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+        return employeeRepository.findByEmail(email).orElseGet(() -> {
+            String role = jwtService.extractClaims(token).get("role", String.class);
+            if ("ADMIN".equals(role)) {
+                Employee admin = new Employee();
+                admin.setId(0L); // Mock ID
+                admin.setEmail(email);
+                admin.setFirstName("System");
+                admin.setLastName("Admin");
+                admin.setRole(Role.ADMIN);
+                return admin;
+            }
+            throw new RuntimeException("Current user not found");
+        });
     }
 
     public BigDecimal calculateLeaveDays(LocalDate startDate, LocalDate endDate) {

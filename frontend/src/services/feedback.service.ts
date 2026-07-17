@@ -118,6 +118,11 @@ export const feedbackService = {
     return response.data;
   },
 
+  getSubmittedFeedbacks: async (): Promise<FeedbackResponse[]> => {
+    const response = await api.get('/feedback/submitted');
+    return response.data;
+  },
+
   getTeamFeedbacks: async (): Promise<FeedbackResponse[]> => {
     const response = await api.get('/feedback/team');
     return response.data;

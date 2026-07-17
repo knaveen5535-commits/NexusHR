@@ -15,27 +15,60 @@ import PayrollList from '../../payroll/PayrollList';
 import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest } from '../../../types/leave';
 import { toast } from 'sonner';
+import api from '../../../services/api';
 
 
 
-const lifecycleData = [
-  { name: 'Applied', value: 45 },
-  { name: 'Screened', value: 32 },
-  { name: 'Interviewed', value: 21 },
-  { name: 'Offered', value: 12 },
-  { name: 'Hired', value: 8 },
-];
-
-const weeklyAttendance = [
-  { name: 'Mon', value: 180, value2: 12 },
-  { name: 'Tue', value: 175, value2: 17 },
-  { name: 'Wed', value: 185, value2: 7 },
-  { name: 'Thu', value: 172, value2: 20 },
-  { name: 'Fri', value: 168, value2: 24 },
-];
+// Mock data removed in favor of real data fetching
 
 
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [loadingCharts, setLoadingCharts] = useState(true);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setLoadingCharts(true);
+        // Fetch last 7 days of attendance
+        const today = new Date();
+        const start = new Date();
+        start.setDate(today.getDate() - 7);
+        const res = await api.get(`/attendance?startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`);
+        
+        // Aggregate by day of week
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const grouped = [
+          { name: 'Mon', value: 0, value2: 0 },
+          { name: 'Tue', value: 0, value2: 0 },
+          { name: 'Wed', value: 0, value2: 0 },
+          { name: 'Thu', value: 0, value2: 0 },
+          { name: 'Fri', value: 0, value2: 0 },
+        ];
+
+        res.data.forEach((record: any) => {
+          const date = new Date(record.attendanceDate);
+          const dayName = days[date.getDay()];
+          const group = grouped.find(g => g.name === dayName);
+          if (group) {
+            if (record.status === 'present' || record.status === 'late') {
+              group.value += 1;
+            } else if (record.status === 'absent') {
+              group.value2 += 1;
+            }
+          }
+        });
+        
+        setAttendanceData(grouped);
+      } catch (err) {
+        console.error('Failed to fetch attendance for charts', err);
+      } finally {
+        setLoadingCharts(false);
+      }
+    };
+    fetchAttendance();
+  }, []);
+
   const kpiData: KpiCardType[] = [
     { label: 'Total Employees', value: isLoading ? '...' : stats?.totalEmployees.toString() || '0', change: '', trend: 'up', icon: 'Users', color: 'blue-500' },
     { label: 'Active Employees', value: isLoading ? '...' : stats?.activeEmployees.toString() || '0', change: '', trend: 'up', icon: 'UserCheck', color: 'emerald-500' },
@@ -71,19 +104,34 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AreaChartCard
-          title="Weekly Attendance Overview"
-          data={weeklyAttendance}
-          areas={[
-            { key: 'value', color: '#10b981', label: 'Present' },
-            { key: 'value2', color: '#ef4444', label: 'Absent' },
-          ]}
-        />
-        <BarChartCard
-          title="Recruitment Funnel"
-          data={lifecycleData}
-          bars={[{ key: 'value', color: '#3b82f6', label: 'Candidates' }]}
-        />
+        <div className="relative">
+          {loadingCharts && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          <AreaChartCard
+            title="Weekly Attendance Overview"
+            data={attendanceData}
+            areas={[
+              { key: 'value', color: '#10b981', label: 'Present' },
+              { key: 'value2', color: '#ef4444', label: 'Absent' },
+            ]}
+          />
+        </div>
+        <div className="relative h-full">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Recruitment Funnel</span>
+            <span className="text-xs font-bold px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full border border-blue-500/20 uppercase tracking-wider">Coming Soon</span>
+          </div>
+          <div className="opacity-30 pointer-events-none">
+            <BarChartCard
+              title="Recruitment Funnel"
+              data={[]}
+              bars={[{ key: 'value', color: '#3b82f6', label: 'Candidates' }]}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
