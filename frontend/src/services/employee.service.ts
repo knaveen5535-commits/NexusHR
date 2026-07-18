@@ -1,22 +1,5 @@
 import api from './api';
-
-export interface Employee {
-  id: number;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  salary: number;
-  departmentName: string;
-  designation: string;
-  managerId?: number;
-  managerName?: string;
-  status: string;
-  role: string;
-  joiningDate?: string;
-  leaveDate?: string;
-}
+import type { Employee, DocumentVerificationStatus, ProfileVerificationStatus } from '../types';
 
 export interface EmployeeBasic {
   id: number;
@@ -113,5 +96,25 @@ export interface DashboardStats {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   const response = await api.get('/employees/dashboard');
+  return response.data;
+};
+
+export const verifyProfile = async (id: number, status: ProfileVerificationStatus, rejectionReason?: string): Promise<Employee> => {
+  const response = await api.put(`/employees/${id}/verify-profile`, { status, rejectionReason });
+  return response.data;
+};
+
+export const uploadDocument = async (id: number, data: { documentType: string; documentName: string; documentUrl: string; }): Promise<Employee> => {
+  const response = await api.post(`/employees/${id}/documents`, data);
+  return response.data;
+};
+
+export const verifyDocument = async (docId: number, status: DocumentVerificationStatus, rejectionReason?: string): Promise<Employee> => {
+  const response = await api.put(`/employees/documents/${docId}/verify`, { status, rejectionReason });
+  return response.data;
+};
+
+export const deleteDocument = async (docId: number): Promise<Employee> => {
+  const response = await api.delete(`/employees/documents/${docId}`);
   return response.data;
 };

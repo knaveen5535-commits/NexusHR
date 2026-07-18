@@ -64,6 +64,22 @@ export interface KpiCard {
   color: string;
 }
 
+export type DocumentVerificationStatus = 'PENDING_HR_ADMIN_APPROVAL' | 'DOCUMENT_VERIFIED' | 'DOCUMENT_REJECTED';
+
+export interface EmployeeDocument {
+  id: number;
+  documentType: string;
+  documentName: string;
+  documentUrl: string;
+  uploadDate: string;
+  status?: DocumentVerificationStatus;
+  verifiedBy?: number;
+  verifiedDate?: string;
+  rejectionReason?: string;
+}
+
+export type ProfileVerificationStatus = 'PENDING_MANAGER_APPROVAL' | 'PROFILE_VERIFIED' | 'PROFILE_REJECTED';
+
 export interface Employee {
   id: number;
   employeeCode: string;
@@ -80,6 +96,19 @@ export interface Employee {
   role: UserRole;
   joiningDate: string;
   leaveDate?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  employmentType?: string;
+  address?: string;
+  emergencyContactName?: string;
+  emergencyContactNumber?: string;
+  profilePhotoUrl?: string;
+  profileVerificationStatus?: ProfileVerificationStatus;
+  profileVerifiedBy?: number;
+  profileVerifiedDate?: string;
+  profileRejectionReason?: string;
+  documents?: EmployeeDocument[];
 }
 
 export interface AttendanceRecord {

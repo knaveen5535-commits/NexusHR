@@ -52,6 +52,14 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getCurrentEmployee(authHeader));
     }
 
+    @PutMapping("/me")
+    public ResponseEntity<EmployeeResponse> updateCurrentEmployee(
+            @Valid @RequestBody com.nexushr.dto.UpdateProfileRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.updateProfile(authHeader, request));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponse> getEmployeeById(
             @PathVariable Long id) {
@@ -132,5 +140,40 @@ public class EmployeeController {
     @GetMapping("/dashboard")
     public ResponseEntity<com.nexushr.dto.DashboardStatsDTO> getDashboardStats() {
         return ResponseEntity.ok(employeeService.getDashboardStats());
+    }
+
+    @PutMapping("/{id}/verify-profile")
+    public ResponseEntity<EmployeeResponse> verifyProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.VerificationRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.verifyProfile(id, request, authHeader));
+    }
+
+    @PostMapping("/{id}/documents")
+    public ResponseEntity<EmployeeResponse> uploadDocument(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.DocumentUploadRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.uploadDocument(id, request, authHeader));
+    }
+
+    @PutMapping("/documents/{docId}/verify")
+    public ResponseEntity<EmployeeResponse> verifyDocument(
+            @PathVariable Long docId,
+            @Valid @RequestBody com.nexushr.dto.VerificationRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.verifyDocument(docId, request, authHeader));
+    }
+
+    @DeleteMapping("/documents/{docId}")
+    public ResponseEntity<EmployeeResponse> deleteDocument(
+            @PathVariable Long docId,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.deleteDocument(docId, authHeader));
     }
 }

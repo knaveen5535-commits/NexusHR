@@ -4,8 +4,9 @@ import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
   Mail, Phone, CheckSquare,
   Square, UserPlus, ArrowUpDown, X, Edit2, Trash2,
-  Building, UserCheck
+  Building, UserCheck, FileText, Check
 } from 'lucide-react';
+import { verifyDocument } from '../../../services/employee.service';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
 import CreateUserModal from './CreateUserModal';
@@ -220,9 +221,34 @@ export default function EmployeeList() {
   const [assigningMgr, setAssigningMgr] = useState<any>(null);
 
   const [deletingEmp, setDeletingEmp] = useState<any>(null);
+  const [verifyingDocsEmp, setVerifyingDocsEmp] = useState<Employee | null>(null);
+  const [rejectDocModal, setRejectDocModal] = useState<{isOpen: boolean, docId: number | null, empId: number | null}>({isOpen: false, docId: null, empId: null});
+  const [docRejectionReason, setDocRejectionReason] = useState('');
+  const [submittingDoc, setSubmittingDoc] = useState(false);
 
-
-
+  const handleVerifyDocument = async (docId: number, action: 'DOCUMENT_VERIFIED' | 'DOCUMENT_REJECTED', reason: string = '') => {
+    try {
+      setSubmittingDoc(true);
+      await verifyDocument(docId, action, reason);
+      toast.success(`Document ${action === 'DOCUMENT_VERIFIED' ? 'verified' : 'rejected'}`);
+      
+      // Update local state to reflect changes instantly
+      if (verifyingDocsEmp && verifyingDocsEmp.documents) {
+        const updatedDocs = verifyingDocsEmp.documents.map(d => d.id === docId ? { ...d, status: action, rejectionReason: reason } : d);
+        setVerifyingDocsEmp({ ...verifyingDocsEmp, documents: updatedDocs });
+      }
+      
+      if (action === 'DOCUMENT_REJECTED') {
+        setRejectDocModal({isOpen: false, docId: null, empId: null});
+        setDocRejectionReason('');
+      }
+      fetchEmployees();
+    } catch (error) {
+      toast.error('Failed to verify document');
+    } finally {
+      setSubmittingDoc(false);
+    }
+  };
   const handleOpenTransfer = (emp: any) => {
     setAssigningDept(emp);
     setTransferForm({ departmentId: '', designationId: '', managerId: '' });
@@ -585,6 +611,13 @@ export default function EmployeeList() {
                               <UserCheck className="h-4 w-4" />
                             </button>
                           )}
+                          <button onClick={() => setVerifyingDocsEmp(emp)} title="View Documents" className={`p-1.5 rounded-lg transition-colors ${
+                            emp.documents?.some((d: any) => d.status === 'PENDING_HR_ADMIN_APPROVAL') 
+                              ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' 
+                              : isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+                          }`}>
+                            <FileText className="h-4 w-4" />
+                          </button>
                           <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -725,6 +758,72 @@ export default function EmployeeList() {
             </button>
             <button onClick={() => setDeletingEmp(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/20">
               Delete Employee
+            </button>
+          </div>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!verifyingDocsEmp} onClose={() => setVerifyingDocsEmp(null)} title={`Documents: ${verifyingDocsEmp?.firstName} ${verifyingDocsEmp?.lastName}`}>
+        <div className="space-y-4">
+          {verifyingDocsEmp?.documents && verifyingDocsEmp.documents.length > 0 ? (
+            <div className="space-y-3">
+              {verifyingDocsEmp.documents.map((doc: any) => (
+                <div key={doc.id} className={`p-4 rounded-xl border flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText size={16} className="text-blue-500" />
+                      <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer" className={`font-semibold hover:underline ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {doc.documentName}
+                      </a>
+                    </div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Type: {doc.documentType} • Uploaded: {new Date(doc.uploadDate).toLocaleDateString()}</p>
+                    
+                    <div className="mt-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        doc.status === 'DOCUMENT_VERIFIED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        doc.status === 'DOCUMENT_REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      }`}>
+                        {doc.status.replace(/_/g, ' ')}
+                      </span>
+                      {doc.status === 'DOCUMENT_REJECTED' && doc.rejectionReason && (
+                        <p className="text-[10px] text-red-400 mt-1 italic">Reason: {doc.rejectionReason}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {doc.status === 'PENDING_HR_ADMIN_APPROVAL' && (
+                    <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                      <button onClick={() => setRejectDocModal({isOpen: true, docId: doc.id, empId: verifyingDocsEmp.id})} disabled={submittingDoc} className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-xs font-bold border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-50">
+                        <X size={14}/> Reject
+                      </button>
+                      <button onClick={() => handleVerifyDocument(doc.id, 'DOCUMENT_VERIFIED')} disabled={submittingDoc} className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-xs font-bold shadow shadow-emerald-500/20 flex items-center justify-center gap-1 disabled:opacity-50">
+                        <Check size={14}/> Approve
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`p-8 text-center text-sm rounded-xl border border-dashed ${isDark ? 'text-zinc-500 border-zinc-800' : 'text-slate-500 border-slate-300'}`}>
+              No documents have been uploaded by this employee.
+            </div>
+          )}
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={rejectDocModal.isOpen} onClose={() => !submittingDoc && setRejectDocModal({isOpen: false, docId: null, empId: null})} title="Reject Document">
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-500">Please provide a reason for rejecting this document.</p>
+          <div>
+            <label className="block text-xs font-bold mb-1.5 text-zinc-400">Rejection Reason *</label>
+            <textarea rows={3} value={docRejectionReason} onChange={(e) => setDocRejectionReason(e.target.value)} className={`w-full rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} placeholder="E.g., Document is blurry, incorrect format, etc." />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button onClick={() => setRejectDocModal({isOpen: false, docId: null, empId: null})} disabled={submittingDoc} className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors disabled:opacity-50 ${isDark ? 'border-zinc-800 text-zinc-400 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Cancel</button>
+            <button onClick={() => handleVerifyDocument(rejectDocModal.docId!, 'DOCUMENT_REJECTED', docRejectionReason)} disabled={submittingDoc || !docRejectionReason.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-colors disabled:opacity-50">
+              Confirm Rejection
             </button>
           </div>
         </div>

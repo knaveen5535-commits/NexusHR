@@ -32,6 +32,11 @@ public class AttendanceService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm a");
 
     public Attendance checkIn(CheckInRequest request) {
+        EmployeeDTO currentEmployee = employeeClient.getCurrentEmployee();
+        if (!"HR".equals(currentEmployee.getRole()) && !"ADMIN".equals(currentEmployee.getRole())) {
+            request.setEmployeeId(currentEmployee.getId());
+        }
+
         LocalDate today = request.getCheckInTime().toLocalDate();
         
         // Prevent double check-in
@@ -60,6 +65,11 @@ public class AttendanceService {
     }
 
     public Attendance checkOut(CheckOutRequest request) {
+        EmployeeDTO currentEmployee = employeeClient.getCurrentEmployee();
+        if (!"HR".equals(currentEmployee.getRole()) && !"ADMIN".equals(currentEmployee.getRole())) {
+            request.setEmployeeId(currentEmployee.getId());
+        }
+
         LocalDate today = request.getCheckOutTime().toLocalDate();
         Attendance attendance = attendanceRepository.findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), today)
                 .orElseThrow(() -> new RuntimeException("No check-in record found for today"));

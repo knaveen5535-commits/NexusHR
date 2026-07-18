@@ -13,4 +13,5 @@ public class EmployeeDTO {
     private String phone;
     private String designation; // Depending on how employee-service structures it
     private String departmentName;
+    private String role;
 }
