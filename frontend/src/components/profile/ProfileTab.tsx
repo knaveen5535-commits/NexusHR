@@ -471,7 +471,7 @@ export default function ProfileTab() {
                       <div className="mt-1 flex items-center justify-between">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
                           doc.status === 'DOCUMENT_VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' :
-                          (doc.status === 'PENDING_HR_ADMIN_APPROVAL' || doc.status === 'PENDING_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400' :
+                          (doc.status === 'PENDING_HR_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400' :
                           'bg-red-500/10 text-red-400'
                         }`}>
                           {doc.status.replace(/_/g, ' ')}

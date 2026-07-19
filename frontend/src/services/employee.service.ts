@@ -1,5 +1,6 @@
 import api from './api';
 import type { Employee, DocumentVerificationStatus, ProfileVerificationStatus } from '../types';
+export type { Employee, DocumentVerificationStatus, ProfileVerificationStatus };
 
 export interface EmployeeBasic {
   id: number;

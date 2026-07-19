@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
-  Users, FileText, X, Clock,
-  Brain, AlertTriangle, Target, UserPlus, Star
+  FileText, X, Clock,
+  Brain, AlertTriangle, Target, UserPlus
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
