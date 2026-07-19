@@ -78,4 +78,24 @@ public class EmployeeClient {
             return java.util.Collections.emptyList();
         }
     }
+
+    public EmployeeDTO getCurrentEmployee() {
+        try {
+            String url = employeeServiceUrl + "/me";
+            HttpHeaders headers = new HttpHeaders();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null) {
+                    headers.set("Authorization", authHeader);
+                }
+            }
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, EmployeeDTO.class).getBody();
+        } catch (Exception e) {
+            log.error("Failed to fetch current employee details", e);
+            throw new RuntimeException("Could not verify identity");
+        }
+    }
 }

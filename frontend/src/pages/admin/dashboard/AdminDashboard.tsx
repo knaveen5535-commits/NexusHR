@@ -9,7 +9,6 @@ import {
   ShieldCheck, Download
 } from 'lucide-react';
 
-
 export default function AdminDashboard() {
   const { isDark } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
@@ -187,7 +186,6 @@ export default function AdminDashboard() {
             })}
           </motion.div>
         </div>
-
       </div>
     </div>
   );

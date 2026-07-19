@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 import { 
-  Clock,
-  Mail, Phone, MapPin
+  Clock
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
@@ -18,6 +17,7 @@ import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest, LeaveBalance, LeaveRequestSubmit } from '../../../types/leave';
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 import { feedbackService } from '../../../services/feedback.service';
+import ProfileTab from '../../../components/profile/ProfileTab';
 
 function OverviewTab() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
@@ -190,78 +190,7 @@ function OverviewTab() {
   );
 }
 
-function ProfileTab() {
-  const user = useAuthStore(s => s.user);
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-6">
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl text-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-3xl font-bold text-white">{user?.firstName?.[0] || 'U'}</span>
-          </div>
-          <h2 className="text-xl font-bold text-foreground">{user?.firstName || '--'} {user?.lastName || ''}</h2>
-          <p className="text-sm text-muted-foreground">{user?.designation || '--'}</p>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            <span className="px-2 py-1 text-xs rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">{user?.department || '--'}</span>
-            <span className="px-2 py-1 text-xs rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Contact Information</h3>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-sm text-foreground">
-              <Mail size={16} className="text-muted-foreground" />
-              <span className="truncate">{user?.email || '--'}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-foreground">
-              <Phone size={16} className="text-muted-foreground" />
-              <span>--</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-foreground">
-              <MapPin size={16} className="text-muted-foreground" />
-              <span>--</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="lg:col-span-2 space-y-6">
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Personal Details</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Employee ID</p>
-              <p className="text-sm text-foreground font-medium">{user?.employeeId || '--'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Date of Joining</p>
-              <p className="text-sm text-foreground font-medium">--</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Date of Birth</p>
-              <p className="text-sm text-foreground font-medium">--</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Reporting Manager</p>
-              <p className="text-sm text-foreground font-medium">--</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Documents</h3>
-          <div className="space-y-3">
-            <div className="py-4 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-              No documents available
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AttendanceTab() {
   const [loading, setLoading] = useState(false);
@@ -291,7 +220,10 @@ function AttendanceTab() {
   useEffect(() => {
     fetchHistory();
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const istTime = new Date(utc + (3600000 * 5.5));
+      setCurrentTime(istTime);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -299,9 +231,10 @@ function AttendanceTab() {
   const handleCheckIn = async () => {
     try {
       setLoading(true);
+      
       await api.post('/attendance/check-in', {
         employeeId: user?.id || 1, // fallback for demo
-        checkInTime: new Date().toISOString(),
+        checkInTime: new Date().toISOString(), // This will be ignored by backend
         source: 'WEB'
       });
       toast.success('Successfully checked in!');
@@ -318,7 +251,7 @@ function AttendanceTab() {
       setLoading(true);
       await api.post('/attendance/check-out', {
         employeeId: user?.id || 1, // fallback for demo
-        checkOutTime: new Date().toISOString(),
+        checkOutTime: new Date().toISOString(), // This will be ignored by backend
         remarks: 'Standard checkout'
       });
       toast.success('Successfully checked out!');

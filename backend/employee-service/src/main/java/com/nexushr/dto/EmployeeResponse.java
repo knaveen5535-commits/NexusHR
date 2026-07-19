@@ -40,4 +40,30 @@ public class EmployeeResponse {
     private java.time.LocalDate joiningDate;
 
     private java.time.LocalDate leaveDate;
+
+    private java.time.LocalDate dateOfBirth;
+
+    private String gender;
+
+    private String bloodGroup;
+
+    private String employmentType;
+
+    private String address;
+
+    private String emergencyContactName;
+
+    private String emergencyContactNumber;
+
+    private String profilePhotoUrl;
+
+    private String profileVerificationStatus;
+
+    private Long profileVerifiedBy;
+
+    private java.time.LocalDateTime profileVerifiedDate;
+
+    private String profileRejectionReason;
+
+    private java.util.List<EmployeeDocumentDto> documents;
 }

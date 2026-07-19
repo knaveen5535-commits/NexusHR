@@ -52,6 +52,27 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getCurrentEmployee(authHeader));
     }
 
+    @PutMapping("/me")
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> updateCurrentEmployee(
+            @Valid @RequestBody com.nexushr.dto.UpdateProfileRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.updateProfile(authHeader, request));
+    }
+
+    @GetMapping("/profile-requests/me/latest")
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> getMyLatestProfileRequest(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        com.nexushr.dto.ProfileUpdateRequestDTO dto = employeeService.getMyLatestProfileRequest(authHeader);
+        return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/profile-requests/pending")
+    public ResponseEntity<List<com.nexushr.dto.ProfileUpdateRequestDTO>> getPendingProfileRequests(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.getPendingProfileRequests(authHeader));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponse> getEmployeeById(
             @PathVariable Long id) {
@@ -132,5 +153,40 @@ public class EmployeeController {
     @GetMapping("/dashboard")
     public ResponseEntity<com.nexushr.dto.DashboardStatsDTO> getDashboardStats() {
         return ResponseEntity.ok(employeeService.getDashboardStats());
+    }
+
+    @PutMapping("/profile-requests/{id}/verify")
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> verifyProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.VerificationRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.verifyProfile(id, request, authHeader));
+    }
+
+    @PostMapping("/{id}/documents")
+    public ResponseEntity<EmployeeResponse> uploadDocument(
+            @PathVariable Long id,
+            @Valid @RequestBody com.nexushr.dto.DocumentUploadRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.uploadDocument(id, request, authHeader));
+    }
+
+    @PutMapping("/documents/{docId}/verify")
+    public ResponseEntity<EmployeeResponse> verifyDocument(
+            @PathVariable Long docId,
+            @Valid @RequestBody com.nexushr.dto.VerificationRequest request,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.verifyDocument(docId, request, authHeader));
+    }
+
+    @DeleteMapping("/documents/{docId}")
+    public ResponseEntity<EmployeeResponse> deleteDocument(
+            @PathVariable Long docId,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.deleteDocument(docId, authHeader));
     }
 }

@@ -16,8 +16,7 @@ import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest } from '../../../types/leave';
 import { toast } from 'sonner';
 import api from '../../../services/api';
-
-
+import ProfileTab from '../../../components/profile/ProfileTab';
 
 // Mock data removed in favor of real data fetching
 
@@ -428,6 +427,7 @@ export default function HrDashboard() {
       case 'leave': return <LeaveTab />;
       case 'payroll': return <div className="-m-8"><PayrollList /></div>;
       case 'notifications': return <NotificationsTab />;
+      case 'profile': return <ProfileTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
       default: return <OverviewTab stats={stats} isLoading={isLoading} />;
     }
