@@ -42,6 +42,7 @@ public class EmployeeService {
     private final NotificationService notificationService;
     private final RestTemplate restTemplate;
     private final JwtService jwtService;
+    private final com.nexushr.repository.ProfileUpdateRequestRepository profileUpdateRequestRepository;
 
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
@@ -49,7 +50,8 @@ public class EmployeeService {
                            EmployeeDocumentRepository employeeDocumentRepository,
                            NotificationService notificationService,
                            RestTemplate restTemplate,
-                           JwtService jwtService) {
+                           JwtService jwtService,
+                           com.nexushr.repository.ProfileUpdateRequestRepository profileUpdateRequestRepository) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.designationRepository = designationRepository;
@@ -57,6 +59,7 @@ public class EmployeeService {
         this.notificationService = notificationService;
         this.restTemplate = restTemplate;
         this.jwtService = jwtService;
+        this.profileUpdateRequestRepository = profileUpdateRequestRepository;
     }
 
     private EmployeeResponse mapToResponse(Employee employee) {
@@ -231,7 +234,8 @@ public class EmployeeService {
         return mapToResponse(empOpt.get());
     }
 
-    public EmployeeResponse updateProfile(String authHeader, com.nexushr.dto.UpdateProfileRequest request) {
+    @org.springframework.transaction.annotation.Transactional
+    public com.nexushr.dto.ProfileUpdateRequestDTO updateProfile(String authHeader, com.nexushr.dto.UpdateProfileRequest request) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Invalid authorization header");
         }
@@ -241,48 +245,83 @@ public class EmployeeService {
         Employee employee = employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));
 
-        if (request.getPhone() != null) employee.setPhone(request.getPhone());
-        if (request.getAddress() != null) employee.setAddress(request.getAddress());
-        if (request.getEmergencyContactName() != null) employee.setEmergencyContactName(request.getEmergencyContactName());
-        if (request.getEmergencyContactNumber() != null) employee.setEmergencyContactNumber(request.getEmergencyContactNumber());
-        if (request.getProfilePhotoUrl() != null) employee.setProfilePhotoUrl(request.getProfilePhotoUrl());
-        if (request.getDateOfBirth() != null) employee.setDateOfBirth(request.getDateOfBirth());
-        if (request.getGender() != null) employee.setGender(request.getGender());
-        if (request.getBloodGroup() != null) employee.setBloodGroup(request.getBloodGroup());
+        java.util.List<ProfileVerificationStatus> pendingStatuses = java.util.Arrays.asList(
+            ProfileVerificationStatus.PENDING_MANAGER_APPROVAL, 
+            ProfileVerificationStatus.PENDING_ADMIN_APPROVAL
+        );
+        java.util.Optional<com.nexushr.entity.ProfileUpdateRequest> existingPending = profileUpdateRequestRepository
+            .findTopByEmployeeIdAndStatusInOrderByCreatedAtDesc(employee.getId(), pendingStatuses);
+            
+        if (existingPending.isPresent()) {
+            throw new IllegalStateException("You already have a pending profile update request.");
+        }
 
-        employee.setProfileVerificationStatus(ProfileVerificationStatus.PENDING_MANAGER_APPROVAL);
-        employee.setProfileVerifiedBy(null);
-        employee.setProfileVerifiedDate(null);
-        employee.setProfileRejectionReason(null);
+        com.nexushr.entity.ProfileUpdateRequest updateRequest = new com.nexushr.entity.ProfileUpdateRequest();
+        updateRequest.setEmployee(employee);
+        updateRequest.setRequestedPhone(request.getPhone());
+        updateRequest.setRequestedAddress(request.getAddress());
+        updateRequest.setRequestedEmergencyContactName(request.getEmergencyContactName());
+        updateRequest.setRequestedEmergencyContactNumber(request.getEmergencyContactNumber());
+        updateRequest.setRequestedProfilePhotoUrl(request.getProfilePhotoUrl());
+        updateRequest.setRequestedDateOfBirth(request.getDateOfBirth());
+        updateRequest.setRequestedGender(request.getGender());
+        updateRequest.setRequestedBloodGroup(request.getBloodGroup());
 
-        Employee updatedEmployee = employeeRepository.save(employee);
+        if (employee.getRole() == com.nexushr.enums.Role.MANAGER || employee.getRole() == com.nexushr.enums.Role.HR) {
+            updateRequest.setStatus(ProfileVerificationStatus.PENDING_ADMIN_APPROVAL);
+        } else {
+            updateRequest.setStatus(ProfileVerificationStatus.PENDING_MANAGER_APPROVAL);
+        }
         
-        if (employee.getManager() != null) {
+        com.nexushr.entity.ProfileUpdateRequest savedRequest = profileUpdateRequestRepository.save(updateRequest);
+        
+        if (employee.getRole() == com.nexushr.enums.Role.MANAGER || employee.getRole() == com.nexushr.enums.Role.HR) {
+            java.util.List<Employee> admins = employeeRepository.findByRole(com.nexushr.enums.Role.ADMIN);
+            for (Employee admin : admins) {
+                notificationService.createNotification(
+                    admin.getId(),
+                    "info",
+                    "Profile Update Approval Required",
+                    employee.getFirstName() + " " + employee.getLastName() + " has submitted a profile update request."
+                );
+            }
+        } else if (employee.getManager() != null) {
             notificationService.createNotification(
                 employee.getManager().getId(),
                 "info",
                 "Profile Update Approval Required",
-                employee.getFirstName() + " " + employee.getLastName() + " has updated their profile and requires approval."
+                employee.getFirstName() + " " + employee.getLastName() + " has submitted a profile update request."
             );
         }
 
-        return mapToResponse(updatedEmployee);
+        return mapToProfileUpdateRequestDTO(savedRequest);
     }
 
-    public EmployeeResponse verifyProfile(Long employeeId, VerificationRequest request, String authHeader) {
+    @org.springframework.transaction.annotation.Transactional
+    public com.nexushr.dto.ProfileUpdateRequestDTO verifyProfile(Long requestId, VerificationRequest request, String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Invalid authorization header");
         }
         String token = authHeader.substring(7);
-        String managerEmail = jwtService.extractClaims(token).getSubject();
-        Employee manager = employeeRepository.findByEmail(managerEmail)
-                .orElseThrow(() -> new EmployeeNotFoundException("Manager not found"));
+        String role = jwtService.extractClaims(token).get("role", String.class);
+        Employee reviewer = null;
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));
+        com.nexushr.entity.ProfileUpdateRequest updateRequest = profileUpdateRequestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Profile update request not found"));
 
-        if (employee.getManager() == null || !employee.getManager().getId().equals(manager.getId())) {
-            throw new IllegalArgumentException("Only the assigned manager can verify this profile.");
+        Employee employee = updateRequest.getEmployee();
+
+        if (!"ADMIN".equals(role)) {
+            String reviewerEmail = jwtService.extractClaims(token).getSubject();
+            reviewer = employeeRepository.findByEmail(reviewerEmail)
+                    .orElseThrow(() -> new EmployeeNotFoundException("Reviewer not found"));
+
+            if (employee.getManager() == null || !employee.getManager().getId().equals(reviewer.getId())) {
+                throw new IllegalArgumentException("Only the assigned manager can verify this profile request.");
+            }
+        } else {
+            String adminEmail = jwtService.extractClaims(token).getSubject();
+            reviewer = employeeRepository.findByEmail(adminEmail).orElse(null);
         }
 
         ProfileVerificationStatus status;
@@ -292,21 +331,110 @@ public class EmployeeService {
             throw new IllegalArgumentException("Invalid status. Expected PROFILE_VERIFIED or PROFILE_REJECTED.");
         }
 
-        employee.setProfileVerificationStatus(status);
-        employee.setProfileVerifiedBy(manager);
-        employee.setProfileVerifiedDate(LocalDateTime.now());
-        employee.setProfileRejectionReason(request.getRejectionReason());
+        updateRequest.setStatus(status);
+        updateRequest.setReviewedBy(reviewer);
+        updateRequest.setReviewedAt(LocalDateTime.now());
+        updateRequest.setRejectionReason(request.getRejectionReason());
+        updateRequest.setReviewerComment(request.getRejectionReason()); // Using rejectionReason for general comment for now
 
-        Employee updatedEmployee = employeeRepository.save(employee);
+        if (status == ProfileVerificationStatus.PROFILE_VERIFIED) {
+            if (updateRequest.getRequestedPhone() != null) employee.setPhone(updateRequest.getRequestedPhone());
+            if (updateRequest.getRequestedAddress() != null) employee.setAddress(updateRequest.getRequestedAddress());
+            if (updateRequest.getRequestedEmergencyContactName() != null) employee.setEmergencyContactName(updateRequest.getRequestedEmergencyContactName());
+            if (updateRequest.getRequestedEmergencyContactNumber() != null) employee.setEmergencyContactNumber(updateRequest.getRequestedEmergencyContactNumber());
+            if (updateRequest.getRequestedProfilePhotoUrl() != null) employee.setProfilePhotoUrl(updateRequest.getRequestedProfilePhotoUrl());
+            if (updateRequest.getRequestedDateOfBirth() != null) employee.setDateOfBirth(updateRequest.getRequestedDateOfBirth());
+            if (updateRequest.getRequestedGender() != null) employee.setGender(updateRequest.getRequestedGender());
+            if (updateRequest.getRequestedBloodGroup() != null) employee.setBloodGroup(updateRequest.getRequestedBloodGroup());
+            
+            employeeRepository.save(employee);
+        }
+
+        profileUpdateRequestRepository.save(updateRequest);
 
         notificationService.createNotification(
             employee.getId(),
             status == ProfileVerificationStatus.PROFILE_VERIFIED ? "success" : "warning",
-            "Profile " + (status == ProfileVerificationStatus.PROFILE_VERIFIED ? "Approved" : "Rejected"),
-            "Your profile update has been " + (status == ProfileVerificationStatus.PROFILE_VERIFIED ? "approved." : "rejected. Reason: " + request.getRejectionReason())
+            "Profile Request " + (status == ProfileVerificationStatus.PROFILE_VERIFIED ? "Approved" : "Rejected"),
+            "Your profile update request has been " + (status == ProfileVerificationStatus.PROFILE_VERIFIED ? "approved." : "rejected. Reason: " + request.getRejectionReason())
         );
 
-        return mapToResponse(updatedEmployee);
+        return mapToProfileUpdateRequestDTO(updateRequest);
+    }
+    
+    public java.util.List<com.nexushr.dto.ProfileUpdateRequestDTO> getPendingProfileRequests(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+        String token = authHeader.substring(7);
+        String email = jwtService.extractClaims(token).getSubject();
+        String role = jwtService.extractClaims(token).get("role", String.class);
+
+        List<com.nexushr.entity.ProfileUpdateRequest> requests;
+
+        if ("ADMIN".equals(role)) {
+            requests = profileUpdateRequestRepository.findByStatus(ProfileVerificationStatus.PENDING_ADMIN_APPROVAL);
+        } else {
+            Employee manager = employeeRepository.findByEmail(email)
+                    .orElseThrow(() -> new EmployeeNotFoundException("Manager not found"));
+            requests = profileUpdateRequestRepository.findByEmployeeManagerIdAndStatus(manager.getId(), ProfileVerificationStatus.PENDING_MANAGER_APPROVAL);
+        }
+
+        return requests.stream().map(this::mapToProfileUpdateRequestDTO).toList();
+    }
+
+    public com.nexushr.dto.ProfileUpdateRequestDTO getMyLatestProfileRequest(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+        String token = authHeader.substring(7);
+        String email = jwtService.extractClaims(token).getSubject();
+
+        Employee employee = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new EmployeeNotFoundException("Employee not found"));
+
+        return profileUpdateRequestRepository.findTopByEmployeeIdOrderByCreatedAtDesc(employee.getId())
+                .map(this::mapToProfileUpdateRequestDTO)
+                .orElse(null);
+    }
+
+    private com.nexushr.dto.ProfileUpdateRequestDTO mapToProfileUpdateRequestDTO(com.nexushr.entity.ProfileUpdateRequest request) {
+        com.nexushr.dto.ProfileUpdateRequestDTO dto = new com.nexushr.dto.ProfileUpdateRequestDTO();
+        dto.setId(request.getId());
+        
+        EmployeeBasicResponse empBasic = new EmployeeBasicResponse(
+            request.getEmployee().getId(), 
+            request.getEmployee().getFirstName(), 
+            request.getEmployee().getLastName()
+        );
+        dto.setEmployee(empBasic);
+        
+        dto.setRequestedPhone(request.getRequestedPhone());
+        dto.setRequestedAddress(request.getRequestedAddress());
+        dto.setRequestedDateOfBirth(request.getRequestedDateOfBirth());
+        dto.setRequestedGender(request.getRequestedGender());
+        dto.setRequestedBloodGroup(request.getRequestedBloodGroup());
+        dto.setRequestedEmergencyContactName(request.getRequestedEmergencyContactName());
+        dto.setRequestedEmergencyContactNumber(request.getRequestedEmergencyContactNumber());
+        dto.setRequestedProfilePhotoUrl(request.getRequestedProfilePhotoUrl());
+        
+        dto.setStatus(request.getStatus().name());
+        dto.setRejectionReason(request.getRejectionReason());
+        dto.setReviewerComment(request.getReviewerComment());
+        
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setUpdatedAt(request.getUpdatedAt());
+        dto.setReviewedAt(request.getReviewedAt());
+        
+        if (request.getReviewedBy() != null) {
+            EmployeeBasicResponse revBasic = new EmployeeBasicResponse(
+                request.getReviewedBy().getId(), 
+                request.getReviewedBy().getFirstName(), 
+                request.getReviewedBy().getLastName()
+            );
+            dto.setReviewedBy(revBasic);
+        }
+        return dto;
     }
 
     public EmployeeResponse uploadDocument(Long employeeId, DocumentUploadRequest request, String authHeader) {
@@ -328,18 +456,24 @@ public class EmployeeService {
         doc.setDocumentName(request.getDocumentName());
         doc.setDocumentUrl(request.getDocumentUrl());
         doc.setUploadDate(LocalDateTime.now());
-        doc.setStatus(DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL);
+        if (caller.getRole() == com.nexushr.enums.Role.MANAGER || caller.getRole() == com.nexushr.enums.Role.HR) {
+            doc.setStatus(DocumentVerificationStatus.PENDING_ADMIN_APPROVAL);
+        } else {
+            doc.setStatus(DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL);
+        }
         
         employeeDocumentRepository.save(doc);
 
-        List<Employee> hrs = employeeRepository.findByRole(com.nexushr.enums.Role.HR);
-        for (Employee hr : hrs) {
-            notificationService.createNotification(
-                hr.getId(),
-                "info",
-                "New Document Pending Verification",
-                caller.getFirstName() + " " + caller.getLastName() + " uploaded a new document (" + request.getDocumentType() + ")."
-            );
+        if (caller.getRole() != com.nexushr.enums.Role.MANAGER && caller.getRole() != com.nexushr.enums.Role.HR) {
+            List<Employee> hrs = employeeRepository.findByRole(com.nexushr.enums.Role.HR);
+            for (Employee hr : hrs) {
+                notificationService.createNotification(
+                    hr.getId(),
+                    "info",
+                    "New Document Pending Verification",
+                    caller.getFirstName() + " " + caller.getLastName() + " uploaded a new document (" + request.getDocumentType() + ")."
+                );
+            }
         }
 
         return mapToResponse(caller);
@@ -350,17 +484,24 @@ public class EmployeeService {
             throw new IllegalArgumentException("Invalid authorization header");
         }
         String token = authHeader.substring(7);
-        String hrEmail = jwtService.extractClaims(token).getSubject();
-        Employee hr = employeeRepository.findByEmail(hrEmail)
-                .orElseThrow(() -> new EmployeeNotFoundException("HR not found"));
-        
         String role = jwtService.extractClaims(token).get("role", String.class);
+        Employee hr = null;
+
+        if (!"ADMIN".equals(role)) {
+            String hrEmail = jwtService.extractClaims(token).getSubject();
+            hr = employeeRepository.findByEmail(hrEmail)
+                    .orElseThrow(() -> new EmployeeNotFoundException("HR not found"));
+        }
         if (!"HR".equals(role) && !"ADMIN".equals(role)) {
             throw new IllegalArgumentException("Only HR or Admin can verify documents.");
         }
 
         EmployeeDocument doc = employeeDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
+
+        if ("HR".equals(role) && doc.getStatus() == DocumentVerificationStatus.PENDING_ADMIN_APPROVAL) {
+            throw new IllegalArgumentException("Only Admin can verify this document.");
+        }
 
         DocumentVerificationStatus status;
         try {

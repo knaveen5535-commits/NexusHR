@@ -54,6 +54,11 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.PUT,
+                                "/api/employees/profile-requests/*/verify"
+                        ).hasAnyRole("ADMIN", "MANAGER")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
                                 "/api/employees/**"
                         ).hasAnyRole("ADMIN", "HR")
 

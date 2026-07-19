@@ -9,8 +9,10 @@ import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
 import HrDashboard from './pages/hr/dashboard/HrDashboard';
 import ManagerDashboard from './pages/manager/dashboard/ManagerDashboard';
+import ManagerProfileRequests from './pages/manager/employees/ManagerProfileRequests';
 import EmployeeDashboard from './pages/employee/dashboard/EmployeeDashboard';
 import ResignationManagement from './pages/admin/employees/ResignationManagement';
+import AdminProfileRequests from './pages/admin/employees/AdminProfileRequests';
 import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
@@ -71,6 +73,7 @@ export default function App() {
             <Route path="departments" element={<DepartmentManagement />} />
             <Route path="designations" element={<DesignationManagement />} />
             <Route path="resignations" element={<ResignationManagement />} />
+            <Route path="profile-requests" element={<AdminProfileRequests />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -89,6 +92,7 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<HrDashboard />} />
+            <Route path="profile" element={<HrDashboard />} />
             <Route path="attendance" element={<HrDashboard />} />
             <Route path="leave" element={<HrDashboard />} />
             <Route path="payroll" element={<HrDashboard />} />
@@ -118,6 +122,7 @@ export default function App() {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<ManagerDashboard />} />
+            <Route path="profile" element={<ManagerDashboard />} />
             <Route path="attendance" element={<Navigate to="my-attendance" replace />} />
             <Route path="my-attendance" element={<ManagerDashboard />} />
             <Route path="team-attendance" element={<ManagerDashboard />} />
@@ -125,6 +130,7 @@ export default function App() {
             <Route path="my-performance" element={<EmployeeMyPerformance />} />
             <Route path="team-performance" element={<ManagerTeamPerformance />} />
             <Route path="leave-approvals" element={<ManagerDashboard />} />
+            <Route path="profile-requests" element={<ManagerProfileRequests />} />
             <Route path="reports/*" element={<Reports />} />
             <Route
               path="team"

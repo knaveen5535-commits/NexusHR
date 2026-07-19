@@ -53,11 +53,24 @@ public class EmployeeController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<EmployeeResponse> updateCurrentEmployee(
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> updateCurrentEmployee(
             @Valid @RequestBody com.nexushr.dto.UpdateProfileRequest request,
             HttpServletRequest httpRequest) {
         String authHeader = httpRequest.getHeader("Authorization");
         return ResponseEntity.ok(employeeService.updateProfile(authHeader, request));
+    }
+
+    @GetMapping("/profile-requests/me/latest")
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> getMyLatestProfileRequest(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        com.nexushr.dto.ProfileUpdateRequestDTO dto = employeeService.getMyLatestProfileRequest(authHeader);
+        return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/profile-requests/pending")
+    public ResponseEntity<List<com.nexushr.dto.ProfileUpdateRequestDTO>> getPendingProfileRequests(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.getPendingProfileRequests(authHeader));
     }
 
     @GetMapping("/{id}")
@@ -142,8 +155,8 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getDashboardStats());
     }
 
-    @PutMapping("/{id}/verify-profile")
-    public ResponseEntity<EmployeeResponse> verifyProfile(
+    @PutMapping("/profile-requests/{id}/verify")
+    public ResponseEntity<com.nexushr.dto.ProfileUpdateRequestDTO> verifyProfile(
             @PathVariable Long id,
             @Valid @RequestBody com.nexushr.dto.VerificationRequest request,
             HttpServletRequest httpRequest) {

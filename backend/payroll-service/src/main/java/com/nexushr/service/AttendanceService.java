@@ -37,15 +37,16 @@ public class AttendanceService {
             request.setEmployeeId(currentEmployee.getId());
         }
 
-        LocalDate today = request.getCheckInTime().toLocalDate();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
         
         // Prevent double check-in
         attendanceRepository.findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), today)
                 .ifPresent(a -> { throw new RuntimeException("Already checked in today"); });
 
-        LocalTime checkInLocalTime = request.getCheckInTime().toLocalTime();
-        if (checkInLocalTime.isBefore(LocalTime.of(5, 0)) || checkInLocalTime.isAfter(LocalTime.of(15, 0))) {
-            throw new RuntimeException("The check-in system is only active between 05:00 AM and 03:00 PM.");
+        LocalTime checkInLocalTime = now.toLocalTime();
+        if (checkInLocalTime.isBefore(LocalTime.of(5, 0)) || checkInLocalTime.isAfter(LocalTime.of(23, 59))) {
+            throw new RuntimeException("The check-in system is only active between 05:00 AM and Midnight.");
         }
 
         AttendanceStatus status = AttendanceStatus.PRESENT;
@@ -56,7 +57,7 @@ public class AttendanceService {
         Attendance attendance = Attendance.builder()
                 .employeeId(request.getEmployeeId())
                 .attendanceDate(today)
-                .checkInTime(request.getCheckInTime())
+                .checkInTime(now)
                 .status(status)
                 .source(AttendanceSource.valueOf(request.getSource().toUpperCase()))
                 .build();
@@ -70,7 +71,8 @@ public class AttendanceService {
             request.setEmployeeId(currentEmployee.getId());
         }
 
-        LocalDate today = request.getCheckOutTime().toLocalDate();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = now.toLocalDate();
         Attendance attendance = attendanceRepository.findByEmployeeIdAndAttendanceDate(request.getEmployeeId(), today)
                 .orElseThrow(() -> new RuntimeException("No check-in record found for today"));
 
@@ -78,7 +80,7 @@ public class AttendanceService {
             throw new RuntimeException("Already checked out today");
         }
 
-        attendance.setCheckOutTime(request.getCheckOutTime());
+        attendance.setCheckOutTime(now);
         attendance.setRemarks(request.getRemarks());
 
         // Calculate working hours

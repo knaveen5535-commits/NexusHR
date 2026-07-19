@@ -78,7 +78,33 @@ export interface EmployeeDocument {
   rejectionReason?: string;
 }
 
-export type ProfileVerificationStatus = 'PENDING_MANAGER_APPROVAL' | 'PROFILE_VERIFIED' | 'PROFILE_REJECTED';
+export type ProfileVerificationStatus = 'PENDING_MANAGER_APPROVAL' | 'PENDING_ADMIN_APPROVAL' | 'PROFILE_VERIFIED' | 'PROFILE_REJECTED';
+
+export interface EmployeeBasicResponse {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ProfileUpdateRequest {
+  id: number;
+  employee: EmployeeBasicResponse;
+  requestedPhone?: string;
+  requestedAddress?: string;
+  requestedDateOfBirth?: string;
+  requestedGender?: string;
+  requestedBloodGroup?: string;
+  requestedEmergencyContactName?: string;
+  requestedEmergencyContactNumber?: string;
+  requestedProfilePhotoUrl?: string;
+  status: ProfileVerificationStatus;
+  rejectionReason?: string;
+  reviewerComment?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: EmployeeBasicResponse;
+}
 
 export interface Employee {
   id: number;

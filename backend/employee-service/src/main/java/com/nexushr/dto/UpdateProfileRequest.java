@@ -9,7 +9,10 @@ public class UpdateProfileRequest {
     private String emergencyContactName;
     private String emergencyContactNumber;
     private String profilePhotoUrl;
+    
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd")
     private java.time.LocalDate dateOfBirth;
+    
     private String gender;
     private String bloodGroup;
 }

@@ -99,8 +99,19 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   return response.data;
 };
 
-export const verifyProfile = async (id: number, status: ProfileVerificationStatus, rejectionReason?: string): Promise<Employee> => {
-  const response = await api.put(`/employees/${id}/verify-profile`, { status, rejectionReason });
+export const getPendingProfileRequests = async (): Promise<import('../types').ProfileUpdateRequest[]> => {
+  const response = await api.get('/employees/profile-requests/pending');
+  return response.data;
+};
+
+export const getMyLatestProfileRequest = async (): Promise<import('../types').ProfileUpdateRequest | null> => {
+  const response = await api.get('/employees/profile-requests/me/latest');
+  if (response.status === 204) return null;
+  return response.data;
+};
+
+export const verifyProfile = async (requestId: number, status: ProfileVerificationStatus, rejectionReason?: string): Promise<import('../types').ProfileUpdateRequest> => {
+  const response = await api.put(`/employees/profile-requests/${requestId}/verify`, { status, rejectionReason });
   return response.data;
 };
 

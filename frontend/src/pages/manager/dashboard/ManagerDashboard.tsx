@@ -23,6 +23,8 @@ import { performanceService } from '../../../services/performance.service';
 import { Check, X as XIcon } from 'lucide-react';
 import type { Employee } from '../../../types';
 import { verifyProfile } from '../../../services/employee.service';
+import ProfileTab from '../../../components/profile/ProfileTab';
+import ProfileApprovalsList from '../../../components/profile/ProfileApprovalsList';
 
 function AttendanceTab() {
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,10 @@ function AttendanceTab() {
   useEffect(() => {
     fetchHistory();
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const istTime = new Date(utc + (3600000 * 5.5));
+      setCurrentTime(istTime);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -62,7 +67,7 @@ function AttendanceTab() {
       setLoading(true);
       await api.post('/attendance/check-in', {
         employeeId: user?.id || 1, // fallback for demo
-        checkInTime: new Date().toISOString(),
+        checkInTime: new Date().toISOString(), // This will be ignored by backend
         source: 'WEB'
       });
       toast.success('Successfully checked in!');
@@ -79,7 +84,7 @@ function AttendanceTab() {
       setLoading(true);
       await api.post('/attendance/check-out', {
         employeeId: user?.id || 1, // fallback for demo
-        checkOutTime: new Date().toISOString(),
+        checkOutTime: new Date().toISOString(), // This will be ignored by backend
         remarks: 'Standard checkout'
       });
       toast.success('Successfully checked out!');
@@ -773,6 +778,8 @@ export default function ManagerDashboard() {
       case 'ai': return <AIInsightsTab />;
       case 'my-attendance': return <AttendanceTab />;
       case 'team-attendance': return <div className="-m-8"><AttendanceList /></div>;
+      case 'profile': return <ProfileTab />;
+      case 'profile-requests': return <ProfileApprovalsList />;
       default: return <OverviewTab />;
     }
   };

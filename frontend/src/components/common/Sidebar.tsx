@@ -14,6 +14,7 @@ import { getNavForRole } from '../../data/navigation';
 import { useTheme } from '../../hooks/useTheme';
 import { getAllResignations } from '../../services/resignation.service';
 import { leaveService } from '../../services/leave.service';
+import { getPendingProfileRequests } from '../../services/employee.service';
 import type { NavItem } from '../../types';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -39,6 +40,7 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [pendingResignationsCount, setPendingResignationsCount] = useState(0);
   const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
+  const [pendingProfileRequestsCount, setPendingProfileRequestsCount] = useState(0);
   const { isDark } = useTheme();
 
   useEffect(() => {
@@ -55,11 +57,19 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
             setPendingLeavesCount(data.filter(r => r.status === 'PENDING').length);
           })
           .catch(() => {});
+          
+        getPendingProfileRequests()
+          .then(data => setPendingProfileRequestsCount(data.length))
+          .catch(() => {});
       } else if (user?.role === 'MANAGER') {
         leaveService.getTeamRequests()
           .then(data => {
             setPendingLeavesCount(data.filter(r => r.status === 'PENDING').length);
           })
+          .catch(() => {});
+          
+        getPendingProfileRequests()
+          .then(data => setPendingProfileRequestsCount(data.length))
           .catch(() => {});
       }
     };
@@ -67,7 +77,11 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
     fetchCounts();
 
     window.addEventListener('leave-requests-updated', fetchCounts);
-    return () => window.removeEventListener('leave-requests-updated', fetchCounts);
+    window.addEventListener('profile-requests-updated', fetchCounts);
+    return () => {
+      window.removeEventListener('leave-requests-updated', fetchCounts);
+      window.removeEventListener('profile-requests-updated', fetchCounts);
+    };
   }, [user]);
 
   const toggleMenu = (name: string) => {
@@ -187,7 +201,13 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
                 }`}>
                   {pendingLeavesCount}
                 </span>
-              ) : !collapsed && item.badge && item.name !== 'Leave Approvals' ? (
+              ) : !collapsed && item.name === 'Profile Approvals' && pendingProfileRequestsCount > 0 ? (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase shadow-sm ${
+                  isDark ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'bg-amber-100 text-amber-600 border border-amber-200'
+                }`}>
+                  {pendingProfileRequestsCount}
+                </span>
+              ) : !collapsed && item.badge && item.name !== 'Leave Approvals' && item.name !== 'Profile Approvals' ? (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase shadow-sm ${
                   item.badge === 'AI' 
                     ? isDark ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' : 'bg-purple-100 text-purple-600 border border-purple-200' 
