@@ -116,6 +116,11 @@ export const verifyProfile = async (requestId: number, status: ProfileVerificati
   return response.data;
 };
 
+export const getPendingDocuments = async (): Promise<any[]> => {
+  const response = await api.get('/employees/documents/pending');
+  return response.data;
+};
+
 export const uploadDocument = async (id: number, data: { documentType: string; documentName: string; documentUrl: string; }): Promise<Employee> => {
   const response = await api.post(`/employees/${id}/documents`, data);
   return response.data;

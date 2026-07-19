@@ -1,7 +1,6 @@
 package com.nexushr.entity;
 
 import com.nexushr.enums.EmployeeStatus;
-import com.nexushr.enums.ProfileVerificationStatus;
 import com.nexushr.enums.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -63,18 +62,6 @@ public class Employee {
 
     @Enumerated(EnumType.STRING)
     private EmployeeStatus status;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "profile_verification_status")
-    private ProfileVerificationStatus profileVerificationStatus;
-
-    @ManyToOne
-    @JoinColumn(name = "profile_verified_by")
-    private Employee profileVerifiedBy;
-
-    private java.time.LocalDateTime profileVerifiedDate;
-
-    private String profileRejectionReason;
 
     @ManyToOne
     @JoinColumn(name = "department_id")

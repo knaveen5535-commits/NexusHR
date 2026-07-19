@@ -18,4 +18,5 @@ public class EmployeeDocumentDto {
     private Long verifiedBy;
     private LocalDateTime verifiedDate;
     private String rejectionReason;
+    private EmployeeBasicResponse employee;
 }

@@ -130,10 +130,6 @@ export interface Employee {
   emergencyContactName?: string;
   emergencyContactNumber?: string;
   profilePhotoUrl?: string;
-  profileVerificationStatus?: ProfileVerificationStatus;
-  profileVerifiedBy?: number;
-  profileVerifiedDate?: string;
-  profileRejectionReason?: string;
   documents?: EmployeeDocument[];
 }
 

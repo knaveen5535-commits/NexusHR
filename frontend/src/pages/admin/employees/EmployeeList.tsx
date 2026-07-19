@@ -784,7 +784,7 @@ export default function EmployeeList() {
                         doc.status === 'DOCUMENT_REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                         'bg-amber-500/10 text-amber-500 border-amber-500/20'
                       }`}>
-                        {doc.status.replace(/_/g, ' ')}
+                        {doc.status === 'PENDING_HR_ADMIN_APPROVAL' ? 'PENDING HR, ADMIN APPROVAL' : doc.status.replace(/_/g, ' ')}
                       </span>
                       {doc.status === 'DOCUMENT_REJECTED' && doc.rejectionReason && (
                         <p className="text-[10px] text-red-400 mt-1 italic">Reason: {doc.rejectionReason}</p>

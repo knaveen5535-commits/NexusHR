@@ -23,6 +23,7 @@ export const adminNav: NavItem[] = [
   { name: 'System Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
   { name: 'Resignations', href: '/admin/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
   { name: 'Profile Approvals', href: '/admin/profile-requests', icon: 'UserCheck', permissions: ['manage:employees'] },
+  { name: 'Document Approvals', href: '/admin/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
 ];
 
 export const hrNav: NavItem[] = [
@@ -30,6 +31,7 @@ export const hrNav: NavItem[] = [
   { name: 'My Profile', href: '/hr/profile', icon: 'User', permissions: ['view:own-profile'] },
   { name: 'Employees', href: '/hr/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
+  { name: 'Document Approvals', href: '/hr/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
   { name: 'Attendance', href: '/hr/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },

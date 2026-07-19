@@ -13,6 +13,8 @@ import ManagerProfileRequests from './pages/manager/employees/ManagerProfileRequ
 import EmployeeDashboard from './pages/employee/dashboard/EmployeeDashboard';
 import ResignationManagement from './pages/admin/employees/ResignationManagement';
 import AdminProfileRequests from './pages/admin/employees/AdminProfileRequests';
+import AdminDocumentApprovals from './pages/admin/employees/AdminDocumentApprovals';
+import HrDocumentApprovals from './pages/hr/employees/HrDocumentApprovals';
 import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
@@ -74,6 +76,7 @@ export default function App() {
             <Route path="designations" element={<DesignationManagement />} />
             <Route path="resignations" element={<ResignationManagement />} />
             <Route path="profile-requests" element={<AdminProfileRequests />} />
+            <Route path="document-approvals" element={<AdminDocumentApprovals />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -108,6 +111,7 @@ export default function App() {
               }
             />
             <Route path="resignations" element={<ResignationManagement />} />
+            <Route path="document-approvals" element={<HrDocumentApprovals />} />
             <Route path="ai-reports" element={<AiAssistant />} />
           </Route>
 

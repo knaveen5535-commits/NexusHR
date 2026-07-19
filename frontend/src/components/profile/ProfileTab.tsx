@@ -59,6 +59,29 @@ export default function ProfileTab() {
   }, []);
 
   const handleUpdateProfile = async () => {
+    const phoneRegex = /^\d{10}$/;
+    
+    if (editForm.phone && !phoneRegex.test(editForm.phone)) {
+      toast.error('Phone number must be exactly 10 digits.');
+      return;
+    }
+
+    if (editForm.emergencyContactName || editForm.emergencyContactNumber) {
+      if (!editForm.emergencyContactName || editForm.emergencyContactName.trim() === '') {
+        toast.error('Emergency contact name is required if a phone number is provided.');
+        return;
+      }
+      if (!editForm.emergencyContactNumber || editForm.emergencyContactNumber.trim() === '') {
+        toast.error('Emergency contact phone is required if a name is provided.');
+        return;
+      }
+    }
+
+    if (editForm.emergencyContactNumber && !phoneRegex.test(editForm.emergencyContactNumber)) {
+      toast.error('Emergency contact phone must be exactly 10 digits.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload: any = { ...editForm };
@@ -315,22 +338,7 @@ export default function ProfileTab() {
               </span>
             </div>
 
-            {profile.profileVerificationStatus && (
-              <div className="mt-4 flex justify-center">
-                <span className={`px-2 py-1 text-[10px] font-bold rounded-full border ${
-                  profile.profileVerificationStatus === 'PROFILE_VERIFIED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                  (profile.profileVerificationStatus === 'PENDING_MANAGER_APPROVAL' || profile.profileVerificationStatus === 'PENDING_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                  'bg-red-500/10 text-red-400 border-red-500/20'
-                }`}>
-                  {profile.profileVerificationStatus === 'PROFILE_VERIFIED' ? '✓ Profile Verified' :
-                   (profile.profileVerificationStatus === 'PENDING_MANAGER_APPROVAL' || profile.profileVerificationStatus === 'PENDING_ADMIN_APPROVAL') ? '⌛ Pending Approval' :
-                   '✕ Update Rejected'}
-                </span>
-              </div>
-            )}
-            {profile.profileVerificationStatus === 'PROFILE_REJECTED' && profile.profileRejectionReason && (
-              <p className="mt-2 text-xs text-red-400 text-center">Reason: {profile.profileRejectionReason}</p>
-            )}
+
 
             <div className="mt-6 pt-6 border-t border-border/50 text-left">
               <div className="flex justify-between items-center mb-2">
@@ -453,7 +461,7 @@ export default function ProfileTab() {
                         <FileText size={20} className="text-blue-400 shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-foreground line-clamp-1">{doc.documentName}</p>
-                          <p className="text-xs text-muted-foreground">{doc.documentType} • {new Date(doc.uploadDate).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground">{doc.documentType}, {new Date(doc.uploadDate).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -474,7 +482,7 @@ export default function ProfileTab() {
                           (doc.status === 'PENDING_HR_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400' :
                           'bg-red-500/10 text-red-400'
                         }`}>
-                          {doc.status.replace(/_/g, ' ')}
+                          {doc.status === 'PENDING_HR_ADMIN_APPROVAL' ? 'PENDING HR, ADMIN APPROVAL' : doc.status.replace(/_/g, ' ')}
                         </span>
                         {doc.status === 'DOCUMENT_REJECTED' && doc.rejectionReason && (
                            <span className="text-[10px] text-red-400 italic max-w-[120px] truncate" title={doc.rejectionReason}>{doc.rejectionReason}</span>

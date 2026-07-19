@@ -87,11 +87,8 @@ public class EmployeeService {
         response.setEmergencyContactName(employee.getEmergencyContactName());
         response.setEmergencyContactNumber(employee.getEmergencyContactNumber());
         response.setProfilePhotoUrl(employee.getProfilePhotoUrl());
-        response.setProfileVerificationStatus(employee.getProfileVerificationStatus() != null ? employee.getProfileVerificationStatus().name() : null);
-        response.setProfileVerifiedBy(employee.getProfileVerifiedBy() != null ? employee.getProfileVerifiedBy().getId() : null);
-        response.setProfileVerifiedDate(employee.getProfileVerifiedDate());
-        response.setProfileRejectionReason(employee.getProfileRejectionReason());
         
+
         java.util.List<com.nexushr.dto.EmployeeDocumentDto> docs = new java.util.ArrayList<>();
         if (employee.getDocuments() != null) {
             for (com.nexushr.entity.EmployeeDocument doc : employee.getDocuments()) {
@@ -100,7 +97,8 @@ public class EmployeeService {
                     doc.getStatus() != null ? doc.getStatus().name() : null,
                     doc.getVerifiedBy() != null ? doc.getVerifiedBy().getId() : null,
                     doc.getVerifiedDate(),
-                    doc.getRejectionReason()
+                    doc.getRejectionReason(),
+                    null // employee info is not needed here
                 );
                 docs.add(dto);
             }
@@ -435,6 +433,42 @@ public class EmployeeService {
             dto.setReviewedBy(revBasic);
         }
         return dto;
+    }
+
+    public java.util.List<com.nexushr.dto.EmployeeDocumentDto> getPendingDocuments(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+        String token = authHeader.substring(7);
+        String role = jwtService.extractClaims(token).get("role", String.class);
+        
+        if (!"ADMIN".equals(role) && !"HR".equals(role)) {
+            throw new IllegalArgumentException("Only Admin or HR can view pending documents");
+        }
+
+        java.util.List<DocumentVerificationStatus> statuses;
+        if ("ADMIN".equals(role)) {
+            statuses = java.util.Arrays.asList(
+                DocumentVerificationStatus.PENDING_ADMIN_APPROVAL,
+                DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL
+            );
+        } else {
+            statuses = java.util.Arrays.asList(
+                DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL
+            );
+        }
+
+        java.util.List<EmployeeDocument> docs = employeeDocumentRepository.findByStatusIn(statuses);
+        return docs.stream().map(doc -> {
+            return new com.nexushr.dto.EmployeeDocumentDto(
+                doc.getId(), doc.getDocumentType(), doc.getDocumentName(), doc.getDocumentUrl(), doc.getUploadDate(),
+                doc.getStatus() != null ? doc.getStatus().name() : null,
+                doc.getVerifiedBy() != null ? doc.getVerifiedBy().getId() : null,
+                doc.getVerifiedDate(),
+                doc.getRejectionReason(),
+                new EmployeeBasicResponse(doc.getEmployee().getId(), doc.getEmployee().getFirstName(), doc.getEmployee().getLastName())
+            );
+        }).collect(java.util.stream.Collectors.toList());
     }
 
     public EmployeeResponse uploadDocument(Long employeeId, DocumentUploadRequest request, String authHeader) {

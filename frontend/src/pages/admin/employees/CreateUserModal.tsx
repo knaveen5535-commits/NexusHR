@@ -13,6 +13,18 @@ interface CreateUserModalProps {
   onSuccess: () => void;
 }
 
+const initialFormState = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  salary: '',
+  departmentId: '',
+  designationId: '',
+  managerId: '',
+  role: 'EMPLOYEE' as 'HR' | 'MANAGER' | 'EMPLOYEE',
+};
+
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,20 +32,11 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
   const [managers, setManagers] = useState<EmployeeBasic[]>([]);
   const { isDark } = useTheme();
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    salary: '',
-    departmentId: '',
-    designationId: '',
-    managerId: '',
-    role: 'EMPLOYEE' as 'HR' | 'MANAGER' | 'EMPLOYEE',
-  });
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     if (isOpen) {
+      setFormData(initialFormState);
       getDepartments().then(setDepartments).catch(console.error);
     }
   }, [isOpen]);
