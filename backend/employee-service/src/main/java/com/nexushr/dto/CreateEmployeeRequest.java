@@ -41,4 +41,6 @@ public class CreateEmployeeRequest {
 
     @NotNull(message = "Role required")
     private Role role;
+
+    private String employmentType;
 }

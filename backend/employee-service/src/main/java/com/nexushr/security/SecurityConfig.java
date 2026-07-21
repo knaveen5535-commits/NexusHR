@@ -44,6 +44,11 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.DELETE,
+                                "/api/employees/documents/**"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
                                 "/api/employees/**"
                         ).hasRole("ADMIN")
 

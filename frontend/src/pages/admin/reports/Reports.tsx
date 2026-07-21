@@ -14,6 +14,7 @@ import {
   UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle, Activity
 } from 'lucide-react';
 import api from '../../../services/api';
+import { performanceService } from '../../../services/performance.service';
 
 const REPORT_TYPES = [
   { id: 'emp', name: 'Employee Report', desc: 'Headcount, diversity, and turnover metrics.', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
@@ -163,6 +164,11 @@ export default function Reports() {
   const [employeesData, setEmployeesData] = useState<Employee[]>([]);
   const [payrollsData, setPayrollsData] = useState<any[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const [hasFetchedEmployees, setHasFetchedEmployees] = useState(false);
+  const [hasFetchedPayrolls, setHasFetchedPayrolls] = useState(false);
+  const [hasFetchedAttendance, setHasFetchedAttendance] = useState(false);
+  const [hasFetchedPerformance, setHasFetchedPerformance] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
@@ -188,19 +194,27 @@ export default function Reports() {
     if (filteredReportId === 'emp') {
       setIsLoadingData(true);
       const fetchFn = isManager ? getTeamMembers : getEmployees;
-      fetchFn().then(data => setEmployeesData(data))
+      fetchFn().then(data => { setEmployeesData(data); setHasFetchedEmployees(true); })
         .catch(err => console.error('Failed to fetch employees', err))
         .finally(() => setIsLoadingData(false));
     } else if (filteredReportId === 'pay' && !isManager) {
       setIsLoadingData(true);
-      api.get('/payrolls').then(res => setPayrollsData(res.data))
+      api.get('/payrolls').then(res => { setPayrollsData(res.data); setHasFetchedPayrolls(true); })
         .catch(err => console.error('Failed to fetch payrolls', err))
         .finally(() => setIsLoadingData(false));
     } else if (filteredReportId === 'att') {
       setIsLoadingData(true);
       const endpoint = isManager ? '/attendance/team' : '/attendance';
-      api.get(endpoint).then(res => setAttendanceData(res.data))
+      api.get(endpoint).then(res => { setAttendanceData(res.data); setHasFetchedAttendance(true); })
         .catch(err => console.error('Failed to fetch attendance', err))
+        .finally(() => setIsLoadingData(false));
+    } else if (filteredReportId === 'perf') {
+      setIsLoadingData(true);
+      const year = new Date().getFullYear();
+      const month = new Date().getMonth() + 1;
+      const fetchFn = isManager ? performanceService.getTeamPerformance : performanceService.getAllPerformance;
+      fetchFn(year, month).then(res => { setPerformanceData(res.data); setHasFetchedPerformance(true); })
+        .catch(err => console.error('Failed to fetch performance', err))
         .finally(() => setIsLoadingData(false));
     }
   }, [filteredReportId, isManager]);
@@ -213,7 +227,7 @@ export default function Reports() {
   const activeReport = filteredReportTypes.find(r => r.id === filteredReportId);
   let reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
 
-  if (activeReport?.id === 'emp' && employeesData.length > 0) {
+  if (activeReport?.id === 'emp' && hasFetchedEmployees) {
     const total = employeesData.length;
     const active = employeesData.filter(e => e.status?.toLowerCase() === 'active').length;
     
@@ -302,7 +316,7 @@ export default function Reports() {
     };
   }
 
-  if (activeReport?.id === 'pay' && payrollsData.length > 0) {
+  if (activeReport?.id === 'pay' && hasFetchedPayrolls) {
     const total = payrollsData.reduce((sum, p) => sum + (p.netSalary || 0), 0);
     const avg = total / payrollsData.length;
     const taxes = payrollsData.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
@@ -342,6 +356,12 @@ export default function Reports() {
       };
     });
 
+    const chartData = Object.keys(positionMap).map((pos, index) => ({
+      name: pos,
+      value: positionMap[pos].totalPayroll / 1000,
+      color: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6'][index % 6]
+    }));
+
     reportData = {
       ...reportData!,
       kpis: [
@@ -350,12 +370,13 @@ export default function Reports() {
         { label: 'Tax Deductions', value: '$' + (taxes / 1000).toFixed(1) + 'K', icon: FileText, color: 'text-red-500', bg: 'bg-red-500/10' },
         { label: 'Bonuses (MTD)', value: '$0K', icon: BadgeCheck, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
       ],
+      chart: { type: 'pie', title: 'Payroll by Role ($K)', data: chartData },
       tableHeaders: ['Role / Position', 'Total Payroll', 'Avg Salary', 'Bonuses', '# Employees'],
       tableRows: tableRows
     };
   }
 
-  if (activeReport?.id === 'att' && attendanceData.length > 0) {
+  if (activeReport?.id === 'att' && hasFetchedAttendance) {
     const present = attendanceData.filter(a => a.status === 'present').length;
     const absent = attendanceData.filter(a => a.status === 'absent').length;
     const late = attendanceData.filter(a => a.status === 'late').length;
@@ -419,7 +440,82 @@ export default function Reports() {
         { label: 'Late', value: String(late), icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10' },
         { label: 'Absent', value: String(absent), icon: UserMinus, color: 'text-red-500', bg: 'bg-red-500/10' },
       ],
+      chart: { type: 'pie', title: 'Attendance Distribution', data: [
+        { name: 'Present', value: present, color: '#22c55e' },
+        { name: 'On Leave', value: 0, color: '#f59e0b' },
+        { name: 'Late', value: late, color: '#f97316' },
+        { name: 'Absent', value: absent, color: '#ef4444' },
+      ]},
       tableHeaders: ['Department', 'Present', 'On Leave', 'Late', 'Absent', 'Attendance Rate'],
+      tableRows: tableRows
+    };
+  }
+
+  if (activeReport?.id === 'perf' && hasFetchedPerformance) {
+    const totalRecords = performanceData.length;
+    const avgScore = totalRecords > 0 ? (performanceData.reduce((sum, p) => sum + (p.finalScore || 0), 0) / totalRecords).toFixed(1) : '0';
+    const topCount = performanceData.filter(p => p.grade === 'Outstanding' || p.grade === 'Excellent').length;
+    const needsImpCount = performanceData.filter(p => p.grade === 'Needs Improvement').length;
+
+    const deptMap: Record<string, { totalScore: number, count: number, top: number, needsImp: number, employees: any[] }> = {};
+    performanceData.forEach(p => {
+      const dept = p.employee?.departmentName || 'Unknown';
+      if (!deptMap[dept]) deptMap[dept] = { totalScore: 0, count: 0, top: 0, needsImp: 0, employees: [] };
+      deptMap[dept].count++;
+      deptMap[dept].totalScore += (p.finalScore || 0);
+      if (p.grade === 'Outstanding' || p.grade === 'Excellent') deptMap[dept].top++;
+      if (p.grade === 'Needs Improvement') deptMap[dept].needsImp++;
+      deptMap[dept].employees.push(p);
+    });
+
+    const tableRows = Object.keys(deptMap).map(dept => {
+      const dTotal = deptMap[dept].count;
+      const dAvg = dTotal > 0 ? (deptMap[dept].totalScore / dTotal).toFixed(1) : '0';
+
+      const subRows = deptMap[dept].employees.map(e => {
+        return [
+          (e.employee?.firstName || '') + ' ' + (e.employee?.lastName || ''),
+          String(e.finalScore || 0),
+          '100%',
+          (e.grade === 'Outstanding' || e.grade === 'Excellent') ? 'Yes' : 'No',
+          (e.grade === 'Needs Improvement') ? 'Yes' : 'No'
+        ];
+      });
+
+      return {
+        cells: [
+          dept,
+          dAvg,
+          '100%',
+          String(deptMap[dept].top),
+          String(deptMap[dept].needsImp)
+        ],
+        subRows
+      };
+    });
+
+    const scoreRanges = {
+      '90-100': performanceData.filter(p => p.finalScore >= 90).length,
+      '80-89': performanceData.filter(p => p.finalScore >= 80 && p.finalScore < 90).length,
+      '70-79': performanceData.filter(p => p.finalScore >= 70 && p.finalScore < 80).length,
+      '60-69': performanceData.filter(p => p.finalScore >= 60 && p.finalScore < 70).length,
+      'Below 60': performanceData.filter(p => p.finalScore < 60).length,
+    };
+    const chartData = Object.keys(scoreRanges).map(range => ({
+      name: range,
+      value: scoreRanges[range as keyof typeof scoreRanges]
+    }));
+
+    reportData = {
+      ...reportData!,
+      kpis: [
+        { label: 'Avg Score', value: `${avgScore}/100`, icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { label: 'Completed Reviews', value: '100%', icon: BadgeCheck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { label: 'Top Performers', value: String(topCount), icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+        { label: 'Needs Improvement', value: String(needsImpCount), icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+      ],
+      chart: { type: 'bar', title: 'Performance Score Distribution', data: chartData },
+      tableHeaders: ['Department', 'Avg Score', 'Completed', 'Top Performers', 'Needs Improvement'],
       tableRows: tableRows
     };
   }

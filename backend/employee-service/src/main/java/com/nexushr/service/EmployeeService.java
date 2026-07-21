@@ -40,15 +40,27 @@ public class EmployeeService {
     private final DesignationRepository designationRepository;
     private final EmployeeDocumentRepository employeeDocumentRepository;
     private final NotificationService notificationService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     private final RestTemplate restTemplate;
     private final JwtService jwtService;
     private final com.nexushr.repository.ProfileUpdateRequestRepository profileUpdateRequestRepository;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE employee_documents DROP CONSTRAINT IF EXISTS employee_documents_verification_status_check");
+            jdbcTemplate.execute("UPDATE employee_documents SET verification_status = 'PENDING_HR_APPROVAL' WHERE verification_status = 'PENDING_HR_ADMIN_APPROVAL'");
+        } catch (Exception e) {
+            // Ignore if constraint does not exist
+        }
+    }
 
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
                            DesignationRepository designationRepository,
                            EmployeeDocumentRepository employeeDocumentRepository,
                            NotificationService notificationService,
+                           org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
                            RestTemplate restTemplate,
                            JwtService jwtService,
                            com.nexushr.repository.ProfileUpdateRequestRepository profileUpdateRequestRepository) {
@@ -57,6 +69,7 @@ public class EmployeeService {
         this.designationRepository = designationRepository;
         this.employeeDocumentRepository = employeeDocumentRepository;
         this.notificationService = notificationService;
+        this.jdbcTemplate = jdbcTemplate;
         this.restTemplate = restTemplate;
         this.jwtService = jwtService;
         this.profileUpdateRequestRepository = profileUpdateRequestRepository;
@@ -95,9 +108,14 @@ public class EmployeeService {
                 com.nexushr.dto.EmployeeDocumentDto dto = new com.nexushr.dto.EmployeeDocumentDto(
                     doc.getId(), doc.getDocumentType(), doc.getDocumentName(), doc.getDocumentUrl(), doc.getUploadDate(),
                     doc.getStatus() != null ? doc.getStatus().name() : null,
-                    doc.getVerifiedBy() != null ? doc.getVerifiedBy().getId() : null,
-                    doc.getVerifiedDate(),
-                    doc.getRejectionReason(),
+                    doc.getHrReviewedBy() != null ? doc.getHrReviewedBy().getId() : null,
+                    doc.getHrReviewedAt(),
+                    doc.getHrDecision(),
+                    doc.getHrComments(),
+                    doc.getAdminReviewedBy() != null ? doc.getAdminReviewedBy().getId() : null,
+                    doc.getAdminReviewedAt(),
+                    doc.getAdminDecision(),
+                    doc.getAdminComments(),
                     null // employee info is not needed here
                 );
                 docs.add(dto);
@@ -144,6 +162,7 @@ public class EmployeeService {
         employee.setPhone(request.getPhone());
         employee.setSalary(request.getSalary());
         employee.setJoiningDate(java.time.LocalDate.now());
+        employee.setEmploymentType(request.getEmploymentType());
 
         employee.setEmployeeCode("TEMP_" + java.util.UUID.randomUUID().toString().substring(0, 8));
         employee.setStatus(EmployeeStatus.ACTIVE);
@@ -450,11 +469,11 @@ public class EmployeeService {
         if ("ADMIN".equals(role)) {
             statuses = java.util.Arrays.asList(
                 DocumentVerificationStatus.PENDING_ADMIN_APPROVAL,
-                DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL
+                DocumentVerificationStatus.PENDING_HR_APPROVAL
             );
         } else {
             statuses = java.util.Arrays.asList(
-                DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL
+                DocumentVerificationStatus.PENDING_HR_APPROVAL
             );
         }
 
@@ -463,14 +482,20 @@ public class EmployeeService {
             return new com.nexushr.dto.EmployeeDocumentDto(
                 doc.getId(), doc.getDocumentType(), doc.getDocumentName(), doc.getDocumentUrl(), doc.getUploadDate(),
                 doc.getStatus() != null ? doc.getStatus().name() : null,
-                doc.getVerifiedBy() != null ? doc.getVerifiedBy().getId() : null,
-                doc.getVerifiedDate(),
-                doc.getRejectionReason(),
+                doc.getHrReviewedBy() != null ? doc.getHrReviewedBy().getId() : null,
+                doc.getHrReviewedAt(),
+                doc.getHrDecision(),
+                doc.getHrComments(),
+                doc.getAdminReviewedBy() != null ? doc.getAdminReviewedBy().getId() : null,
+                doc.getAdminReviewedAt(),
+                doc.getAdminDecision(),
+                doc.getAdminComments(),
                 new EmployeeBasicResponse(doc.getEmployee().getId(), doc.getEmployee().getFirstName(), doc.getEmployee().getLastName())
             );
         }).collect(java.util.stream.Collectors.toList());
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public EmployeeResponse uploadDocument(Long employeeId, DocumentUploadRequest request, String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Invalid authorization header");
@@ -490,15 +515,15 @@ public class EmployeeService {
         doc.setDocumentName(request.getDocumentName());
         doc.setDocumentUrl(request.getDocumentUrl());
         doc.setUploadDate(LocalDateTime.now());
-        if (caller.getRole() == com.nexushr.enums.Role.MANAGER || caller.getRole() == com.nexushr.enums.Role.HR) {
+        if (caller.getRole() != null && (caller.getRole() == com.nexushr.enums.Role.MANAGER || caller.getRole() == com.nexushr.enums.Role.HR)) {
             doc.setStatus(DocumentVerificationStatus.PENDING_ADMIN_APPROVAL);
         } else {
-            doc.setStatus(DocumentVerificationStatus.PENDING_HR_ADMIN_APPROVAL);
+            doc.setStatus(DocumentVerificationStatus.PENDING_HR_APPROVAL);
         }
         
         employeeDocumentRepository.save(doc);
 
-        if (caller.getRole() != com.nexushr.enums.Role.MANAGER && caller.getRole() != com.nexushr.enums.Role.HR) {
+        if (caller.getRole() == null || (caller.getRole() != com.nexushr.enums.Role.MANAGER && caller.getRole() != com.nexushr.enums.Role.HR)) {
             List<Employee> hrs = employeeRepository.findByRole(com.nexushr.enums.Role.HR);
             for (Employee hr : hrs) {
                 notificationService.createNotification(
@@ -519,13 +544,10 @@ public class EmployeeService {
         }
         String token = authHeader.substring(7);
         String role = jwtService.extractClaims(token).get("role", String.class);
-        Employee hr = null;
+        String reviewerEmail = jwtService.extractClaims(token).getSubject();
+        
+        Employee reviewer = employeeRepository.findByEmail(reviewerEmail).orElse(null);
 
-        if (!"ADMIN".equals(role)) {
-            String hrEmail = jwtService.extractClaims(token).getSubject();
-            hr = employeeRepository.findByEmail(hrEmail)
-                    .orElseThrow(() -> new EmployeeNotFoundException("HR not found"));
-        }
         if (!"HR".equals(role) && !"ADMIN".equals(role)) {
             throw new IllegalArgumentException("Only HR or Admin can verify documents.");
         }
@@ -533,34 +555,61 @@ public class EmployeeService {
         EmployeeDocument doc = employeeDocumentRepository.findById(documentId)
                 .orElseThrow(() -> new IllegalArgumentException("Document not found"));
 
-        if ("HR".equals(role) && doc.getStatus() == DocumentVerificationStatus.PENDING_ADMIN_APPROVAL) {
-            throw new IllegalArgumentException("Only Admin can verify this document.");
+        if ("HR".equals(role) && doc.getStatus() != DocumentVerificationStatus.PENDING_HR_APPROVAL) {
+            throw new IllegalArgumentException("Document is not pending HR approval or has already been reviewed.");
         }
 
-        DocumentVerificationStatus status;
-        try {
-            status = DocumentVerificationStatus.valueOf(request.getStatus());
-        } catch (IllegalArgumentException e) {
+        String inputStatus = request.getStatus();
+        if (!"DOCUMENT_VERIFIED".equals(inputStatus) && !"DOCUMENT_REJECTED".equals(inputStatus)) {
             throw new IllegalArgumentException("Invalid status. Expected DOCUMENT_VERIFIED or DOCUMENT_REJECTED.");
         }
 
-        doc.setStatus(status);
-        doc.setVerifiedBy("ADMIN".equals(role) ? null : hr);
-        doc.setVerifiedDate(LocalDateTime.now());
-        doc.setRejectionReason(request.getRejectionReason());
-        
-        employeeDocumentRepository.save(doc);
+        String comments = request.getComments() != null ? request.getComments() : request.getRejectionReason();
 
-        notificationService.createNotification(
-            doc.getEmployee().getId(),
-            status == DocumentVerificationStatus.DOCUMENT_VERIFIED ? "success" : "error",
-            "Document " + (status == DocumentVerificationStatus.DOCUMENT_VERIFIED ? "Verified" : "Rejected"),
-            "Your document '" + doc.getDocumentName() + "' has been " + (status == DocumentVerificationStatus.DOCUMENT_VERIFIED ? "verified." : "rejected. Reason: " + request.getRejectionReason())
-        );
+        if ("HR".equals(role)) {
+            doc.setHrDecision(inputStatus);
+            doc.setHrComments(comments);
+            doc.setHrReviewedBy(reviewer);
+            doc.setHrReviewedAt(LocalDateTime.now());
+            
+            // Move to admin approval step regardless of HR's verify/reject decision
+            doc.setStatus(DocumentVerificationStatus.PENDING_ADMIN_APPROVAL);
+            
+            employeeDocumentRepository.save(doc);
+
+            // Notify Admins
+            List<Employee> admins = employeeRepository.findByRole(com.nexushr.enums.Role.ADMIN);
+            for (Employee admin : admins) {
+                notificationService.createNotification(
+                    admin.getId(),
+                    "info",
+                    "Document Pending Final Verification",
+                    "HR has " + (inputStatus.equals("DOCUMENT_VERIFIED") ? "approved" : "rejected") + " a document for " + doc.getEmployee().getFirstName() + ". Pending your final review."
+                );
+            }
+        } else if ("ADMIN".equals(role)) {
+            doc.setAdminDecision(inputStatus);
+            doc.setAdminComments(comments);
+            doc.setAdminReviewedBy(reviewer);
+            doc.setAdminReviewedAt(LocalDateTime.now());
+            
+            // Admin decision is final
+            doc.setStatus(DocumentVerificationStatus.valueOf(inputStatus));
+            
+            employeeDocumentRepository.save(doc);
+
+            notificationService.createNotification(
+                doc.getEmployee().getId(),
+                inputStatus.equals("DOCUMENT_VERIFIED") ? "success" : "error",
+                "Document " + (inputStatus.equals("DOCUMENT_VERIFIED") ? "Verified" : "Rejected"),
+                "Your document '" + doc.getDocumentName() + "' has been " + (inputStatus.equals("DOCUMENT_VERIFIED") ? "verified" : "rejected") + " by Admin." + (comments != null && !comments.isBlank() ? " Reason: " + comments : "")
+            );
+        }
 
         return mapToResponse(doc.getEmployee());
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public EmployeeResponse deleteDocument(Long documentId, String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Invalid authorization header");
@@ -576,10 +625,8 @@ public class EmployeeService {
         if (!doc.getEmployee().getId().equals(caller.getId())) {
             throw new IllegalArgumentException("You can only delete your own documents.");
         }
-        if (doc.getStatus() == DocumentVerificationStatus.DOCUMENT_VERIFIED) {
-            throw new IllegalArgumentException("Verified documents cannot be deleted.");
-        }
 
+        caller.getDocuments().remove(doc);
         employeeDocumentRepository.delete(doc);
         return mapToResponse(caller);
     }
@@ -618,6 +665,7 @@ public class EmployeeService {
         employee.setEmail(request.getEmail());
         employee.setPhone(request.getPhone());
         employee.setSalary(request.getSalary());
+        employee.setEmploymentType(request.getEmploymentType());
         employee.setDepartment(department);
         employee.setDesignation(designation);
 

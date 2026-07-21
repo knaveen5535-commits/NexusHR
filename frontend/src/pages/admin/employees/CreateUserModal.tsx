@@ -23,6 +23,7 @@ const initialFormState = {
   designationId: '',
   managerId: '',
   role: 'EMPLOYEE' as 'HR' | 'MANAGER' | 'EMPLOYEE',
+  employmentType: '',
 };
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
@@ -207,6 +208,21 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                     required type="number" name="salary" value={formData.salary} onChange={handleChange}
                     className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                   />
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Employment Type</label>
+                  <select
+                    name="employmentType" value={formData.employmentType} onChange={handleChange}
+                    className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Full-Time">Full-Time</option>
+                    <option value="Part-Time">Part-Time</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Internship">Internship</option>
+                    <option value="Freelance">Freelance</option>
+                  </select>
                 </div>
 
                 <div className="col-span-2 sm:col-span-1">

@@ -42,10 +42,18 @@ public class EmployeeDocument {
     private DocumentVerificationStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "verified_by")
-    private Employee verifiedBy;
+    @JoinColumn(name = "hr_reviewed_by")
+    private Employee hrReviewedBy;
 
-    private LocalDateTime verifiedDate;
+    private LocalDateTime hrReviewedAt;
+    private String hrDecision;
+    private String hrComments;
 
-    private String rejectionReason;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_reviewed_by")
+    private Employee adminReviewedBy;
+
+    private LocalDateTime adminReviewedAt;
+    private String adminDecision;
+    private String adminComments;
 }

@@ -47,6 +47,21 @@ export default function DocumentApprovalsList() {
     }
   };
 
+  const handleViewDocument = (e: React.MouseEvent, docUrl: string) => {
+    e.preventDefault();
+    if (docUrl && docUrl.startsWith('data:')) {
+      fetch(docUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        });
+    } else if (docUrl) {
+      window.open(docUrl, '_blank');
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-muted-foreground">Loading document requests...</div>;
 
   if (requests.length === 0) {
@@ -114,9 +129,8 @@ export default function DocumentApprovalsList() {
                 <h4 className="font-bold text-lg">{selectedRequest.documentName}</h4>
                 <p className="text-sm text-muted-foreground">{selectedRequest.documentType}</p>
                 <a 
-                  href={selectedRequest.documentUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  href="#" 
+                  onClick={(e) => handleViewDocument(e, selectedRequest.documentUrl)}
                   className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Eye size={16} />

@@ -28,6 +28,7 @@ export default function ProfileTab() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docForm, setDocForm] = useState({ type: '', name: '', url: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [deleteDocModal, setDeleteDocModal] = useState<number | null>(null);
 
   const fetchProfile = async () => {
     try {
@@ -102,6 +103,21 @@ export default function ProfileTab() {
     }
   };
 
+  const handleViewDocument = (e: React.MouseEvent, docUrl: string) => {
+    e.preventDefault();
+    if (docUrl && docUrl.startsWith('data:')) {
+      fetch(docUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        });
+    } else if (docUrl) {
+      window.open(docUrl, '_blank');
+    }
+  };
+
   const handleUploadDocument = async () => {
     if (!docForm.type || !docForm.name || !docForm.url) {
       toast.error('Please fill all document fields');
@@ -125,10 +141,12 @@ export default function ProfileTab() {
     }
   };
 
-  const handleDeleteDocument = async (docId: number) => {
+  const handleDeleteDocument = async () => {
+    if (!deleteDocModal) return;
     try {
-      await api.delete(`/employees/documents/${docId}`);
+      await api.delete(`/employees/documents/${deleteDocModal}`);
       toast.success('Document deleted successfully');
+      setDeleteDocModal(null);
       fetchProfile();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete document');
@@ -254,49 +272,49 @@ export default function ProfileTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {profile.phone !== latestRequest.requestedPhone && (
+                {(profile.phone || '') !== (latestRequest.requestedPhone || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Phone</td>
                     <td className="p-3 text-muted-foreground">{profile.phone || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedPhone || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.address !== latestRequest.requestedAddress && (
+                {(profile.address || '') !== (latestRequest.requestedAddress || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Address</td>
                     <td className="p-3 text-muted-foreground">{profile.address || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedAddress || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.dateOfBirth !== latestRequest.requestedDateOfBirth && (
+                {(profile.dateOfBirth || '') !== (latestRequest.requestedDateOfBirth || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Date of Birth</td>
                     <td className="p-3 text-muted-foreground">{profile.dateOfBirth || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedDateOfBirth || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.gender !== latestRequest.requestedGender && (
+                {(profile.gender || '') !== (latestRequest.requestedGender || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Gender</td>
                     <td className="p-3 text-muted-foreground">{profile.gender || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedGender || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.bloodGroup !== latestRequest.requestedBloodGroup && (
+                {(profile.bloodGroup || '') !== (latestRequest.requestedBloodGroup || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Blood Group</td>
                     <td className="p-3 text-muted-foreground">{profile.bloodGroup || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedBloodGroup || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.emergencyContactName !== latestRequest.requestedEmergencyContactName && (
+                {(profile.emergencyContactName || '') !== (latestRequest.requestedEmergencyContactName || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Emergency Contact Name</td>
                     <td className="p-3 text-muted-foreground">{profile.emergencyContactName || 'N/A'}</td>
                     <td className="p-3 text-blue-400">{latestRequest.requestedEmergencyContactName || 'N/A'}</td>
                   </tr>
                 )}
-                {profile.emergencyContactNumber !== latestRequest.requestedEmergencyContactNumber && (
+                {(profile.emergencyContactNumber || '') !== (latestRequest.requestedEmergencyContactNumber || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Emergency Contact Phone</td>
                     <td className="p-3 text-muted-foreground">{profile.emergencyContactNumber || 'N/A'}</td>
@@ -465,28 +483,31 @@ export default function ProfileTab() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                        <button onClick={(e) => handleViewDocument(e, doc.documentUrl)} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                           <Eye size={14} />
-                        </a>
-                        {doc.status !== 'DOCUMENT_VERIFIED' && (
-                          <button onClick={() => handleDeleteDocument(doc.id)} className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        </button>
+                        <button onClick={() => setDeleteDocModal(doc.id)} className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
                     {doc.status && (
                       <div className="mt-1 flex items-center justify-between">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
                           doc.status === 'DOCUMENT_VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' :
-                          (doc.status === 'PENDING_HR_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400' :
+                          (doc.status === 'PENDING_HR_APPROVAL' || doc.status === 'PENDING_ADMIN_APPROVAL') ? 'bg-amber-500/10 text-amber-400' :
                           'bg-red-500/10 text-red-400'
                         }`}>
-                          {doc.status === 'PENDING_HR_ADMIN_APPROVAL' ? 'PENDING HR, ADMIN APPROVAL' : doc.status.replace(/_/g, ' ')}
+                          {doc.status === 'PENDING_HR_APPROVAL' ? 'PENDING HR APPROVAL' : doc.status === 'PENDING_ADMIN_APPROVAL' ? 'PENDING ADMIN APPROVAL' : doc.status.replace(/_/g, ' ')}
                         </span>
-                        {doc.status === 'DOCUMENT_REJECTED' && doc.rejectionReason && (
-                           <span className="text-[10px] text-red-400 italic max-w-[120px] truncate" title={doc.rejectionReason}>{doc.rejectionReason}</span>
-                        )}
+                        <div className="flex flex-col items-end">
+                          {doc.hrComments && (
+                             <span className="text-[10px] text-zinc-400 italic max-w-[120px] truncate" title={doc.hrComments}>HR: {doc.hrComments}</span>
+                          )}
+                          {doc.adminComments && (
+                             <span className="text-[10px] text-zinc-400 italic max-w-[120px] truncate" title={doc.adminComments}>Admin: {doc.adminComments}</span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -577,6 +598,25 @@ export default function ProfileTab() {
                     {submitting ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteDocModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteDocModal(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                <Trash2 size={24} />
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-2">Delete Document?</h2>
+              <p className="text-sm text-muted-foreground mb-6">Are you sure you want to delete this document? This action cannot be undone.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteDocModal(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                <button onClick={handleDeleteDocument} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-colors">Delete</button>
               </div>
             </motion.div>
           </div>

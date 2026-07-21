@@ -85,7 +85,7 @@ export default function HrPerformanceReports() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {report.topPerformers.filter(p => p.employee.role === 'EMPLOYEE').slice(0, 5).map(p => (
+                      {report.topPerformers.filter(p => p.employee.role === 'EMPLOYEE' && p.finalScore > 0).slice(0, 5).map(p => (
                         <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-4 font-medium">{p.employee.firstName} {p.employee.lastName}</td>
                           <td className="py-4 text-muted-foreground">{p.employee.departmentName || '--'}</td>
@@ -93,7 +93,7 @@ export default function HrPerformanceReports() {
                           <td className="py-4 text-center"><span className="px-2 py-1 text-[10px] font-bold uppercase rounded-md bg-emerald-500/10 text-emerald-500">{p.grade}</span></td>
                         </tr>
                       ))}
-                      {report.topPerformers.filter(p => p.employee.role === 'EMPLOYEE').length === 0 && <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No records generated yet.</td></tr>}
+                      {report.topPerformers.filter(p => p.employee.role === 'EMPLOYEE' && p.finalScore > 0).length === 0 && <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No top performers found with a score greater than 0.</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -112,7 +112,7 @@ export default function HrPerformanceReports() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {report.topPerformers.filter(p => p.employee.role === 'MANAGER').slice(0, 5).map(p => (
+                      {report.topPerformers.filter(p => p.employee.role === 'MANAGER' && p.finalScore > 0).slice(0, 5).map(p => (
                         <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-4 font-medium">{p.employee.firstName} {p.employee.lastName}</td>
                           <td className="py-4 text-muted-foreground">{p.employee.departmentName || '--'}</td>
@@ -120,7 +120,7 @@ export default function HrPerformanceReports() {
                           <td className="py-4 text-center"><span className="px-2 py-1 text-[10px] font-bold uppercase rounded-md bg-emerald-500/10 text-emerald-500">{p.grade}</span></td>
                         </tr>
                       ))}
-                      {report.topPerformers.filter(p => p.employee.role === 'MANAGER').length === 0 && <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No records generated yet.</td></tr>}
+                      {report.topPerformers.filter(p => p.employee.role === 'MANAGER' && p.finalScore > 0).length === 0 && <tr><td colSpan={4} className="py-8 text-center text-muted-foreground">No top performing managers found with a score greater than 0.</td></tr>}
                     </tbody>
                   </table>
                 </div>

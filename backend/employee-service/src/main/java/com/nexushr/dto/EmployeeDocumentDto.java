@@ -15,8 +15,13 @@ public class EmployeeDocumentDto {
     private String documentUrl;
     private LocalDateTime uploadDate;
     private String status;
-    private Long verifiedBy;
-    private LocalDateTime verifiedDate;
-    private String rejectionReason;
+    private Long hrReviewedBy;
+    private LocalDateTime hrReviewedAt;
+    private String hrDecision;
+    private String hrComments;
+    private Long adminReviewedBy;
+    private LocalDateTime adminReviewedAt;
+    private String adminDecision;
+    private String adminComments;
     private EmployeeBasicResponse employee;
 }
