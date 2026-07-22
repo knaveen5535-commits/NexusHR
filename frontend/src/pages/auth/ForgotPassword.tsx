@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import { useTheme } from '../../hooks/useTheme';
 import { motion } from 'framer-motion';
-import { Mail, ArrowRight, Sparkles, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Mail, Sparkles, Moon, Sun, ArrowLeft } from 'lucide-react';
 import { forgotPassword } from '../../services/auth.service';
 import { toast } from 'sonner';
 

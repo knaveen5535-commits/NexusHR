@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTheme } from '../../hooks/useTheme';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff, Sparkles, Moon, Sun, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, Sparkles, Moon, Sun, CheckCircle2, AlertCircle } from 'lucide-react';
 import { resetPassword, validateResetToken } from '../../services/auth.service';
 import { toast } from 'sonner';
 

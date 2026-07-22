@@ -20,9 +20,7 @@ import { toast } from 'sonner';
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 import { performanceService } from '../../../services/performance.service';
 
-import { Check, X as XIcon } from 'lucide-react';
 import type { Employee } from '../../../types';
-import { verifyProfile } from '../../../services/employee.service';
 import ProfileTab from '../../../components/profile/ProfileTab';
 import ProfileApprovalsList from '../../../components/profile/ProfileApprovalsList';
 

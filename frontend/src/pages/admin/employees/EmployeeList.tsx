@@ -21,11 +21,10 @@ import { useLocation } from 'react-router';
 
 const MOCK_EMPLOYEES: Employee[] = []; // fallback removed
 
-type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role';
+type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role' | 'employmentType';
 type SortDir = 'asc' | 'desc';
 
 const STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] as const;
-const ROLES = ['EMPLOYEE', 'HR', 'MANAGER', 'ADMIN'] as const;
 const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Freelance'] as const;
 
 const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
