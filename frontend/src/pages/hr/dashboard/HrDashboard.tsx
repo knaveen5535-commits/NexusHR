@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { useState, useEffect } from 'react';
-import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
+import { getDashboardStats, getPendingProfileRequests, getPendingDocuments, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
   FileText, Upload, Shield, Heart, UserMinus
@@ -24,6 +24,7 @@ import ProfileTab from '../../../components/profile/ProfileTab';
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [loadingCharts, setLoadingCharts] = useState(true);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('...');
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -65,7 +66,25 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
         setLoadingCharts(false);
       }
     };
+    
+    const fetchPendingApprovals = async () => {
+      try {
+        const [leaves, profiles, docs] = await Promise.all([
+          leaveService.getAllRequests().catch(() => []),
+          getPendingProfileRequests().catch(() => []),
+          getPendingDocuments().catch(() => [])
+        ]);
+        const pendingLeaves = leaves.filter((r: any) => r.status === 'PENDING').length;
+        const pendingProfiles = profiles.length;
+        const pendingDocs = docs.length;
+        setPendingApprovalsCount(pendingLeaves + pendingProfiles + pendingDocs);
+      } catch (err) {
+        setPendingApprovalsCount(0);
+      }
+    };
+
     fetchAttendance();
+    fetchPendingApprovals();
   }, []);
 
   const kpiData: KpiCardType[] = [
@@ -88,7 +107,7 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Pending Approvals</p>
-            <p className="text-xl font-bold text-foreground">45</p>
+            <p className="text-xl font-bold text-foreground">{pendingApprovalsCount}</p>
           </div>
         </div>
         <div className="p-4 rounded-xl border border-border bg-card/50 backdrop-blur-xl flex items-center gap-4">

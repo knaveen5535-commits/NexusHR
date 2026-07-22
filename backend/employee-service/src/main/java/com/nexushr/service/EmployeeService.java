@@ -161,8 +161,18 @@ public class EmployeeService {
         employee.setEmail(request.getEmail());
         employee.setPhone(request.getPhone());
         employee.setSalary(request.getSalary());
-        employee.setJoiningDate(java.time.LocalDate.now());
-        employee.setEmploymentType(request.getEmploymentType());
+        
+        if (request.getJoiningDate() != null) {
+            employee.setJoiningDate(request.getJoiningDate());
+        } else {
+            employee.setJoiningDate(java.time.LocalDate.now());
+        }
+
+        if (request.getEmploymentType() != null && !request.getEmploymentType().trim().isEmpty()) {
+            employee.setEmploymentType(request.getEmploymentType());
+        } else {
+            employee.setEmploymentType("Full-Time");
+        }
 
         employee.setEmployeeCode("TEMP_" + java.util.UUID.randomUUID().toString().substring(0, 8));
         employee.setStatus(EmployeeStatus.ACTIVE);
@@ -279,7 +289,6 @@ public class EmployeeService {
         updateRequest.setRequestedAddress(request.getAddress());
         updateRequest.setRequestedEmergencyContactName(request.getEmergencyContactName());
         updateRequest.setRequestedEmergencyContactNumber(request.getEmergencyContactNumber());
-        updateRequest.setRequestedProfilePhotoUrl(request.getProfilePhotoUrl());
         updateRequest.setRequestedDateOfBirth(request.getDateOfBirth());
         updateRequest.setRequestedGender(request.getGender());
         updateRequest.setRequestedBloodGroup(request.getBloodGroup());
@@ -359,7 +368,6 @@ public class EmployeeService {
             if (updateRequest.getRequestedAddress() != null) employee.setAddress(updateRequest.getRequestedAddress());
             if (updateRequest.getRequestedEmergencyContactName() != null) employee.setEmergencyContactName(updateRequest.getRequestedEmergencyContactName());
             if (updateRequest.getRequestedEmergencyContactNumber() != null) employee.setEmergencyContactNumber(updateRequest.getRequestedEmergencyContactNumber());
-            if (updateRequest.getRequestedProfilePhotoUrl() != null) employee.setProfilePhotoUrl(updateRequest.getRequestedProfilePhotoUrl());
             if (updateRequest.getRequestedDateOfBirth() != null) employee.setDateOfBirth(updateRequest.getRequestedDateOfBirth());
             if (updateRequest.getRequestedGender() != null) employee.setGender(updateRequest.getRequestedGender());
             if (updateRequest.getRequestedBloodGroup() != null) employee.setBloodGroup(updateRequest.getRequestedBloodGroup());

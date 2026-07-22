@@ -212,6 +212,7 @@ export default function EmployeeList() {
         salary: e.salary || 0,
         managerId: e.managerId || undefined,
         managerName: e.managerName || undefined,
+        profilePhotoUrl: e.profilePhotoUrl || '',
         documents: e.documents || [],
       }));
       setEmployees(mapped as any);
@@ -568,10 +569,14 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-                          <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                            {emp.firstName?.[0] || ''}{emp.lastName?.[0] || ''}
-                          </span>
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border overflow-hidden ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+                          {emp.profilePhotoUrl ? (
+                            <img src={emp.profilePhotoUrl} alt="DP" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                              {emp.firstName?.[0] || ''}{emp.lastName?.[0] || ''}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>

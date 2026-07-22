@@ -4,10 +4,11 @@ import { toast } from 'sonner';
 import { 
   Mail, Phone, MapPin, User,
   FileText, Edit2, Eye, Trash2,
-  Check, X
+  Check, X, Lock, KeyRound
 } from 'lucide-react';
 import { getMyLatestProfileRequest } from '../../services/employee.service';
 import type { Employee, ProfileUpdateRequest } from '../../types';
+import { changePassword } from '../../services/auth.service';
 import api from '../../services/api';
 
 export default function ProfileTab() {
@@ -20,7 +21,6 @@ export default function ProfileTab() {
     address: '',
     emergencyContactName: '',
     emergencyContactNumber: '',
-    profilePhotoUrl: '',
     dateOfBirth: '',
     gender: '',
     bloodGroup: ''
@@ -29,6 +29,10 @@ export default function ProfileTab() {
   const [docForm, setDocForm] = useState({ type: '', name: '', url: '' });
   const [submitting, setSubmitting] = useState(false);
   const [deleteDocModal, setDeleteDocModal] = useState<number | null>(null);
+
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -40,7 +44,6 @@ export default function ProfileTab() {
         address: res.data.address || '',
         emergencyContactName: res.data.emergencyContactName || '',
         emergencyContactNumber: res.data.emergencyContactNumber || '',
-        profilePhotoUrl: res.data.profilePhotoUrl || '',
         dateOfBirth: res.data.dateOfBirth || '',
         gender: res.data.gender || '',
         bloodGroup: res.data.bloodGroup || ''
@@ -100,6 +103,36 @@ export default function ProfileTab() {
       toast.error('Failed to update profile');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+      toast.error('Old and New password are required');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      await changePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword
+      });
+      toast.success('Password changed successfully');
+      setPasswordModalOpen(false);
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -330,14 +363,6 @@ export default function ProfileTab() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
           <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl text-center relative overflow-hidden">
-            <div className="absolute top-4 right-4">
-              {!isPending && (
-                <button onClick={() => setEditModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm font-medium">
-                  <Edit2 size={14} />
-                  Edit Profile
-                </button>
-              )}
-            </div>
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
               {profile.profilePhotoUrl ? (
                 <img src={profile.profilePhotoUrl} alt="Profile" className="w-full h-full object-cover" />
@@ -356,8 +381,6 @@ export default function ProfileTab() {
               </span>
             </div>
 
-
-
             <div className="mt-6 pt-6 border-t border-border/50 text-left">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-semibold text-muted-foreground">Profile Completion</span>
@@ -370,6 +393,19 @@ export default function ProfileTab() {
                 <p className="text-[10px] text-amber-500 mt-2">Complete your profile to unlock all features.</p>
               )}
             </div>
+
+            {!isPending && (
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <button onClick={() => setEditModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm font-bold">
+                  <Edit2 size={16} />
+                  Edit Profile
+                </button>
+                <button onClick={() => setPasswordModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-sm text-sm font-bold">
+                  <Lock size={16} />
+                  Change Password
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
@@ -587,11 +623,6 @@ export default function ProfileTab() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-border/50">
-                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Profile Photo URL</label>
-                  <input type="url" value={editForm.profilePhotoUrl} onChange={(e) => setEditForm({...editForm, profilePhotoUrl: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/photo.jpg" />
-                </div>
-
                 <div className="flex gap-3 pt-4 mt-2">
                   <button onClick={() => setEditModalOpen(false)} disabled={submitting} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
                   <button onClick={handleUpdateProfile} disabled={submitting} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-colors disabled:opacity-50">
@@ -617,6 +648,43 @@ export default function ProfileTab() {
               <div className="flex gap-3">
                 <button onClick={() => setDeleteDocModal(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
                 <button onClick={handleDeleteDocument} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-colors">Delete</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {passwordModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !changingPassword && setPasswordModalOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                <KeyRound size={24} />
+              </div>
+              <h2 className="text-xl font-bold text-foreground mb-1">Change Password</h2>
+              <p className="text-xs text-muted-foreground mb-6">Enter your old password and choose a new one.</p>
+              
+              <div className="space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Current Password</label>
+                  <input type="password" autoComplete="new-password" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({...passwordForm, oldPassword: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">New Password</label>
+                  <input type="password" autoComplete="new-password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Confirm New Password</label>
+                  <input type="password" autoComplete="new-password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setPasswordModalOpen(false)} disabled={changingPassword} className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
+                <button onClick={handleUpdatePassword} disabled={changingPassword} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-colors disabled:opacity-50">
+                  {changingPassword ? 'Updating...' : 'Update'}
+                </button>
               </div>
             </motion.div>
           </div>

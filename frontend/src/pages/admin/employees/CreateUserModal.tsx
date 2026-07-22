@@ -23,7 +23,8 @@ const initialFormState = {
   designationId: '',
   managerId: '',
   role: 'EMPLOYEE' as 'HR' | 'MANAGER' | 'EMPLOYEE',
-  employmentType: '',
+  employmentType: 'Full-Time',
+  joiningDate: new Date().toISOString().split('T')[0],
 };
 
 export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
@@ -211,18 +212,25 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
                 </div>
 
                 <div className="col-span-2 sm:col-span-1">
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Employment Type</label>
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Employment Type *</label>
                   <select
-                    name="employmentType" value={formData.employmentType} onChange={handleChange}
+                    required name="employmentType" value={formData.employmentType} onChange={handleChange}
                     className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                   >
-                    <option value="">Select Type</option>
                     <option value="Full-Time">Full-Time</option>
                     <option value="Part-Time">Part-Time</option>
                     <option value="Contract">Contract</option>
                     <option value="Internship">Internship</option>
                     <option value="Freelance">Freelance</option>
                   </select>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Joining Date *</label>
+                  <input
+                    required type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange}
+                    className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                  />
                 </div>
 
                 <div className="col-span-2 sm:col-span-1">

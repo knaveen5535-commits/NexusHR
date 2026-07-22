@@ -29,6 +29,8 @@ export interface CreateEmployeeRequest {
   designationId: number;
   managerId?: number;
   role: 'HR' | 'MANAGER' | 'EMPLOYEE' | 'ADMIN' | 'NONE';
+  employmentType?: string;
+  joiningDate?: string;
 }
 
 export interface TransferEmployeeRequest {

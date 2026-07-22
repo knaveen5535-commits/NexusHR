@@ -565,9 +565,9 @@ export default function Login() {
                       </label>
                     </div>
                     <div className="text-sm">
-                      <a href="#" className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
+                      <button type="button" onClick={() => navigate('/forgot-password')} className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
                         Forgot password?
-                      </a>
+                      </button>
                     </div>
                   </div>
 

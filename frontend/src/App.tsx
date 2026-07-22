@@ -5,6 +5,8 @@ import { Toaster } from 'sonner';
 import { useThemeStore } from './hooks/useTheme';
 import Login from './pages/auth/Login';
 import RegisterAdmin from './pages/auth/RegisterAdmin';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
 import HrDashboard from './pages/hr/dashboard/HrDashboard';
@@ -52,6 +54,8 @@ export default function App() {
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login/:role?" element={<Login />} />
           <Route path="/register" element={<RegisterAdmin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Admin Routes */}
           <Route
