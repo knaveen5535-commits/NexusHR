@@ -37,28 +37,33 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = authHeader.substring(7);
+        try {
+            String token = authHeader.substring(7);
+            Claims claims = jwtService.extractClaims(token);
 
-        Claims claims = jwtService.extractClaims(token);
+            String email = claims.getSubject();
+            String role = claims.get("role", String.class);
 
-        String email = claims.getSubject();
-        String role = claims.get("role", String.class);
-
-        if (role != null) {
-            role = role.toUpperCase();
-            if (role.startsWith("ROLE_")) {
-                role = role.substring(5);
+            if (role != null) {
+                role = role.toUpperCase();
+                if (role.startsWith("ROLE_")) {
+                    role = role.substring(5);
+                }
             }
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (Exception e) {
+            // Ignore invalid token, just continue the filter chain.
+            // If the endpoint is permitAll(), it will succeed.
+            // If the endpoint requires authentication, Spring Security will block it later.
         }
-
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }

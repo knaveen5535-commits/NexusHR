@@ -173,6 +173,12 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.uploadDocument(id, request, authHeader));
     }
 
+    @GetMapping("/documents/pending")
+    public ResponseEntity<List<com.nexushr.dto.EmployeeDocumentDto>> getPendingDocuments(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        return ResponseEntity.ok(employeeService.getPendingDocuments(authHeader));
+    }
+
     @PutMapping("/documents/{docId}/verify")
     public ResponseEntity<EmployeeResponse> verifyDocument(
             @PathVariable Long docId,

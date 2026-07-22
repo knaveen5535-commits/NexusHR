@@ -82,9 +82,11 @@ export default function AdminPerformanceDashboard() {
     
     if (top.length === 0 && lowest.length > 0) {
       const maxScore = lowest[0].finalScore;
-      const topTies = lowest.filter(r => r.finalScore === maxScore);
-      top.push(...topTies);
-      lowest = lowest.filter(r => r.finalScore !== maxScore);
+      if (maxScore > 0) {
+        const topTies = lowest.filter(r => r.finalScore === maxScore);
+        top.push(...topTies);
+        lowest = lowest.filter(r => r.finalScore !== maxScore);
+      }
     }
     
     // Sort both descending

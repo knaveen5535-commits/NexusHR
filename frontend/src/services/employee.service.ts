@@ -29,6 +29,8 @@ export interface CreateEmployeeRequest {
   designationId: number;
   managerId?: number;
   role: 'HR' | 'MANAGER' | 'EMPLOYEE' | 'ADMIN' | 'NONE';
+  employmentType?: string;
+  joiningDate?: string;
 }
 
 export interface TransferEmployeeRequest {
@@ -113,6 +115,11 @@ export const getMyLatestProfileRequest = async (): Promise<import('../types').Pr
 
 export const verifyProfile = async (requestId: number, status: ProfileVerificationStatus, rejectionReason?: string): Promise<import('../types').ProfileUpdateRequest> => {
   const response = await api.put(`/employees/profile-requests/${requestId}/verify`, { status, rejectionReason });
+  return response.data;
+};
+
+export const getPendingDocuments = async (): Promise<any[]> => {
+  const response = await api.get('/employees/documents/pending');
   return response.data;
 };
 

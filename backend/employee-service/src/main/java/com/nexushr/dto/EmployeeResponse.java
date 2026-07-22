@@ -57,13 +57,5 @@ public class EmployeeResponse {
 
     private String profilePhotoUrl;
 
-    private String profileVerificationStatus;
-
-    private Long profileVerifiedBy;
-
-    private java.time.LocalDateTime profileVerifiedDate;
-
-    private String profileRejectionReason;
-
     private java.util.List<EmployeeDocumentDto> documents;
 }

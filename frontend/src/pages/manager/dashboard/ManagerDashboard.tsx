@@ -20,9 +20,7 @@ import { toast } from 'sonner';
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 import { performanceService } from '../../../services/performance.service';
 
-import { Check, X as XIcon } from 'lucide-react';
 import type { Employee } from '../../../types';
-import { verifyProfile } from '../../../services/employee.service';
 import ProfileTab from '../../../components/profile/ProfileTab';
 import ProfileApprovalsList from '../../../components/profile/ProfileApprovalsList';
 
@@ -263,6 +261,7 @@ function OverviewTab() {
             name: `${p.employee.firstName} ${p.employee.lastName[0]}.`,
             value: Number(p.finalScore || 0)
           }))
+          .filter((p: any) => p.value > 0)
           .sort((a: any, b: any) => b.value - a.value)
           .slice(0, 5); // Top 5
         setTeamPerformanceData(topPerformers);
@@ -336,9 +335,6 @@ function OverviewTab() {
 function TeamTab() {
   const [members, setMembers] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [verifyModal, setVerifyModal] = useState<{isOpen: boolean, empId: number | null, action: 'PROFILE_VERIFIED' | 'PROFILE_REJECTED'}>({isOpen: false, empId: null, action: 'PROFILE_VERIFIED'});
-  const [reason, setReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   const fetchMembers = async () => {
     try {
@@ -355,26 +351,6 @@ function TeamTab() {
   useEffect(() => {
     fetchMembers();
   }, []);
-
-  const handleVerify = async () => {
-    if (!verifyModal.empId) return;
-    if (verifyModal.action === 'PROFILE_REJECTED' && !reason.trim()) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-    try {
-      setSubmitting(true);
-      await verifyProfile(verifyModal.empId, verifyModal.action, reason);
-      toast.success(`Profile ${verifyModal.action === 'PROFILE_VERIFIED' ? 'approved' : 'rejected'} successfully`);
-      setVerifyModal({isOpen: false, empId: null, action: 'PROFILE_VERIFIED'});
-      setReason('');
-      fetchMembers();
-    } catch (error) {
-      toast.error('Verification failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Loading team members...</div>;
 
@@ -410,23 +386,6 @@ function TeamTab() {
             <h4 className="text-base font-semibold text-foreground">{member.firstName} {member.lastName}</h4>
             <p className="text-sm text-muted-foreground mb-4">{member.designation}</p>
             
-            <div className="mt-auto pt-4 border-t border-border/50">
-              {member.profileVerificationStatus === 'PENDING_MANAGER_APPROVAL' ? (
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs text-amber-400 font-medium">Pending Profile Approval</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => setVerifyModal({isOpen: true, empId: member.id, action: 'PROFILE_REJECTED'})} className="flex-1 py-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-xs font-bold border border-red-500/20 flex items-center justify-center gap-1"><XIcon size={14}/> Reject</button>
-                    <button onClick={() => setVerifyModal({isOpen: true, empId: member.id, action: 'PROFILE_VERIFIED'})} className="flex-1 py-1.5 rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-xs font-bold shadow shadow-emerald-500/20 flex items-center justify-center gap-1"><Check size={14}/> Approve</button>
-                  </div>
-                </div>
-              ) : member.profileVerificationStatus === 'PROFILE_VERIFIED' ? (
-                <span className="text-xs text-emerald-500 font-medium flex items-center gap-1"><Check size={14}/> Profile Verified</span>
-              ) : member.profileVerificationStatus === 'PROFILE_REJECTED' ? (
-                <span className="text-xs text-red-500 font-medium flex items-center gap-1"><XIcon size={14}/> Update Rejected</span>
-              ) : (
-                <span className="text-xs text-muted-foreground font-medium">No pending approvals</span>
-              )}
-            </div>
           </div>
         ))}
         {members.length === 0 && (
@@ -435,38 +394,6 @@ function TeamTab() {
           </div>
         )}
       </div>
-
-      <AnimatePresence>
-        {verifyModal.isOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !submitting && setVerifyModal({isOpen: false, empId: null, action: 'PROFILE_VERIFIED'})} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6">
-              <h2 className={`text-xl font-bold mb-4 ${verifyModal.action === 'PROFILE_VERIFIED' ? 'text-emerald-500' : 'text-red-500'}`}>
-                {verifyModal.action === 'PROFILE_VERIFIED' ? 'Approve Profile Update' : 'Reject Profile Update'}
-              </h2>
-              <div className="space-y-4">
-                {verifyModal.action === 'PROFILE_REJECTED' && (
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Reason for Rejection *</label>
-                    <textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Please explain why the profile update was rejected..." />
-                  </div>
-                )}
-                {verifyModal.action === 'PROFILE_VERIFIED' && (
-                  <p className="text-sm text-muted-foreground">Are you sure you want to approve this profile update? The employee's new details will be officially recorded.</p>
-                )}
-                <div className="flex gap-3 pt-4">
-                  <button onClick={() => setVerifyModal({isOpen: false, empId: null, action: 'PROFILE_VERIFIED'})} disabled={submitting} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
-                  <button onClick={handleVerify} disabled={submitting} className={`flex-1 py-2 rounded-xl text-sm font-bold text-white shadow-lg transition-colors disabled:opacity-50 ${
-                    verifyModal.action === 'PROFILE_VERIFIED' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
-                  }`}>
-                    {submitting ? 'Saving...' : 'Confirm'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

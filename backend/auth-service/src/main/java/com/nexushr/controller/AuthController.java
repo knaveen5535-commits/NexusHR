@@ -43,7 +43,7 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<String>
     resetPassword(
-            @RequestBody
+            @Valid @RequestBody
             ResetPasswordRequest request) {
 
         return ResponseEntity.ok(
@@ -54,7 +54,7 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<String>
     forgotPassword(
-            @RequestBody
+            @Valid @RequestBody
             ForgotPasswordRequest request) {
 
         return ResponseEntity.ok(
@@ -86,6 +86,13 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 authService.updateUserRole(request)
+        );
+    }
+
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<Boolean> validateResetToken(@RequestParam("token") String token) {
+        return ResponseEntity.ok(
+                authService.validateResetToken(token)
         );
     }
 }

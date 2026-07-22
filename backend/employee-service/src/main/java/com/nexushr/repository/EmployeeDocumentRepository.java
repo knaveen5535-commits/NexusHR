@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface EmployeeDocumentRepository extends JpaRepository<EmployeeDocument, Long> {
     List<EmployeeDocument> findByEmployeeId(Long employeeId);
+    List<EmployeeDocument> findByStatusIn(List<com.nexushr.enums.DocumentVerificationStatus> statuses);
 }

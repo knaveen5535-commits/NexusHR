@@ -39,4 +39,6 @@ public class UpdateEmployeeRequest {
 
     @NotNull(message = "Role is required")
     private Role role;
+
+    private String employmentType;
 }

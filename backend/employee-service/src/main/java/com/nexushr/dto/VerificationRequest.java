@@ -6,4 +6,5 @@ import lombok.Data;
 public class VerificationRequest {
     private String status;
     private String rejectionReason;
+    private String comments;
 }

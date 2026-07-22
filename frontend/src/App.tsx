@@ -5,6 +5,8 @@ import { Toaster } from 'sonner';
 import { useThemeStore } from './hooks/useTheme';
 import Login from './pages/auth/Login';
 import RegisterAdmin from './pages/auth/RegisterAdmin';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
 import EmployeeList from './pages/admin/employees/EmployeeList';
 import HrDashboard from './pages/hr/dashboard/HrDashboard';
@@ -13,6 +15,8 @@ import ManagerProfileRequests from './pages/manager/employees/ManagerProfileRequ
 import EmployeeDashboard from './pages/employee/dashboard/EmployeeDashboard';
 import ResignationManagement from './pages/admin/employees/ResignationManagement';
 import AdminProfileRequests from './pages/admin/employees/AdminProfileRequests';
+import AdminDocumentApprovals from './pages/admin/employees/AdminDocumentApprovals';
+import HrDocumentApprovals from './pages/hr/employees/HrDocumentApprovals';
 import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
@@ -50,6 +54,8 @@ export default function App() {
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login/:role?" element={<Login />} />
           <Route path="/register" element={<RegisterAdmin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Admin Routes */}
           <Route
@@ -74,6 +80,7 @@ export default function App() {
             <Route path="designations" element={<DesignationManagement />} />
             <Route path="resignations" element={<ResignationManagement />} />
             <Route path="profile-requests" element={<AdminProfileRequests />} />
+            <Route path="document-approvals" element={<AdminDocumentApprovals />} />
             <Route path="roles" element={<RoleManagement />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
@@ -108,6 +115,7 @@ export default function App() {
               }
             />
             <Route path="resignations" element={<ResignationManagement />} />
+            <Route path="document-approvals" element={<HrDocumentApprovals />} />
             <Route path="ai-reports" element={<AiAssistant />} />
           </Route>
 

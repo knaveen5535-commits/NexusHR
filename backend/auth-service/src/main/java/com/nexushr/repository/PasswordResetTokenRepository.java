@@ -1,8 +1,10 @@
 package com.nexushr.repository;
 
 import com.nexushr.entity.PasswordResetToken;
+import com.nexushr.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PasswordResetTokenRepository
@@ -10,5 +12,5 @@ public interface PasswordResetTokenRepository
 
     Optional<PasswordResetToken> findByToken(String token);
 
-    Optional<PasswordResetToken> findByEmail(String email);
+    List<PasswordResetToken> findByUserAndUsedFalse(User user);
 }

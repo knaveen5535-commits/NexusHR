@@ -226,8 +226,12 @@ export default function Sidebar({ mobileOpen, onClose, collapsed }: SidebarProps
           <div className={`flex items-center gap-3 p-3 rounded-xl mb-3 border transition-colors ${
             isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-slate-50 border-slate-200/60'
           }`}>
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 border border-blue-500/30 flex items-center justify-center shadow-md">
-              <span className="text-sm font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 border border-blue-500/30 flex items-center justify-center shadow-md overflow-hidden shrink-0">
+              {(user as any).profilePhotoUrl ? (
+                <img src={(user as any).profilePhotoUrl} alt="DP" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white">{user.username.charAt(0).toUpperCase()}</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{user.username}</p>
