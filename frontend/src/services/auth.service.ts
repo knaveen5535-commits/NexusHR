@@ -26,3 +26,23 @@ export const register = async (userData: RegisterData) => {
   const response = await api.post('/auth/register', userData);
   return response.data;
 };
+
+export const forgotPassword = async (email: string) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async (data: Record<string, string>) => {
+  const response = await api.post('/auth/reset-password', data);
+  return response.data;
+};
+
+export const changePassword = async (data: Record<string, string>) => {
+  const response = await api.post('/auth/change-password', data);
+  return response.data;
+};
+
+export const validateResetToken = async (token: string): Promise<boolean> => {
+  const response = await api.get('/auth/validate-reset-token', { params: { token } });
+  return response.data;
+};

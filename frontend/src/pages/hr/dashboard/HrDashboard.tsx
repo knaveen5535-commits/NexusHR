@@ -1,43 +1,92 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { useState, useEffect } from 'react';
-import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
+import { getDashboardStats, getPendingProfileRequests, getPendingDocuments, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
-  FileText, Download, Upload, Target, Shield, Heart, UserMinus
+  FileText, Upload, Shield, Heart, UserMinus
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
+import AttendanceList from '../../attendance/AttendanceList';
+import PayrollList from '../../payroll/PayrollList';
+import { leaveService } from '../../../services/leave.service';
+import type { LeaveRequest } from '../../../types/leave';
+import { toast } from 'sonner';
+import api from '../../../services/api';
+import ProfileTab from '../../../components/profile/ProfileTab';
 
-
-
-const lifecycleData = [
-  { name: 'Applied', value: 45 },
-  { name: 'Screened', value: 32 },
-  { name: 'Interviewed', value: 21 },
-  { name: 'Offered', value: 12 },
-  { name: 'Hired', value: 8 },
-];
-
-const weeklyAttendance = [
-  { name: 'Mon', value: 180, value2: 12 },
-  { name: 'Tue', value: 175, value2: 17 },
-  { name: 'Wed', value: 185, value2: 7 },
-  { name: 'Thu', value: 172, value2: 20 },
-  { name: 'Fri', value: 168, value2: 24 },
-];
-
-const pendingLeaves = [
-  { employee: 'Alice Wang', type: 'Annual', days: 3, from: 'Jun 15', to: 'Jun 17', status: 'pending' },
-  { employee: 'Bob Kim', type: 'Sick', days: 2, from: 'Jun 12', to: 'Jun 13', status: 'pending' },
-  { employee: 'Carol Davis', type: 'Personal', days: 1, from: 'Jun 18', to: 'Jun 18', status: 'pending' },
-];
-
+// Mock data removed in favor of real data fetching
 
 
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [loadingCharts, setLoadingCharts] = useState(true);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('...');
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setLoadingCharts(true);
+        // Fetch last 7 days of attendance
+        const today = new Date();
+        const start = new Date();
+        start.setDate(today.getDate() - 7);
+        const res = await api.get(`/attendance?startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`);
+        
+        // Aggregate by day of week
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const grouped = [
+          { name: 'Mon', value: 0, value2: 0 },
+          { name: 'Tue', value: 0, value2: 0 },
+          { name: 'Wed', value: 0, value2: 0 },
+          { name: 'Thu', value: 0, value2: 0 },
+          { name: 'Fri', value: 0, value2: 0 },
+        ];
+
+        res.data.forEach((record: any) => {
+          const date = new Date(record.attendanceDate);
+          const dayName = days[date.getDay()];
+          const group = grouped.find(g => g.name === dayName);
+          if (group) {
+            if (record.status === 'present' || record.status === 'late') {
+              group.value += 1;
+            } else if (record.status === 'absent') {
+              group.value2 += 1;
+            }
+          }
+        });
+        
+        setAttendanceData(grouped);
+      } catch (err) {
+        console.error('Failed to fetch attendance for charts', err);
+      } finally {
+        setLoadingCharts(false);
+      }
+    };
+    
+    const fetchPendingApprovals = async () => {
+      try {
+        const [leaves, profiles, docs] = await Promise.all([
+          leaveService.getAllRequests().catch(() => []),
+          getPendingProfileRequests().catch(() => []),
+          getPendingDocuments().catch(() => [])
+        ]);
+        const pendingLeaves = leaves.filter((r: any) => r.status === 'PENDING').length;
+        const pendingProfiles = profiles.length;
+        const pendingDocs = docs.length;
+        setPendingApprovalsCount(pendingLeaves + pendingProfiles + pendingDocs);
+      } catch (err) {
+        setPendingApprovalsCount(0);
+      }
+    };
+
+    fetchAttendance();
+    fetchPendingApprovals();
+  }, []);
+
   const kpiData: KpiCardType[] = [
     { label: 'Total Employees', value: isLoading ? '...' : stats?.totalEmployees.toString() || '0', change: '', trend: 'up', icon: 'Users', color: 'blue-500' },
     { label: 'Active Employees', value: isLoading ? '...' : stats?.activeEmployees.toString() || '0', change: '', trend: 'up', icon: 'UserCheck', color: 'emerald-500' },
@@ -58,7 +107,7 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Pending Approvals</p>
-            <p className="text-xl font-bold text-foreground">45</p>
+            <p className="text-xl font-bold text-foreground">{pendingApprovalsCount}</p>
           </div>
         </div>
         <div className="p-4 rounded-xl border border-border bg-card/50 backdrop-blur-xl flex items-center gap-4">
@@ -73,19 +122,34 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AreaChartCard
-          title="Weekly Attendance Overview"
-          data={weeklyAttendance}
-          areas={[
-            { key: 'value', color: '#10b981', label: 'Present' },
-            { key: 'value2', color: '#ef4444', label: 'Absent' },
-          ]}
-        />
-        <BarChartCard
-          title="Recruitment Funnel"
-          data={lifecycleData}
-          bars={[{ key: 'value', color: '#3b82f6', label: 'Candidates' }]}
-        />
+        <div className="relative">
+          {loadingCharts && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+            </div>
+          )}
+          <AreaChartCard
+            title="Weekly Attendance Overview"
+            data={attendanceData}
+            areas={[
+              { key: 'value', color: '#10b981', label: 'Present' },
+              { key: 'value2', color: '#ef4444', label: 'Absent' },
+            ]}
+          />
+        </div>
+        <div className="relative h-full">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Recruitment Funnel</span>
+            <span className="text-xs font-bold px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full border border-blue-500/20 uppercase tracking-wider">Coming Soon</span>
+          </div>
+          <div className="opacity-30 pointer-events-none">
+            <BarChartCard
+              title="Recruitment Funnel"
+              data={[]}
+              bars={[{ key: 'value', color: '#3b82f6', label: 'Candidates' }]}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -153,88 +217,106 @@ function LifecycleTab() {
   );
 }
 
-function AttendanceTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-lg font-semibold text-foreground mb-6">Company Attendance Monitor</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="pb-3 font-medium">Department</th>
-                  <th className="pb-3 font-medium">Total</th>
-                  <th className="pb-3 font-medium">Present</th>
-                  <th className="pb-3 font-medium">On Leave</th>
-                  <th className="pb-3 font-medium">Late</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-foreground">
-                {[
-                  { dept: 'Engineering', total: 145, present: 138, leave: 5, late: 12 },
-                  { dept: 'Sales', total: 85, present: 80, leave: 3, late: 2 },
-                  { dept: 'Marketing', total: 42, present: 39, leave: 2, late: 1 },
-                  { dept: 'HR & Admin', total: 18, present: 17, leave: 1, late: 0 },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-muted transition-colors">
-                    <td className="py-3 font-medium text-foreground">{row.dept}</td>
-                    <td className="py-3">{row.total}</td>
-                    <td className="py-3 text-emerald-400">{row.present}</td>
-                    <td className="py-3 text-amber-400">{row.leave}</td>
-                    <td className="py-3 text-red-400">{row.late}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        <div className="lg:col-span-1 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Overtime & Late Logs</h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
-              <h4 className="text-sm font-medium text-red-400 mb-1">Late Logins (Today)</h4>
-              <p className="text-2xl font-bold text-foreground">15</p>
-              <p className="text-xs text-muted-foreground mt-1">Requires manager review</p>
-            </div>
-            <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-              <h4 className="text-sm font-medium text-blue-400 mb-1">Overtime Hours (Week)</h4>
-              <p className="text-2xl font-bold text-foreground">124 hrs</p>
-              <p className="text-xs text-muted-foreground mt-1">Across 4 departments</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function LeaveTab() {
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentModal, setCommentModal] = useState<{isOpen: boolean, reqId: number | null, action: 'approve' | 'reject'}>({isOpen: false, reqId: null, action: 'approve'});
+  const [comments, setComments] = useState('');
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const data = await leaveService.getAllRequests();
+      setRequests(data);
+    } catch (err: any) {
+      toast.error('Failed to load company leave requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleAction = async () => {
+    if (!commentModal.reqId) return;
+    try {
+      if (commentModal.action === 'approve') {
+        await leaveService.approveLeaveRequest(commentModal.reqId, { comments });
+        toast.success('Leave request approved (HR Override)');
+      } else {
+        await leaveService.rejectLeaveRequest(commentModal.reqId, { comments });
+        toast.success('Leave request rejected (HR Override)');
+      }
+      setCommentModal({isOpen: false, reqId: null, action: 'approve'});
+      setComments('');
+      fetchRequests();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Action failed');
+    }
+  };
+
+  const pendingCount = requests.filter(r => r.status === 'PENDING').length;
+
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading company leave data...</div>;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
       <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-foreground">Company Leave Applications</h3>
-          <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">18 Pending</span>
+          <span className="text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">{pendingCount} Pending</span>
         </div>
-        <div className="space-y-3">
-          {pendingLeaves.map((leave, i) => (
-            <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-muted border border-border">
-              <div>
-                <p className="text-sm font-medium text-foreground">{leave.employee}</p>
-                <p className="text-xs text-muted-foreground">{leave.type} Leave - {leave.days} days ({leave.from} - {leave.to})</p>
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+          {requests.length > 0 ? requests.map((leave) => (
+            <div key={leave.id} className="flex flex-col p-4 rounded-lg bg-muted border border-border gap-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-bold text-foreground">{leave.employeeName}</p>
+                    <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full border ${
+                      leave.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      leave.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                      leave.status === 'CANCELLED' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' :
+                      'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    }`}>
+                      {leave.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{leave.leaveType.name} Leave - {leave.numberOfDays} {leave.numberOfDays === 1 ? 'day' : 'days'}</p>
+                  <p className="text-xs text-muted-foreground">{leave.startDate} to {leave.endDate}</p>
+                  <p className="text-xs text-foreground mt-2 line-clamp-2">{leave.reason}</p>
+                </div>
+                {leave.status === 'PENDING' && (
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => setCommentModal({isOpen: true, reqId: leave.id, action: 'approve'})} className="px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Override Approve</button>
+                    <button onClick={() => setCommentModal({isOpen: true, reqId: leave.id, action: 'reject'})} className="px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">Override Reject</button>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button className="px-3 py-1.5 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">Approve</button>
-                <button className="px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">Reject</button>
-              </div>
+              {leave.approvalHistories && leave.approvalHistories.length > 0 && (
+                <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground space-y-1">
+                  {leave.approvalHistories.map((h, idx) => (
+                    <div key={idx}>
+                      <span className="font-semibold">{h.actionByUserName}</span> ({h.actionByRole}): {h.action}
+                      {h.comments && <span className="italic"> - "{h.comments}"</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+          )) : (
+            <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+              No leave requests found in the system.
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl h-fit">
         <h3 className="text-lg font-semibold text-foreground mb-6">Leave Balance Overview</h3>
         <p className="text-sm text-muted-foreground mb-6">Monitor organizational liability and upcoming mass leaves.</p>
         <div className="space-y-4">
@@ -250,81 +332,38 @@ function LeaveTab() {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {commentModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCommentModal({isOpen: false, reqId: null, action: 'approve'})} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-sm flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6">
+              <h2 className={`text-xl font-bold mb-4 ${commentModal.action === 'approve' ? 'text-emerald-500' : 'text-red-500'}`}>
+                {commentModal.action === 'approve' ? 'Approve' : 'Reject'} Leave Request (HR Override)
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Comments (Optional)</label>
+                  <textarea rows={3} value={comments} onChange={(e) => setComments(e.target.value)} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a comment..." />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button onClick={() => setCommentModal({isOpen: false, reqId: null, action: 'approve'})} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                  <button onClick={handleAction} className={`flex-1 py-2 rounded-xl text-sm font-bold text-white shadow-lg transition-colors ${
+                    commentModal.action === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                  }`}>
+                    Confirm Override
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function PayrollTab() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl text-center">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Monthly Payroll</h3>
-            <p className="text-3xl font-bold text-foreground mb-4">$452,500</p>
-            <button className="w-full py-2 rounded-lg bg-teal-600 text-foreground text-sm font-medium hover:bg-teal-500 transition-colors">
-              Process Payroll (Jul)
-            </button>
-          </div>
-          <div className="p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
-            <h3 className="text-sm font-medium text-foreground mb-4">Salary Structure config</h3>
-            <div className="space-y-3">
-              {['Basic Salary', 'Allowances', 'Deductions', 'Bonus'].map((item) => (
-                <button key={item} className="w-full flex justify-between items-center p-3 rounded-lg bg-muted hover:bg-secondary/50 transition-colors text-sm text-foreground">
-                  {item}
-                  <Target size={16} className="text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        <div className="lg:col-span-2 p-6 rounded-xl border border-border bg-card/50 backdrop-blur-xl">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Payslip Generation</h3>
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm hover:bg-secondary transition-colors border border-border">
-              <Download size={16} /> Batch Download
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="pb-3 font-medium">Employee</th>
-                  <th className="pb-3 font-medium">Gross</th>
-                  <th className="pb-3 font-medium">Net</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-foreground">
-                {[
-                  { name: 'Alice Wang', gross: '$8,500', net: '$6,800', status: 'Ready' },
-                  { name: 'Bob Kim', gross: '$9,200', net: '$7,360', status: 'Ready' },
-                  { name: 'Carol Davis', gross: '$7,800', net: '$6,240', status: 'Pending Review' },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-muted transition-colors">
-                    <td className="py-3 font-medium text-foreground">{row.name}</td>
-                    <td className="py-3">{row.gross}</td>
-                    <td className="py-3">{row.net}</td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${row.status === 'Ready' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <button className="text-blue-400 hover:text-blue-300 text-xs font-medium">View</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function NotificationsTab() {
   return (
@@ -403,10 +442,11 @@ export default function HrDashboard() {
     switch (activeTab) {
       case 'overview': return <OverviewTab stats={stats} isLoading={isLoading} />;
       case 'lifecycle': return <LifecycleTab />;
-      case 'attendance': return <AttendanceTab />;
+      case 'attendance': return <div className="-m-8"><AttendanceList /></div>;
       case 'leave': return <LeaveTab />;
-      case 'payroll': return <PayrollTab />;
+      case 'payroll': return <div className="-m-8"><PayrollList /></div>;
       case 'notifications': return <NotificationsTab />;
+      case 'profile': return <ProfileTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
       default: return <OverviewTab stats={stats} isLoading={isLoading} />;
     }

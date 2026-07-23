@@ -2,6 +2,7 @@ package com.nexushr.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,17 +28,17 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/register-admin",
                                 "/api/auth/login",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/reset-password",
+                                "/api/auth/validate-reset-token"
                         ).permitAll()
-                        /*
                         .requestMatchers(
-                                "/api/auth/create-user"
-                        ).authenticated()
-                         */
+                                "/api/auth/change-password"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
                         .anyRequest()
                         .authenticated()
                 )

@@ -1,10 +1,27 @@
 import { create } from 'zustand';
 import type { AuthState } from '../types';
 
+const getInitialToken = () => {
+  try {
+    return localStorage.getItem('token');
+  } catch {
+    return null;
+  }
+};
+
+const getInitialUser = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  user: null,
-  isAuthenticated: false,
+  token: getInitialToken(),
+  user: getInitialUser(),
+  isAuthenticated: !!getInitialToken(),
   setAuth: (token, user) => {
     try {
       localStorage.setItem('token', token);

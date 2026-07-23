@@ -4,8 +4,9 @@ import {
   Search, Filter, Download, ChevronLeft, ChevronRight,
   Mail, Phone, CheckSquare,
   Square, UserPlus, ArrowUpDown, X, Edit2, Trash2,
-  Building, UserCheck
+  Building, UserCheck, FileText, Check
 } from 'lucide-react';
+import { verifyDocument } from '../../../services/employee.service';
 import { toast } from 'sonner';
 import EmptyState from '../../../components/ui/EmptyState';
 import CreateUserModal from './CreateUserModal';
@@ -20,10 +21,11 @@ import { useLocation } from 'react-router';
 
 const MOCK_EMPLOYEES: Employee[] = []; // fallback removed
 
-type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role';
+type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role' | 'employmentType';
 type SortDir = 'asc' | 'desc';
 
 const STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] as const;
+const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Freelance'] as const;
 
 const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
   const { isDark } = useTheme();
@@ -97,7 +99,7 @@ export default function EmployeeList() {
   const [sortField, setSortField] = useState<SortField>('firstName');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [filters, setFilters] = useState<{ departmentName?: string; status?: string; role?: string; designation?: string; managerName?: string }>({});
+  const [filters, setFilters] = useState<{ departmentName?: string; status?: string; role?: string; designation?: string; managerName?: string; employmentType?: string }>({});
   const [showFilters, setShowFilters] = useState(false);
   const perPage = 10;
 
@@ -129,6 +131,9 @@ export default function EmployeeList() {
     }
     if (filters.role) {
       result = result.filter((e) => e.role === filters.role);
+    }
+    if (filters.employmentType) {
+      result = result.filter((e) => e.employmentType === filters.employmentType);
     }
     if (filters.designation) {
       result = result.filter((e) => e.designation === filters.designation);
@@ -199,9 +204,15 @@ export default function EmployeeList() {
         role: e.role || 'EMPLOYEE',
         status: e.status || 'ACTIVE',
         joiningDate: e.joiningDate || e.joinDate || new Date().toISOString().split('T')[0],
+        employmentType: (!e.employmentType || e.employmentType === 'FULL_TIME') ? 'Full-Time' : 
+                        e.employmentType === 'PART_TIME' ? 'Part-Time' :
+                        e.employmentType === 'CONTRACT' ? 'Contract' :
+                        e.employmentType === 'INTERN' ? 'Internship' : e.employmentType,
         salary: e.salary || 0,
         managerId: e.managerId || undefined,
         managerName: e.managerName || undefined,
+        profilePhotoUrl: e.profilePhotoUrl || '',
+        documents: e.documents || [],
       }));
       setEmployees(mapped as any);
     } catch (error) {
@@ -220,9 +231,34 @@ export default function EmployeeList() {
   const [assigningMgr, setAssigningMgr] = useState<any>(null);
 
   const [deletingEmp, setDeletingEmp] = useState<any>(null);
+  const [verifyingDocsEmp, setVerifyingDocsEmp] = useState<Employee | null>(null);
+  const [rejectDocModal, setRejectDocModal] = useState<{isOpen: boolean, docId: number | null, empId: number | null}>({isOpen: false, docId: null, empId: null});
+  const [docRejectionReason, setDocRejectionReason] = useState('');
+  const [submittingDoc, setSubmittingDoc] = useState(false);
 
-
-
+  const handleVerifyDocument = async (docId: number, action: 'DOCUMENT_VERIFIED' | 'DOCUMENT_REJECTED', reason: string = '') => {
+    try {
+      setSubmittingDoc(true);
+      await verifyDocument(docId, action, reason);
+      toast.success(`Document ${action === 'DOCUMENT_VERIFIED' ? 'verified' : 'rejected'}`);
+      
+      // Update local state to reflect changes instantly
+      if (verifyingDocsEmp && verifyingDocsEmp.documents) {
+        const updatedDocs = verifyingDocsEmp.documents.map(d => d.id === docId ? { ...d, status: action, rejectionReason: reason } : d);
+        setVerifyingDocsEmp({ ...verifyingDocsEmp, documents: updatedDocs });
+      }
+      
+      if (action === 'DOCUMENT_REJECTED') {
+        setRejectDocModal({isOpen: false, docId: null, empId: null});
+        setDocRejectionReason('');
+      }
+      fetchEmployees();
+    } catch (error) {
+      toast.error('Failed to verify document');
+    } finally {
+      setSubmittingDoc(false);
+    }
+  };
   const handleOpenTransfer = (emp: any) => {
     setAssigningDept(emp);
     setTransferForm({ departmentId: '', designationId: '', managerId: '' });
@@ -409,6 +445,17 @@ export default function EmployeeList() {
                   {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Work Type</label>
+                <select
+                  value={filters.employmentType || ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, employmentType: e.target.value || undefined })); setPage(1); }}
+                  className="rounded-lg border border-zinc-800 bg-zinc-950/50 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">All Types</option>
+                  {EMPLOYMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
               {!isManagerTeamView && (
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1">Manager</label>
@@ -422,7 +469,7 @@ export default function EmployeeList() {
                   </select>
                 </div>
               )}
-              {(filters.departmentName || filters.status || filters.role || filters.designation || filters.managerName) && (
+              {(filters.departmentName || filters.status || filters.role || filters.designation || filters.managerName || filters.employmentType) && (
                 <div className="flex items-end">
                   <button
                     onClick={() => setFilters({})}
@@ -484,6 +531,11 @@ export default function EmployeeList() {
                     </button>
                   </th>
                   <th className="px-4 py-3">
+                    <button onClick={() => toggleSort('employmentType')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
+                      Type <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-3">
                     <button onClick={() => toggleSort('status')} className="flex items-center gap-1 text-xs font-medium uppercase text-zinc-400 hover:text-white">
                       Status <ArrowUpDown className="h-3 w-3" />
                     </button>
@@ -520,10 +572,14 @@ export default function EmployeeList() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-                          <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                            {emp.firstName?.[0] || ''}{emp.lastName?.[0] || ''}
-                          </span>
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border overflow-hidden ${isDark ? 'bg-blue-600/20 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
+                          {emp.profilePhotoUrl ? (
+                            <img src={emp.profilePhotoUrl} alt="DP" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className={`text-sm font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                              {emp.firstName?.[0] || ''}{emp.lastName?.[0] || ''}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <p className={`font-bold transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'}`}>
@@ -567,6 +623,18 @@ export default function EmployeeList() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${
+                        emp.employmentType === 'Full-Time' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
+                        emp.employmentType === 'Part-Time' ? 'bg-cyan-500/10 text-cyan-400 ring-1 ring-inset ring-cyan-500/20' :
+                        emp.employmentType === 'Contract' ? 'bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20' :
+                        emp.employmentType === 'Internship' ? 'bg-pink-500/10 text-pink-400 ring-1 ring-inset ring-pink-500/20' :
+                        emp.employmentType === 'Freelance' ? 'bg-blue-500/10 text-blue-400 ring-1 ring-inset ring-blue-500/20' :
+                        'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20'
+                      }`}>
+                        {emp.employmentType || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
                         emp.status === 'ACTIVE' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' : 'bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200') :
                         emp.status === 'INACTIVE' ? (isDark ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200') :
@@ -589,6 +657,13 @@ export default function EmployeeList() {
                               <UserCheck className="h-4 w-4" />
                             </button>
                           )}
+                          <button onClick={() => setVerifyingDocsEmp(emp)} title="View Documents" className={`p-1.5 rounded-lg transition-colors ${
+                            emp.documents?.some((d: any) => (d.status === 'PENDING_HR_APPROVAL' && user?.role === 'HR') || ((d.status === 'PENDING_HR_APPROVAL' || d.status === 'PENDING_ADMIN_APPROVAL') && user?.role === 'ADMIN')) 
+                              ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' 
+                              : isDark ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'
+                          }`}>
+                            <FileText className="h-4 w-4" />
+                          </button>
                           <button onClick={() => setDeletingEmp(emp)} title="Delete Employee" className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20 text-zinc-400 hover:text-red-400' : 'hover:bg-red-50 text-slate-500 hover:text-red-600'}`}>
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -739,6 +814,75 @@ export default function EmployeeList() {
             </button>
             <button onClick={() => setDeletingEmp(null)} className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg shadow-red-600/20">
               Delete Employee
+            </button>
+          </div>
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={!!verifyingDocsEmp} onClose={() => setVerifyingDocsEmp(null)} title={`Documents: ${verifyingDocsEmp?.firstName} ${verifyingDocsEmp?.lastName}`}>
+        <div className="space-y-4">
+          {verifyingDocsEmp?.documents && verifyingDocsEmp.documents.length > 0 ? (
+            <div className="space-y-3">
+              {verifyingDocsEmp.documents.map((doc: any) => (
+                <div key={doc.id} className={`p-4 rounded-xl border flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText size={16} className="text-blue-500" />
+                      <a href={doc.documentUrl} target="_blank" rel="noopener noreferrer" className={`font-semibold hover:underline ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {doc.documentName}
+                      </a>
+                    </div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Type: {doc.documentType} • Uploaded: {new Date(doc.uploadDate).toLocaleDateString()}</p>
+                    
+                    <div className="mt-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        doc.status === 'DOCUMENT_VERIFIED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        doc.status === 'DOCUMENT_REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      }`}>
+                        {doc.status === 'PENDING_HR_APPROVAL' ? 'PENDING HR APPROVAL' : doc.status === 'PENDING_ADMIN_APPROVAL' ? 'PENDING ADMIN APPROVAL' : doc.status.replace(/_/g, ' ')}
+                      </span>
+                      {doc.hrComments && (
+                        <p className="text-[10px] text-zinc-400 mt-1 italic">HR Comment: {doc.hrComments}</p>
+                      )}
+                      {doc.adminComments && (
+                        <p className="text-[10px] text-zinc-400 mt-1 italic">Admin Comment: {doc.adminComments}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {((doc.status === 'PENDING_HR_APPROVAL' && user?.role === 'HR') || ((doc.status === 'PENDING_HR_APPROVAL' || doc.status === 'PENDING_ADMIN_APPROVAL') && user?.role === 'ADMIN')) && (
+                    <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                      <button onClick={() => setRejectDocModal({isOpen: true, docId: doc.id, empId: verifyingDocsEmp.id})} disabled={submittingDoc} className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-xs font-bold border border-red-500/20 flex items-center justify-center gap-1 disabled:opacity-50">
+                        <X size={14}/> Reject
+                      </button>
+                      <button onClick={() => handleVerifyDocument(doc.id, 'DOCUMENT_VERIFIED')} disabled={submittingDoc} className="flex-1 sm:flex-none px-3 py-1.5 rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-xs font-bold shadow shadow-emerald-500/20 flex items-center justify-center gap-1 disabled:opacity-50">
+                        <Check size={14}/> Approve
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`p-8 text-center text-sm rounded-xl border border-dashed ${isDark ? 'text-zinc-500 border-zinc-800' : 'text-slate-500 border-slate-300'}`}>
+              No documents have been uploaded by this employee.
+            </div>
+          )}
+        </div>
+      </ModalWrapper>
+
+      <ModalWrapper isOpen={rejectDocModal.isOpen} onClose={() => !submittingDoc && setRejectDocModal({isOpen: false, docId: null, empId: null})} title="Reject Document">
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-500">Please provide a reason for rejecting this document.</p>
+          <div>
+            <label className="block text-xs font-bold mb-1.5 text-zinc-400">Rejection Reason *</label>
+            <textarea rows={3} value={docRejectionReason} onChange={(e) => setDocRejectionReason(e.target.value)} className={`w-full rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${isDark ? 'bg-zinc-900/50 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`} placeholder="E.g., Document is blurry, incorrect format, etc." />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button onClick={() => setRejectDocModal({isOpen: false, docId: null, empId: null})} disabled={submittingDoc} className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-colors disabled:opacity-50 ${isDark ? 'border-zinc-800 text-zinc-400 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>Cancel</button>
+            <button onClick={() => handleVerifyDocument(rejectDocModal.docId!, 'DOCUMENT_REJECTED', docRejectionReason)} disabled={submittingDoc || !docRejectionReason.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-colors disabled:opacity-50">
+              Confirm Rejection
             </button>
           </div>
         </div>

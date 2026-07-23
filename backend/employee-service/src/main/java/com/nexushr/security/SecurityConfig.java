@@ -44,8 +44,23 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.DELETE,
+                                "/api/employees/documents/**"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
                                 "/api/employees/**"
                         ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/employees/me"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/employees/profile-requests/*/verify"
+                        ).hasAnyRole("ADMIN", "MANAGER")
 
                         .requestMatchers(
                                 HttpMethod.PUT,
@@ -53,10 +68,19 @@ public class SecurityConfig {
                         ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
+                                "/api/employees/leaves/**"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/employees/me"
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+
+                        .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/employees/**",
                                 "/api/employees"
-                        ).hasAnyRole("ADMIN", "HR", "MANAGER")
+                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
 
                         .requestMatchers(
                                 HttpMethod.GET,

@@ -1,22 +1,6 @@
 import api from './api';
-
-export interface Employee {
-  id: number;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  salary: number;
-  departmentName: string;
-  designation: string;
-  managerId?: number;
-  managerName?: string;
-  status: string;
-  role: string;
-  joiningDate?: string;
-  leaveDate?: string;
-}
+import type { Employee, DocumentVerificationStatus, ProfileVerificationStatus } from '../types';
+export type { Employee, DocumentVerificationStatus, ProfileVerificationStatus };
 
 export interface EmployeeBasic {
   id: number;
@@ -45,6 +29,8 @@ export interface CreateEmployeeRequest {
   designationId: number;
   managerId?: number;
   role: 'HR' | 'MANAGER' | 'EMPLOYEE' | 'ADMIN' | 'NONE';
+  employmentType?: string;
+  joiningDate?: string;
 }
 
 export interface TransferEmployeeRequest {
@@ -113,5 +99,41 @@ export interface DashboardStats {
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   const response = await api.get('/employees/dashboard');
+  return response.data;
+};
+
+export const getPendingProfileRequests = async (): Promise<import('../types').ProfileUpdateRequest[]> => {
+  const response = await api.get('/employees/profile-requests/pending');
+  return response.data;
+};
+
+export const getMyLatestProfileRequest = async (): Promise<import('../types').ProfileUpdateRequest | null> => {
+  const response = await api.get('/employees/profile-requests/me/latest');
+  if (response.status === 204) return null;
+  return response.data;
+};
+
+export const verifyProfile = async (requestId: number, status: ProfileVerificationStatus, rejectionReason?: string): Promise<import('../types').ProfileUpdateRequest> => {
+  const response = await api.put(`/employees/profile-requests/${requestId}/verify`, { status, rejectionReason });
+  return response.data;
+};
+
+export const getPendingDocuments = async (): Promise<any[]> => {
+  const response = await api.get('/employees/documents/pending');
+  return response.data;
+};
+
+export const uploadDocument = async (id: number, data: { documentType: string; documentName: string; documentUrl: string; }): Promise<Employee> => {
+  const response = await api.post(`/employees/${id}/documents`, data);
+  return response.data;
+};
+
+export const verifyDocument = async (docId: number, status: DocumentVerificationStatus, rejectionReason?: string): Promise<Employee> => {
+  const response = await api.put(`/employees/documents/${docId}/verify`, { status, rejectionReason });
+  return response.data;
+};
+
+export const deleteDocument = async (docId: number): Promise<Employee> => {
+  const response = await api.delete(`/employees/documents/${docId}`);
   return response.data;
 };

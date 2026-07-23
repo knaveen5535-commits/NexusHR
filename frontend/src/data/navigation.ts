@@ -6,6 +6,7 @@ export const adminNav: NavItem[] = [
   { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
   { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
+  { name: 'Performance Admin', href: '/admin/performance', icon: 'TrendingUp', permissions: ['view:analytics'] },
   {
     name: 'Reports',
     href: '/admin/reports',
@@ -21,12 +22,16 @@ export const adminNav: NavItem[] = [
   },
   { name: 'System Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
   { name: 'Resignations', href: '/admin/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
+  { name: 'Profile Approvals', href: '/admin/profile-requests', icon: 'UserCheck', permissions: ['manage:employees'] },
+  { name: 'Document Approvals', href: '/admin/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
 ];
 
 export const hrNav: NavItem[] = [
   { name: 'Dashboard', href: '/hr/dashboard', icon: 'LayoutDashboard' },
+  { name: 'My Profile', href: '/hr/profile', icon: 'User', permissions: ['view:own-profile'] },
   { name: 'Employees', href: '/hr/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
+  { name: 'Document Approvals', href: '/hr/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
   { name: 'Attendance', href: '/hr/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
@@ -50,23 +55,31 @@ export const hrNav: NavItem[] = [
 
 export const managerNav: NavItem[] = [
   { name: 'Dashboard', href: '/manager/dashboard', icon: 'LayoutDashboard' },
+  { name: 'My Profile', href: '/manager/profile', icon: 'User', permissions: ['view:own-profile'] },
   { name: 'My Team', href: '/manager/team', icon: 'Users', permissions: ['access:team'] },
-  { name: 'Attendance', href: '/manager/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
-  { name: 'Performance', href: '/manager/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
-  { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
   {
-    name: 'Reports',
-    href: '/manager/reports',
-    icon: 'BarChart3',
-    permissions: ['generate:reports'],
+    name: 'Attendance',
+    href: '/manager/attendance',
+    icon: 'Calendar',
+    permissions: ['view:attendance'],
     children: [
-      { name: 'Employee Report', href: '/manager/reports/employees', icon: 'Users' },
-      { name: 'Payroll Report', href: '/manager/reports/payroll', icon: 'DollarSign' },
-      { name: 'Attendance Report', href: '/manager/reports/attendance', icon: 'CalendarCheck' },
-      { name: 'Performance Report', href: '/manager/reports/performance', icon: 'TrendingUp' },
-      { name: 'AI Insights', href: '/manager/reports/ai', icon: 'Brain', badge: 'AI' },
+      { name: 'My Attendance', href: '/manager/my-attendance', icon: 'Clock' },
+      { name: 'Team Attendance', href: '/manager/team-attendance', icon: 'Users' },
     ],
   },
+  {
+    name: 'Performance',
+    href: '/manager/performance',
+    icon: 'TrendingUp',
+    permissions: ['view:performance'],
+    children: [
+      { name: 'My Performance', href: '/manager/my-performance', icon: 'User' },
+      { name: 'Team Performance', href: '/manager/team-performance', icon: 'Users' },
+    ],
+  },
+  { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
+  { name: 'Profile Approvals', href: '/manager/profile-requests', icon: 'UserCheck', permissions: ['access:team'] },
+
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 

@@ -3,6 +3,7 @@ import { useNavigate, Navigate, useParams } from 'react-router';
 import { useAuthStore } from '../../store/authStore';
 import { login } from '../../services/auth.service';
 import { decodeJWT } from '../../utils/jwt';
+import api from '../../services/api';
 import { useTheme } from '../../hooks/useTheme';
 import { Shield, Users, UserCog, User, ArrowRight, Sparkles, Mail, Lock, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,7 +129,6 @@ export default function Login() {
       const decodedUser = decodeJWT(token);
       
       if (decodedUser && decodedUser.role) {
-        // Build user object. We strict-trust decodedUser.role.
         const userObj = {
           id: decodedUser.id || '0',
           username: decodedUser.email || email,
@@ -139,7 +139,23 @@ export default function Login() {
           employeeId: decodedUser.employeeId || '001',
         };
 
-        useAuthStore.getState().setAuth(token, userObj);
+        if (userObj.role !== 'ADMIN') {
+          try {
+            const empRes = await api.get('/employees/me', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (empRes.data) {
+              userObj.id = String(empRes.data.id);
+              userObj.firstName = empRes.data.firstName;
+              userObj.lastName = empRes.data.lastName;
+              userObj.employeeId = empRes.data.employeeCode;
+            }
+          } catch (e) {
+            console.warn('Could not fetch employee details', e);
+          }
+        }
+
+        useAuthStore.getState().setAuth(token, { ...userObj } as any);
 
         const path =
           userObj.role === 'ADMIN'
@@ -468,128 +484,128 @@ export default function Login() {
                        </div>
                      </div>
                    )}
-                  </div>
-  
-                  <div className="text-center md:text-left mb-8 hidden md:block">
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="mb-6 relative inline-flex h-20 w-20 items-center justify-center rounded-2xl shadow-2xl"
-                    >
-                      <div className={`absolute inset-0 rounded-2xl opacity-80 bg-gradient-to-br ${activeRoleData?.gradient}`} />
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/30 to-transparent opacity-50 pointer-events-none" />
-                      <div className={`absolute inset-0 blur-xl opacity-50 bg-gradient-to-br ${activeRoleData?.gradient}`} />
-                      
-                      {activeRoleData && <activeRoleData.Icon className="h-10 w-10 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />}
-                    </motion.div>
-                    <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sign In</h2>
-                    <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Log in as <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData?.label}</span></p>
-                  </div>
-  
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Email Address</label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
-                        </div>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                            isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
-                          }`}
-                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                          placeholder="you@company.com"
-                          required
-                        />
+                </div>
+
+                <div className="text-center md:text-left mb-8 hidden md:block">
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="mb-6 relative inline-flex h-20 w-20 items-center justify-center rounded-2xl shadow-2xl"
+                  >
+                    <div className={`absolute inset-0 rounded-2xl opacity-80 bg-gradient-to-br ${activeRoleData?.gradient}`} />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/30 to-transparent opacity-50 pointer-events-none" />
+                    <div className={`absolute inset-0 blur-xl opacity-50 bg-gradient-to-br ${activeRoleData?.gradient}`} />
+                    
+                    {activeRoleData && <activeRoleData.Icon className="h-10 w-10 text-white drop-shadow-md relative z-10" strokeWidth={2.5} />}
+                  </motion.div>
+                  <h2 className={`text-3xl font-extrabold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sign In</h2>
+                  <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Log in as <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData?.label}</span></p>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Email Address</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
                       </div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`block w-full pl-10 pr-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                          isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
+                        }`}
+                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                        placeholder="you@company.com"
+                        required
+                      />
                     </div>
-  
-                    <div className="space-y-1.5">
-                      <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Password</label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
-                        </div>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
-                            isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
-                          }`}
-                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                          placeholder="••••••••"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </div>
-  
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center">
-                        <input
-                          id="remember-me"
-                          name="remember-me"
-                          type="checkbox"
-                          className={`h-4 w-4 rounded focus:ring-2 ${isDark ? 'border-zinc-700 bg-zinc-900 focus:ring-offset-zinc-950' : 'border-slate-300 bg-white focus:ring-offset-slate-50'}`}
-                          style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
-                          defaultChecked
-                        />
-                        <label htmlFor="remember-me" className={`ml-2 block text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
-                          Remember me
-                        </label>
-                      </div>
-                      <div className="text-sm">
-                        <a href="#" className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
-                          Forgot password?
-                        </a>
-                      </div>
-                    </div>
-  
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className={`group relative w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-extrabold tracking-wider uppercase text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${isDark ? 'focus:ring-offset-zinc-950' : 'focus:ring-offset-slate-50'}`}
-                      style={{ 
-                        '--tw-ring-color': activeRoleData?.color
-                      } as React.CSSProperties}
-                    >
-                      <div className={`absolute inset-0 bg-gradient-to-r ${activeRoleData?.gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
-                      {/* Glass overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
-                      
-                      <span className="relative z-10 flex items-center gap-2">
-                        {isLoading ? (
-                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          'Secure Sign In'
-                        )}
-                      </span>
-                    </button>
-                  </form>
-  
-                  {/* Back button for desktop */}
-                  <div className="mt-6 text-center hidden md:block">
-                    <button 
-                      onClick={() => setSelectedRole(null)}
-                      className={`text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-800'}`}
-                    >
-                      &larr; Back to roles
-                    </button>
                   </div>
-                </motion.div>
+
+                  <div className="space-y-1.5">
+                    <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-slate-700'}`}>Password</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className={`h-5 w-5 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`} />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`block w-full pl-10 pr-10 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                          isDark ? 'border-zinc-800 bg-zinc-900/50 text-white placeholder-zinc-500' : 'border-slate-300 bg-white text-slate-900 placeholder-slate-400 shadow-sm'
+                        }`}
+                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                        placeholder="••••••••"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className={`absolute inset-y-0 right-0 pr-3 flex items-center ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center">
+                      <input
+                        id="remember-me"
+                        name="remember-me"
+                        type="checkbox"
+                        className={`h-4 w-4 rounded focus:ring-2 ${isDark ? 'border-zinc-700 bg-zinc-900 focus:ring-offset-zinc-950' : 'border-slate-300 bg-white focus:ring-offset-slate-50'}`}
+                        style={{ '--tw-ring-color': activeRoleData?.color } as React.CSSProperties}
+                        defaultChecked
+                      />
+                      <label htmlFor="remember-me" className={`ml-2 block text-sm ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
+                        Remember me
+                      </label>
+                    </div>
+                    <div className="text-sm">
+                      <button type="button" onClick={() => navigate('/forgot-password')} className={`font-medium transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} style={{ color: activeRoleData?.color }}>
+                        Forgot password?
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className={`group relative w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-sm font-extrabold tracking-wider uppercase text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${isDark ? 'focus:ring-offset-zinc-950' : 'focus:ring-offset-slate-50'}`}
+                    style={{ 
+                      '--tw-ring-color': activeRoleData?.color
+                    } as React.CSSProperties}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${activeRoleData?.gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                    {/* Glass overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50" />
+                    
+                    <span className="relative z-10 flex items-center gap-2">
+                      {isLoading ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        'Secure Sign In'
+                      )}
+                    </span>
+                  </button>
+                </form>
+
+                {/* Back button for desktop */}
+                <div className="mt-6 text-center hidden md:block">
+                  <button 
+                    onClick={handleBack}
+                    className={`text-sm transition-colors ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    &larr; Back to roles
+                  </button>
+                </div>
+              </motion.div>
             )}
             </div>
 

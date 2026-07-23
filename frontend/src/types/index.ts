@@ -64,6 +64,54 @@ export interface KpiCard {
   color: string;
 }
 
+export type DocumentVerificationStatus = 'PENDING_HR_APPROVAL' | 'PENDING_ADMIN_APPROVAL' | 'DOCUMENT_VERIFIED' | 'DOCUMENT_REJECTED';
+
+export interface EmployeeDocument {
+  id: number;
+  documentType: string;
+  documentName: string;
+  documentUrl: string;
+  uploadDate: string;
+  status?: DocumentVerificationStatus;
+  hrReviewedBy?: number;
+  hrReviewedAt?: string;
+  hrDecision?: string;
+  hrComments?: string;
+  adminReviewedBy?: number;
+  adminReviewedAt?: string;
+  adminDecision?: string;
+  adminComments?: string;
+  employee?: EmployeeBasicResponse;
+}
+
+export type ProfileVerificationStatus = 'PENDING_MANAGER_APPROVAL' | 'PENDING_ADMIN_APPROVAL' | 'PROFILE_VERIFIED' | 'PROFILE_REJECTED';
+
+export interface EmployeeBasicResponse {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ProfileUpdateRequest {
+  id: number;
+  employee: EmployeeBasicResponse;
+  requestedPhone?: string;
+  requestedAddress?: string;
+  requestedDateOfBirth?: string;
+  requestedGender?: string;
+  requestedBloodGroup?: string;
+  requestedEmergencyContactName?: string;
+  requestedEmergencyContactNumber?: string;
+  requestedProfilePhotoUrl?: string;
+  status: ProfileVerificationStatus;
+  rejectionReason?: string;
+  reviewerComment?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: EmployeeBasicResponse;
+}
+
 export interface Employee {
   id: number;
   employeeCode: string;
@@ -80,6 +128,15 @@ export interface Employee {
   role: UserRole;
   joiningDate: string;
   leaveDate?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  employmentType?: string;
+  address?: string;
+  emergencyContactName?: string;
+  emergencyContactNumber?: string;
+  profilePhotoUrl?: string;
+  documents?: EmployeeDocument[];
 }
 
 export interface AttendanceRecord {

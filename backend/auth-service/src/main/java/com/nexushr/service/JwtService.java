@@ -16,13 +16,14 @@ public class JwtService {
     private String SECRET_KEY;
     @Value("${jwt.expiration}")
     private int TOKEN_EXPIRE;
-    public String generateToken(String email, String role) {
+    public String generateToken(Long id, String email, String role) {
 
         SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
         return Jwts.builder()
                 .subject(email)
                 .claim("role", role)
+                .claim("id", id)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + TOKEN_EXPIRE))
                 .signWith(key)
