@@ -27,7 +27,7 @@ spring:
         - id: employee-service
           uri: http://localhost:8082
           predicates:
-            - Path=/api/employees/**, /api/employees
+            - Path=/api/employees/**, /api/employees, /api/notifications/**, /api/notifications
         - id: department-service
           uri: http://localhost:8082
           predicates:
@@ -39,7 +39,7 @@ spring:
         - id: payroll-service
           uri: http://localhost:8083
           predicates:
-            - Path=/api/payroll/**, /api/payroll, /api/payrolls/**, /api/payrolls, /api/attendance/**, /api/attendance
+            - Path=/api/payroll/**, /api/payroll, /api/payrolls/**, /api/payrolls, /api/attendance/**, /api/attendance, /api/salary-structures/**, /api/salary-structures
         - id: resignation-service
           uri: http://localhost:8082
           predicates:
@@ -48,7 +48,3 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/feedback/**, /api/feedback
-        - id: performance-service
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/performance/**, /api/performance

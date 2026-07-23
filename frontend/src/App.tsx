@@ -21,6 +21,7 @@ import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
 import ProtectedRoute from './components/guards/ProtectedRoute';
+import PayrollList from './pages/payroll/PayrollList';
 
 // New Admin Pages
 import DepartmentManagement from './pages/admin/departments/DepartmentManagement';
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="profile-requests" element={<AdminProfileRequests />} />
             <Route path="document-approvals" element={<AdminDocumentApprovals />} />
             <Route path="roles" element={<RoleManagement />} />
+            <Route path="payroll" element={<PayrollList />} />
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
             <Route path="performance" element={<AdminPerformanceDashboard />} />
@@ -100,7 +102,9 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<HrDashboard />} />
             <Route path="profile" element={<HrDashboard />} />
-            <Route path="attendance" element={<HrDashboard />} />
+            <Route path="attendance" element={<Navigate to="my-attendance" replace />} />
+            <Route path="my-attendance" element={<HrDashboard />} />
+            <Route path="company-attendance" element={<HrDashboard />} />
             <Route path="leave" element={<HrDashboard />} />
             <Route path="payroll" element={<HrDashboard />} />
             <Route path="performance" element={<HrPerformanceReports />} />
@@ -134,6 +138,9 @@ export default function App() {
             <Route path="attendance" element={<Navigate to="my-attendance" replace />} />
             <Route path="my-attendance" element={<ManagerDashboard />} />
             <Route path="team-attendance" element={<ManagerDashboard />} />
+            <Route path="payroll" element={<Navigate to="my-payslips" replace />} />
+            <Route path="my-payslips" element={<ManagerDashboard />} />
+            <Route path="team-payslips" element={<ManagerDashboard />} />
             <Route path="performance" element={<Navigate to="my-performance" replace />} />
             <Route path="my-performance" element={<EmployeeMyPerformance />} />
             <Route path="team-performance" element={<ManagerTeamPerformance />} />

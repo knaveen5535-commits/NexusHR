@@ -7,6 +7,7 @@ export const adminNav: NavItem[] = [
   { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
   { name: 'Performance Admin', href: '/admin/performance', icon: 'TrendingUp', permissions: ['view:analytics'] },
+  { name: 'Payroll Management', href: '/admin/payroll', icon: 'DollarSign', permissions: ['view:analytics'] },
   {
     name: 'Reports',
     href: '/admin/reports',
@@ -32,7 +33,16 @@ export const hrNav: NavItem[] = [
   { name: 'Employees', href: '/hr/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
   { name: 'Document Approvals', href: '/hr/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
-  { name: 'Attendance', href: '/hr/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
+  {
+    name: 'Attendance',
+    href: '/hr/attendance',
+    icon: 'Calendar',
+    permissions: ['view:attendance'],
+    children: [
+      { name: 'My Attendance', href: '/hr/my-attendance', icon: 'Clock' },
+      { name: 'Company Attendance', href: '/hr/company-attendance', icon: 'Users' },
+    ],
+  },
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
   { name: 'Performance', href: '/hr/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
@@ -79,6 +89,15 @@ export const managerNav: NavItem[] = [
   },
   { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
   { name: 'Profile Approvals', href: '/manager/profile-requests', icon: 'UserCheck', permissions: ['access:team'] },
+  {
+    name: 'Payroll',
+    icon: 'DollarSign',
+    permissions: ['access:team'],
+    children: [
+      { name: 'My Payslips', href: '/manager/my-payslips', icon: 'FileText' },
+      { name: 'Team Payslips', href: '/manager/team-payslips', icon: 'Users' },
+    ],
+  },
 
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];

@@ -23,7 +23,7 @@ public class SalaryStructure {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private Long employeeId;
 
     @Column(nullable = false)
@@ -31,6 +31,11 @@ public class SalaryStructure {
 
     @Column(nullable = false)
     private LocalDate effectiveFrom;
+
+    private LocalDate endDate;
+
+    @Column(nullable = false)
+    private Boolean isActive = true;
 
     @OneToMany(mappedBy = "salaryStructure", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SalaryComponent> components;

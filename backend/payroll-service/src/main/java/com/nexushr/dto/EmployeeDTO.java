@@ -11,7 +11,10 @@ public class EmployeeDTO {
     private String lastName;
     private String email;
     private String phone;
-    private String designation; // Depending on how employee-service structures it
+    private java.math.BigDecimal salary;
+    private String employeeCode;
+    private String designation; 
     private String departmentName;
     private String role;
+    private String status;
 }

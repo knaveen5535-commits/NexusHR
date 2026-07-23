@@ -33,9 +33,13 @@ public class AttendanceService {
 
     public Attendance checkIn(CheckInRequest request) {
         EmployeeDTO currentEmployee = employeeClient.getCurrentEmployee();
-        if (!"HR".equals(currentEmployee.getRole()) && !"ADMIN".equals(currentEmployee.getRole())) {
-            request.setEmployeeId(currentEmployee.getId());
+        
+        if ("ADMIN".equals(currentEmployee.getRole())) {
+            throw new RuntimeException("Admin account cannot mark attendance");
         }
+        
+        // Always force the employeeId to be the current user's ID
+        request.setEmployeeId(currentEmployee.getId());
 
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
@@ -67,9 +71,13 @@ public class AttendanceService {
 
     public Attendance checkOut(CheckOutRequest request) {
         EmployeeDTO currentEmployee = employeeClient.getCurrentEmployee();
-        if (!"HR".equals(currentEmployee.getRole()) && !"ADMIN".equals(currentEmployee.getRole())) {
-            request.setEmployeeId(currentEmployee.getId());
+
+        if ("ADMIN".equals(currentEmployee.getRole())) {
+            throw new RuntimeException("Admin account cannot mark attendance");
         }
+
+        // Always force the employeeId to be the current user's ID
+        request.setEmployeeId(currentEmployee.getId());
 
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();

@@ -28,6 +28,21 @@ public class Payroll {
     private Long employeeId;
 
     @Column(nullable = false)
+    private String employeeName;
+
+    @Column(nullable = false)
+    private String employeeCode;
+
+    @Column(nullable = false)
+    private String departmentName;
+
+    @Column(nullable = false)
+    private String designationName;
+
+    @Column(nullable = false)
+    private BigDecimal baseSalaryUsed;
+
+    @Column(nullable = false)
     private Integer payrollMonth;
 
     @Column(nullable = false)
@@ -59,6 +74,8 @@ public class Payroll {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PayrollStatus status;
+
+    private String remarks;
 
     @OneToMany(mappedBy = "payroll", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PayrollComponent> components;

@@ -36,30 +36,42 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/api/salary-structures").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/salary-structures/employee/*/history").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/salary-structures/employee/*").authenticated()
+
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/payroll"
-                        ).hasRole("ADMIN")
+                                "/api/payrolls/generate",
+                                "/api/payrolls/generate/bulk"
+                        ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/payrolls/employee/**"
-                        ).hasAnyRole("ADMIN", "HR", "MANAGER", "EMPLOYEE")
+                                "/api/payrolls/me",
+                                "/api/payrolls/employee/**",
+                                "/api/payrolls/*/payslip/download"
+                        ).hasAnyRole("ADMIN", "HR", "EMPLOYEE", "MANAGER")
+                        
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/payrolls/team"
+                        ).hasRole("MANAGER")
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/payroll/**",
+                                "/api/payrolls",
                                 "/api/payrolls/**"
                         ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/payroll/**"
-                        ).hasRole("ADMIN")
+                                HttpMethod.PUT,
+                                "/api/payrolls/*/status"
+                        ).hasAnyRole("ADMIN", "HR")
 
                         .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/payroll/**"
+                                HttpMethod.DELETE,
+                                "/api/payrolls/**"
                         ).hasRole("ADMIN")
 
                         .anyRequest()
