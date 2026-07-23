@@ -4,6 +4,7 @@ export const adminNav: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: 'LayoutDashboard' },
   { name: 'Employee Management', href: '/admin/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
+  { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
   {
     name: 'Reports',
@@ -19,11 +20,13 @@ export const adminNav: NavItem[] = [
     ],
   },
   { name: 'System Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
+  { name: 'Resignations', href: '/admin/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
 ];
 
 export const hrNav: NavItem[] = [
   { name: 'Dashboard', href: '/hr/dashboard', icon: 'LayoutDashboard' },
   { name: 'Employees', href: '/hr/employees', icon: 'Users', permissions: ['manage:employees'] },
+  { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
   { name: 'Attendance', href: '/hr/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
@@ -78,7 +81,7 @@ export const employeeNav: NavItem[] = [
 ];
 
 export function getNavForRole(role: string | undefined): NavItem[] {
-  switch (role) {
+  switch (role?.toLowerCase()) {
     case 'admin': return adminNav;
     case 'hr': return hrNav;
     case 'manager': return managerNav;

@@ -8,6 +8,7 @@ import com.nexushr.enums.Status;
 import com.nexushr.exception.EmailAlreadyExistsException;
 import com.nexushr.exception.InvalidCredentialsException;
 import com.nexushr.exception.UserNotFoundException;
+import com.nexushr.exception.RoleMismatchException;
 import com.nexushr.repository.PasswordResetTokenRepository;
 import com.nexushr.repository.UserRepository;
 import com.nexushr.service.JwtService;
@@ -99,6 +100,15 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->
                         new UserNotFoundException("User not found"));
+
+        if (request.getExpectedRole() != null && !request.getExpectedRole().trim().isEmpty()) {
+            String expectedRole = request.getExpectedRole().trim().toUpperCase();
+            String dbRole = user.getRole().name().toUpperCase();
+            if (!expectedRole.equals(dbRole)) {
+                throw new RoleMismatchException("These credentials belong to an " + dbRole + " account. Please use the " + 
+                    expectedRole.substring(0, 1) + expectedRole.substring(1).toLowerCase() + " portal.");
+            }
+        }
 
         String token = jwtService.generateToken(
                 user.getEmail(),
@@ -237,5 +247,13 @@ public class AuthService {
         userRepository.save(user);
 
         return "Password changed successfully";
+    }
+
+    public String updateUserRole(UpdateUserRoleRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setRole(request.getRole());
+        userRepository.save(user);
+        return "User role updated successfully";
     }
 }

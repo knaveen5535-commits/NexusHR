@@ -7,10 +7,10 @@ export function useRole() {
   return {
     role: user?.role ?? null,
     user,
-    isAdmin: user?.role === 'admin',
-    isHR: user?.role === 'hr',
-    isManager: user?.role === 'manager',
-    isEmployee: user?.role === 'employee',
+    isAdmin: user?.role === 'ADMIN',
+    isHR: user?.role === 'HR',
+    isManager: user?.role === 'MANAGER',
+    isEmployee: user?.role === 'EMPLOYEE',
   };
 }
 

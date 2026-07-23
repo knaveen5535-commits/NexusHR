@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router';
-import { useAuthStore, demoLogin } from '../../store/authStore';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate, useParams } from 'react-router';
+import { useAuthStore } from '../../store/authStore';
+import { login } from '../../services/auth.service';
+import { decodeJWT } from '../../utils/jwt';
 import { useTheme } from '../../hooks/useTheme';
 import { Shield, Users, UserCog, User, ArrowRight, Sparkles, Mail, Lock, Eye, EyeOff, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const demoRoles = [
   {
-    id: 'admin' as const,
+    id: 'ADMIN' as const,
     label: 'Admin',
     desc: 'Full system access & analytics',
     Icon: Shield,
@@ -17,7 +19,7 @@ const demoRoles = [
     email: 'admin@nexushr.com',
   },
   {
-    id: 'hr' as const,
+    id: 'HR' as const,
     label: 'HR ',
     desc: 'Employee management & payroll',
     Icon: Users,
@@ -27,7 +29,7 @@ const demoRoles = [
     email: 'hr@nexushr.com',
   },
   {
-    id: 'manager' as const,
+    id: 'MANAGER' as const,
     label: 'Team Manager',
     desc: 'Team oversight & performance',
     Icon: UserCog,
@@ -37,7 +39,7 @@ const demoRoles = [
     email: 'manager@nexushr.com',
   },
   {
-    id: 'employee' as const,
+    id: 'EMPLOYEE' as const,
     label: 'Employee',
     desc: 'Self-service & profile portal',
     Icon: User,
@@ -72,6 +74,7 @@ function Shape({
 
 export default function Login() {
   const navigate = useNavigate();
+  const { role: urlRole } = useParams<{ role: string }>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const { isDark, toggle } = useTheme();
@@ -82,45 +85,81 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSelectRole = (roleId: (typeof demoRoles)[0]['id']) => {
-    setSelectedRole(roleId);
-    const role = demoRoles.find((r) => r.id === roleId);
-    if (role) {
-      setEmail(role.email);
-      setPassword('password123');
+  useEffect(() => {
+    const validRole = demoRoles.find((r) => r.id === urlRole);
+    if (validRole) {
+      setSelectedRole(validRole.id);
+      setEmail(validRole.email);
+      setPassword(''); // Never auto-fill password
+    } else {
+      setSelectedRole(null);
+      setEmail('');
+      setPassword('');
     }
+  }, [urlRole]);
+
+  const handleSelectRole = (roleId: (typeof demoRoles)[0]['id']) => {
+    navigate(`/login/${roleId}`);
+  };
+
+  const handleBack = () => {
+    navigate('/login');
   };
 
   if (isAuthenticated && user?.role) {
     const path =
-      user.role === 'admin'
+      user.role === 'ADMIN'
         ? '/admin/dashboard'
-        : user.role === 'hr'
+        : user.role === 'HR'
         ? '/hr/dashboard'
-        : user.role === 'manager'
+        : user.role === 'MANAGER'
         ? '/manager/dashboard'
         : '/employee/dashboard';
     return <Navigate to={path} replace />;
   }
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) return;
+    if (!selectedRole || !email || !password) return;
     setIsLoading(true);
-    
-    // Simulate network delay for effect
-    setTimeout(() => {
-      demoLogin(selectedRole);
-      const path =
-        selectedRole === 'admin'
-          ? '/admin/dashboard'
-          : selectedRole === 'hr'
-          ? '/hr/dashboard'
-          : selectedRole === 'manager'
-          ? '/manager/dashboard'
-          : '/employee/dashboard';
-      navigate(path, { replace: true });
-    }, 800);
+
+    try {
+      const token = await login({ email, password, expectedRole: selectedRole });
+      const decodedUser = decodeJWT(token);
+      
+      if (decodedUser && decodedUser.role) {
+        // Build user object. We strict-trust decodedUser.role.
+        const userObj = {
+          id: decodedUser.id || '0',
+          username: decodedUser.email || email,
+          email: decodedUser.email || email,
+          role: String(decodedUser.role).toUpperCase() as typeof selectedRole,
+          firstName: decodedUser.firstName || 'User',
+          lastName: decodedUser.lastName || '',
+          employeeId: decodedUser.employeeId || '001',
+        };
+
+        useAuthStore.getState().setAuth(token, userObj);
+
+        const path =
+          userObj.role === 'ADMIN'
+            ? '/admin/dashboard'
+            : userObj.role === 'HR'
+            ? '/hr/dashboard'
+            : userObj.role === 'MANAGER'
+            ? '/manager/dashboard'
+            : '/employee/dashboard';
+        navigate(path, { replace: true });
+      } else {
+        alert('Authentication failed: Missing role information from server.');
+      }
+    } catch (error: any) {
+      console.error('Login failed', error);
+      const errorMessage = error.response?.data?.message || 'Invalid credentials or server error. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const activeRoleData = demoRoles.find(r => r.id === selectedRole);
@@ -401,35 +440,34 @@ export default function Login() {
                               <ArrowRight className={`h-3.5 w-3.5 md:h-4 md:w-4 transition-transform duration-500 group-hover:translate-x-1 ${isDark ? 'text-zinc-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-900'}`} />
                             </div>
                           </div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              ) : (
-                // ── STATE 2: LOGIN FORM ──
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="w-full max-w-sm mx-auto"
-                >
-                  {/* Mobile back button & role display */}
-                  <div className="mb-8 flex items-center md:hidden gap-3">
-                     <button 
-                       onClick={() => setSelectedRole(null)}
-                       className={`p-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-200 text-slate-700'}`}
-                     >
-                       <ArrowRight className="h-4 w-4 rotate-180" />
-                     </button>
-                     {activeRoleData && (
-                       <div className="flex items-center gap-2">
-                         <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${activeRoleData.gradient}`}>
-                           <activeRoleData.Icon className="h-4 w-4 text-white" />
-                         </div>
-                         <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeRoleData.label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ) : (
+              // ── STATE 2: LOGIN FORM ──
+              <motion.div
+                key="form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="w-full max-w-sm mx-auto"
+              >
+                {/* Mobile back button & role display */}
+                <div className="mb-8 flex items-center md:hidden gap-3">
+                   <button 
+                     onClick={handleBack}
+                     className={`p-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-slate-200 text-slate-700'}`}
+                   >
+                     <ArrowRight className="h-4 w-4 rotate-180" />
+                   </button>
+                   {activeRoleData && (
+                     <div className="flex items-center gap-2">
+                       <div className={`h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${activeRoleData.gradient}`}>
+                         <activeRoleData.Icon className="h-4 w-4 text-white" />
                        </div>
-                     )}
+                     </div>
+                   )}
                   </div>
   
                   <div className="text-center md:text-left mb-8 hidden md:block">
@@ -552,7 +590,7 @@ export default function Login() {
                     </button>
                   </div>
                 </motion.div>
-              )}
+            )}
             </div>
 
             {/* Footer */}

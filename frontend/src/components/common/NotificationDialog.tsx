@@ -2,14 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
 import { Bell, X, CheckCircle, Clock, AlertCircle, Info } from 'lucide-react';
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, type: 'success', title: 'Leave Approved', message: 'John Doe\'s leave request has been approved.', time: '2 min ago' },
-  { id: 2, type: 'info', title: 'New Employee Onboarded', message: 'Sarah Smith has completed onboarding.', time: '15 min ago' },
-  { id: 3, type: 'warning', title: 'Payroll Pending', message: 'Payroll for June needs your approval.', time: '1 hour ago' },
-  { id: 4, type: 'success', title: 'Report Generated', message: 'Monthly analytics report is ready.', time: '3 hours ago' },
-  { id: 5, type: 'info', title: 'Department Update', message: 'Engineering department structure has been updated.', time: '5 hours ago' },
-  { id: 6, type: 'warning', title: 'Leave Balance Low', message: 'Your annual leave balance is below 5 days.', time: '1 day ago' },
-];
+import { useNotificationStore } from '../../store/notificationStore';
 
 const typeConfig = {
   success: { icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -24,6 +17,7 @@ interface NotificationDialogProps {
 
 export default function NotificationDialog({ isOpen, onClose }: NotificationDialogProps) {
   const { isDark } = useTheme();
+  const { notifications, markAllAsRead, unreadCount } = useNotificationStore();
 
   return (
     <AnimatePresence>
@@ -54,9 +48,11 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
               <div className="flex items-center gap-3">
                 <Bell className={`h-5 w-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
                 <h2 className={`text-xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Notifications</h2>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-slate-100 text-slate-500'}`}>
-                  {MOCK_NOTIFICATIONS.length} new
-                </span>
+                {unreadCount() > 0 && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-slate-100 text-slate-500'}`}>
+                    {unreadCount()} new
+                  </span>
+                )}
               </div>
               <button
                 onClick={onClose}
@@ -67,7 +63,7 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 md:space-y-3">
-              {MOCK_NOTIFICATIONS.map((notification) => {
+              {notifications.map((notification) => {
                 const config = typeConfig[notification.type as keyof typeof typeConfig];
                 const Icon = config.icon;
                 return (
@@ -75,7 +71,7 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
                     key={notification.id}
                     className={`flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-2xl transition-colors ${
                       isDark ? 'hover:bg-zinc-900' : 'hover:bg-slate-50'
-                    } ${isDark ? 'bg-zinc-900/50' : 'bg-slate-50/50'}`}
+                    } ${notification.read ? (isDark ? 'opacity-60 bg-transparent' : 'opacity-70 bg-transparent') : (isDark ? 'bg-zinc-900/50' : 'bg-slate-50/50')}`}
                   >
                     <div className={`p-2 rounded-xl ${config.bg}`}>
                       <Icon className={`h-5 w-5 ${config.color}`} />
@@ -99,10 +95,11 @@ export default function NotificationDialog({ isOpen, onClose }: NotificationDial
               })}
             </div>
 
-            <div className={`p-3 md:p-4 border-t ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
+            <div className={`p-3 md:p-4 border-t flex gap-3 ${isDark ? 'border-zinc-800' : 'border-slate-200'}`}>
               <button
-                onClick={onClose}
-                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
+                onClick={markAllAsRead}
+                disabled={unreadCount() === 0}
+                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   isDark
                     ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'

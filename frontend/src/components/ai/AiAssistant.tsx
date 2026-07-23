@@ -95,10 +95,10 @@ export default function AiAssistant() {
             AI Assistant
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {role === 'admin' ? 'Full AI access - Company-wide insights' :
-             role === 'hr' ? 'Workforce AI access - Department analytics' :
-             role === 'manager' ? 'Team AI access - Performance insights' :
-             'Personal AI access - Your work insights'}
+            {role === 'ADMIN' ? 'Full AI access - Company-wide insights' :
+             role === 'HR' ? 'HR Operations & Employee Analytics' :
+             role === 'MANAGER' ? 'Team Performance & Attendance Insights' :
+             'Personal HR Assistant'}
           </p>
         </div>
       </div>

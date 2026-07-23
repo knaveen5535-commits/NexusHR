@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
+import { useState, useEffect } from 'react';
+import { getDashboardStats, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
   FileText, Download, Upload, Target, Shield, Heart, UserMinus
@@ -9,12 +11,7 @@ import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 
-const kpiData: KpiCardType[] = [
-  { label: 'Total Employees', value: '1,247', change: '+12 this month', trend: 'up', icon: 'Users', color: 'blue-500' },
-  { label: 'New Joinees', value: '23', change: '+8 vs last month', trend: 'up', icon: 'UserPlus', color: 'purple-500' },
-  { label: 'Leave Requests', value: '18', change: '5 urgent', trend: 'down', icon: 'FileText', color: 'amber-500' },
-  { label: 'Attendance Today', value: '94.7%', change: '+2.3%', trend: 'up', icon: 'Calendar', color: 'emerald-500' },
-];
+
 
 const lifecycleData = [
   { name: 'Applied', value: 45 },
@@ -40,7 +37,14 @@ const pendingLeaves = [
 
 
 
-function OverviewTab() {
+function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
+  const kpiData: KpiCardType[] = [
+    { label: 'Total Employees', value: isLoading ? '...' : stats?.totalEmployees.toString() || '0', change: '', trend: 'up', icon: 'Users', color: 'blue-500' },
+    { label: 'Active Employees', value: isLoading ? '...' : stats?.activeEmployees.toString() || '0', change: '', trend: 'up', icon: 'UserCheck', color: 'emerald-500' },
+    { label: 'Departments Count', value: isLoading ? '...' : stats?.departmentsCount.toString() || '0', change: '', trend: 'up', icon: 'Building', color: 'purple-500' },
+    { label: 'Monthly Payroll', value: isLoading ? '...' : `$${(stats?.monthlyPayrollCost || 0).toLocaleString()}`, change: '', trend: 'up', icon: 'DollarSign', color: 'teal-500' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -378,16 +382,33 @@ export default function HrDashboard() {
   
   if (activeTab === 'onboarding') activeTab = 'lifecycle';
 
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await getDashboardStats();
+        setStats(data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'overview': return <OverviewTab />;
+      case 'overview': return <OverviewTab stats={stats} isLoading={isLoading} />;
       case 'lifecycle': return <LifecycleTab />;
       case 'attendance': return <AttendanceTab />;
       case 'leave': return <LeaveTab />;
       case 'payroll': return <PayrollTab />;
       case 'notifications': return <NotificationsTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
-      default: return <OverviewTab />;
+      default: return <OverviewTab stats={stats} isLoading={isLoading} />;
     }
   };
 
