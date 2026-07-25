@@ -9,6 +9,7 @@ public class PayrollDTO {
     private Long employeeId;
     private String employeeName; // Aggregated field
     private String employeeCode; // Aggregated field
+    private String department; // Aggregated field
     private String position; // Aggregated field
     private Integer payrollMonth;
     private Integer payrollYear;

@@ -18,5 +18,11 @@ export const calculateProfileCompletion = (profile: Employee | null, editForm?: 
   ];
   
   const filledFields = fields.filter(f => f && String(f).trim() !== '');
-  return Math.round((filledFields.length / fields.length) * 100);
+  const documentCount = profile.documents ? profile.documents.length : 0;
+  const docsToCount = Math.min(documentCount, 3);
+  
+  const totalItems = fields.length + 3;
+  const completedItems = filledFields.length + docsToCount;
+  
+  return Math.round((completedItems / totalItems) * 100);
 };

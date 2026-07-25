@@ -50,7 +50,15 @@ export const hrNav: NavItem[] = [
     ],
   },
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
-  { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
+  {
+    name: 'Payroll',
+    icon: 'DollarSign',
+    permissions: ['view:payroll'],
+    children: [
+      { name: 'My Payslips', href: '/hr/my-payslips', icon: 'FileText' },
+      { name: 'Company Payroll', href: '/hr/company-payroll', icon: 'Users' },
+    ],
+  },
   { name: 'Performance', href: '/hr/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
   
   { name: 'Profile Approvals', href: '/hr/profile-requests', icon: 'UserCheck', permissions: ['manage:onboarding'] },

@@ -397,7 +397,9 @@ public class EmployeeService {
             if (updateRequest.getRequestedBloodGroup() != null) employee.setBloodGroup(updateRequest.getRequestedBloodGroup());
             
             if (employee.getStatus() == EmployeeStatus.ONBOARDING) {
-                employee.setStatus(EmployeeStatus.ACTIVE);
+                if (employee.getDocuments() != null && !employee.getDocuments().isEmpty()) {
+                    employee.setStatus(EmployeeStatus.ACTIVE);
+                }
             }
             
             employeeRepository.save(employee);
@@ -558,6 +560,14 @@ public class EmployeeService {
         }
         
         employeeDocumentRepository.save(doc);
+
+        if (caller.getStatus() == EmployeeStatus.ONBOARDING) {
+            java.util.Optional<com.nexushr.entity.ProfileUpdateRequest> latestReq = profileUpdateRequestRepository.findTopByEmployeeIdOrderByCreatedAtDesc(caller.getId());
+            if (latestReq.isPresent() && latestReq.get().getStatus() == com.nexushr.enums.ProfileVerificationStatus.PROFILE_VERIFIED) {
+                caller.setStatus(EmployeeStatus.ACTIVE);
+                employeeRepository.save(caller);
+            }
+        }
 
         if (caller.getRole() == null || (caller.getRole() != com.nexushr.enums.Role.MANAGER && caller.getRole() != com.nexushr.enums.Role.HR)) {
             List<Employee> hrs = employeeRepository.findByRole(com.nexushr.enums.Role.HR);

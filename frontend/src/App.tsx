@@ -106,7 +106,9 @@ export default function App() {
             <Route path="my-attendance" element={<HrDashboard />} />
             <Route path="company-attendance" element={<HrDashboard />} />
             <Route path="leave" element={<HrDashboard />} />
-            <Route path="payroll" element={<HrDashboard />} />
+            <Route path="payroll" element={<Navigate to="company-payroll" replace />} />
+            <Route path="my-payslips" element={<HrDashboard />} />
+            <Route path="company-payroll" element={<HrDashboard />} />
             <Route path="performance" element={<HrPerformanceReports />} />
             <Route path="onboarding" element={<HrDashboard />} />
             <Route path="profile-requests" element={<HrDashboard />} />

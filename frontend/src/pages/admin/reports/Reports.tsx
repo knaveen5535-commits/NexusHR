@@ -171,6 +171,29 @@ export default function Reports() {
   const [hasFetchedPerformance, setHasFetchedPerformance] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [dateRange, setDateRange] = useState('All Time');
+  const [department, setDepartment] = useState('All Departments');
+
+  const isDateInRange = (dateStr: string | undefined | null) => {
+    if (!dateStr) return true; // If no date field exists, include it to avoid filtering out everything
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return true;
+    const now = new Date();
+    if (dateRange === 'Last 30 Days') {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      return d >= thirtyDaysAgo && d <= now;
+    }
+    if (dateRange === 'This Quarter') {
+      const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      return d >= quarterStart && d <= now;
+    }
+    if (dateRange === 'Year to Date') {
+      const ytdStart = new Date(now.getFullYear(), 0, 1);
+      return d >= ytdStart && d <= now;
+    }
+    return true; // All Time or Custom Range
+  };
 
   const toggleRow = (i: number) => {
     setExpandedRows(prev => ({ ...prev, [i]: !prev[i] }));
@@ -228,44 +251,35 @@ export default function Reports() {
   let reportData = activeReport ? REPORT_DATA[activeReport.id] : null;
 
   if (activeReport?.id === 'emp' && hasFetchedEmployees) {
-    const total = employeesData.length;
-    const active = employeesData.filter(e => e.status?.toLowerCase() === 'active').length;
-    
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const newHires = employeesData.filter(e => {
-      if (!e.joiningDate) return false;
-      const date = new Date(e.joiningDate);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    }).length;
+    const deptFilteredData = department === 'All Departments' 
+      ? employeesData 
+      : employeesData.filter(e => {
+          const dept = e.departmentName || (e as any).department;
+          if (!dept) return true;
+          return dept.toLowerCase() === department.toLowerCase();
+      });
 
-    const leftThisMonthCount = employeesData.filter(e => {
-      if (!e.leaveDate) return false;
-      const date = new Date(e.leaveDate);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    }).length;
+    const total = deptFilteredData.length;
+    const active = deptFilteredData.filter(e => e.status?.toLowerCase() === 'active').length;
+    
+    const newHires = deptFilteredData.filter(e => isDateInRange(e.joiningDate)).length;
+    const leftThisMonthCount = deptFilteredData.filter(e => isDateInRange(e.leaveDate)).length;
     
     const globalTurnover = total > 0 ? ((leftThisMonthCount / total) * 100).toFixed(1) + '%' : '0%';
     
     const deptMap: Record<string, { total: number, active: number, newHires: number, leftThisMonth: number, employees: Employee[] }> = {};
-    employeesData.forEach(e => {
+    deptFilteredData.forEach(e => {
       const dept = e.departmentName || 'Unknown';
       if (!deptMap[dept]) deptMap[dept] = { total: 0, active: 0, newHires: 0, leftThisMonth: 0, employees: [] };
       deptMap[dept].total++;
       if (e.status?.toLowerCase() === 'active') deptMap[dept].active++;
       
-      if (e.joiningDate) {
-        const date = new Date(e.joiningDate);
-        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-          deptMap[dept].newHires++;
-        }
+      if (isDateInRange(e.joiningDate)) {
+        deptMap[dept].newHires++;
       }
       
-      if (e.leaveDate) {
-        const date = new Date(e.leaveDate);
-        if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-          deptMap[dept].leftThisMonth++;
-        }
+      if (isDateInRange(e.leaveDate)) {
+        deptMap[dept].leftThisMonth++;
       }
       
       deptMap[dept].employees.push(e);
@@ -307,8 +321,8 @@ export default function Reports() {
       kpis: [
         { label: 'Total Employees', value: String(total), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
         { label: 'Active Employees', value: String(active), icon: BadgeCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { label: 'New Hires (MTD)', value: String(newHires), icon: UserPlus, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-        { label: 'Turnover Rate (MTD)', value: globalTurnover, icon: UserMinus, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+        { label: `New Hires (${dateRange})`, value: String(newHires), icon: UserPlus, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+        { label: `Turnover Rate (${dateRange})`, value: globalTurnover, icon: UserMinus, color: 'text-rose-500', bg: 'bg-rose-500/10' },
       ],
       chart: { type: 'bar', title: 'Employees by Department', data: chartData },
       tableHeaders: ['Department', 'Total', 'Active', 'New Hires', 'Turnover Rate'],
@@ -317,12 +331,27 @@ export default function Reports() {
   }
 
   if (activeReport?.id === 'pay' && hasFetchedPayrolls) {
-    const total = payrollsData.reduce((sum, p) => sum + (p.netSalary || 0), 0);
-    const avg = total / payrollsData.length;
-    const taxes = payrollsData.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
+    let filteredPayrolls = payrollsData;
+    if (department !== 'All Departments') {
+       filteredPayrolls = payrollsData.filter(p => {
+          const dept = p.department || p.departmentName || p.position;
+          if (!dept) return true;
+          return dept.toLowerCase() === department.toLowerCase();
+       });
+    }
+    if (dateRange !== 'Custom Range' && dateRange !== 'All Time') {
+       filteredPayrolls = filteredPayrolls.filter(p => {
+          const dateField = p.payDate || p.paidOn || (p.month && p.year ? `${p.year}-${p.month}-01` : null);
+          return isDateInRange(dateField);
+       });
+    }
+
+    const total = filteredPayrolls.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+    const avg = filteredPayrolls.length > 0 ? total / filteredPayrolls.length : 0;
+    const taxes = filteredPayrolls.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
     
     const positionMap: Record<string, { totalPayroll: number, count: number, employees: any[] }> = {};
-    payrollsData.forEach(p => {
+    filteredPayrolls.forEach(p => {
       const pos = p.position || 'Unknown';
       if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, count: 0, employees: [] };
       positionMap[pos].totalPayroll += p.netSalary || 0;
@@ -374,14 +403,28 @@ export default function Reports() {
   }
 
   if (activeReport?.id === 'att' && hasFetchedAttendance) {
-    const present = attendanceData.filter(a => a.status === 'present').length;
-    const absent = attendanceData.filter(a => a.status === 'absent').length;
-    const late = attendanceData.filter(a => a.status === 'late').length;
-    const total = attendanceData.length;
+    let filteredAttendance = attendanceData;
+    if (department !== 'All Departments') {
+      filteredAttendance = attendanceData.filter(a => {
+         const dept = a.department || a.departmentName;
+         if (!dept) return true;
+         return dept.toLowerCase() === department.toLowerCase();
+      });
+    }
+    if (dateRange !== 'Custom Range' && dateRange !== 'All Time') {
+       filteredAttendance = filteredAttendance.filter(a => {
+          return isDateInRange(a.attendanceDate || a.date);
+       });
+    }
+
+    const present = filteredAttendance.filter(a => a.status === 'present').length;
+    const absent = filteredAttendance.filter(a => a.status === 'absent').length;
+    const late = filteredAttendance.filter(a => a.status === 'late').length;
+    const total = filteredAttendance.length;
     const avgAttendance = total > 0 ? (((present + late) / total) * 100).toFixed(1) + '%' : '0%';
     
     const deptMap: Record<string, { present: number, absent: number, late: number, count: number, employees: Record<string, any> }> = {};
-    attendanceData.forEach(a => {
+    filteredAttendance.forEach(a => {
       const dept = a.department || 'Unknown';
       if (!deptMap[dept]) deptMap[dept] = { present: 0, absent: 0, late: 0, count: 0, employees: {} };
       deptMap[dept].count++;
@@ -449,15 +492,29 @@ export default function Reports() {
   }
 
   if (activeReport?.id === 'perf' && hasFetchedPerformance) {
-    const totalRecords = performanceData.length;
-    const avgScore = totalRecords > 0 ? (performanceData.reduce((sum, p) => sum + (p.finalScore || 0), 0) / totalRecords).toFixed(1) : '0';
-    const topCount = performanceData.filter(p => p.grade === 'Outstanding' || p.grade === 'Excellent').length;
-    const needsImpCount = performanceData.filter(p => p.grade === 'Needs Improvement').length;
-    const completedCount = performanceData.filter(p => p.managerReviewSubmitted && p.peerReviewSubmitted && p.selfReviewSubmitted).length;
+    let filteredPerformance = performanceData;
+    if (department !== 'All Departments') {
+       filteredPerformance = performanceData.filter(p => {
+          const dept = p.employee?.departmentName || p.departmentName;
+          if (!dept) return true;
+          return dept.toLowerCase() === department.toLowerCase();
+       });
+    }
+    if (dateRange !== 'Custom Range' && dateRange !== 'All Time') {
+       filteredPerformance = filteredPerformance.filter(p => {
+          return isDateInRange(p.reviewDate || p.createdAt || p.period);
+       });
+    }
+
+    const totalRecords = filteredPerformance.length;
+    const avgScore = totalRecords > 0 ? (filteredPerformance.reduce((sum, p) => sum + (p.finalScore || 0), 0) / totalRecords).toFixed(1) : '0';
+    const topCount = filteredPerformance.filter(p => p.grade === 'Outstanding' || p.grade === 'Excellent').length;
+    const needsImpCount = filteredPerformance.filter(p => p.grade === 'Needs Improvement').length;
+    const completedCount = filteredPerformance.filter(p => p.managerReviewSubmitted && p.peerReviewSubmitted && p.selfReviewSubmitted).length;
     const completedPct = totalRecords > 0 ? Math.round((completedCount / totalRecords) * 100) + '%' : '0%';
 
     const deptMap: Record<string, { totalScore: number, count: number, top: number, needsImp: number, completed: number, employees: any[] }> = {};
-    performanceData.forEach(p => {
+    filteredPerformance.forEach(p => {
       const dept = p.employee?.departmentName || 'Unknown';
       if (!deptMap[dept]) deptMap[dept] = { totalScore: 0, count: 0, top: 0, needsImp: 0, completed: 0, employees: [] };
       deptMap[dept].count++;
@@ -495,11 +552,11 @@ export default function Reports() {
     });
 
     const scoreRanges = {
-      '90-100': performanceData.filter(p => p.finalScore >= 90).length,
-      '80-89': performanceData.filter(p => p.finalScore >= 80 && p.finalScore < 90).length,
-      '70-79': performanceData.filter(p => p.finalScore >= 70 && p.finalScore < 80).length,
-      '60-69': performanceData.filter(p => p.finalScore >= 60 && p.finalScore < 70).length,
-      'Below 60': performanceData.filter(p => p.finalScore < 60).length,
+      '90-100': filteredPerformance.filter(p => p.finalScore >= 90).length,
+      '80-89': filteredPerformance.filter(p => p.finalScore >= 80 && p.finalScore < 90).length,
+      '70-79': filteredPerformance.filter(p => p.finalScore >= 70 && p.finalScore < 80).length,
+      '60-69': filteredPerformance.filter(p => p.finalScore >= 60 && p.finalScore < 70).length,
+      'Below 60': filteredPerformance.filter(p => p.finalScore < 60).length,
     };
     const chartData = Object.keys(scoreRanges).map(range => ({
       name: range,
@@ -527,6 +584,31 @@ export default function Reports() {
     perf: 'performance',
     ai: 'ai'
   };
+  
+  // Dynamically generate department options based on fetched data
+  const dynamicDeptSet = new Set<string>();
+  if (activeReport?.id === 'emp') {
+    employeesData.forEach(e => {
+      const d = e.departmentName || (e as any).department;
+      if (d) dynamicDeptSet.add(d);
+    });
+  } else if (activeReport?.id === 'pay') {
+    payrollsData.forEach(p => {
+      const d = p.department || p.departmentName;
+      if (d) dynamicDeptSet.add(d);
+    });
+  } else if (activeReport?.id === 'att') {
+    attendanceData.forEach(a => {
+      const d = a.department || a.departmentName;
+      if (d) dynamicDeptSet.add(d);
+    });
+  } else if (activeReport?.id === 'perf') {
+    performanceData.forEach(p => {
+      const d = p.employee?.departmentName || p.departmentName;
+      if (d) dynamicDeptSet.add(d);
+    });
+  }
+  const dynamicDepartments = Array.from(dynamicDeptSet).filter(Boolean).sort();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -679,9 +761,13 @@ export default function Reports() {
                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-slate-50/50 border-slate-200'}`}>
                     <div className="space-y-2">
                       <label className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Date Range</label>
-                      <select className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold outline-none transition-colors ${
+                      <select 
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold outline-none transition-colors ${
                         isDark ? 'bg-zinc-800/50 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
                       }`}>
+                        <option>All Time</option>
                         <option>Last 30 Days</option>
                         <option>This Quarter</option>
                         <option>Year to Date</option>
@@ -690,14 +776,25 @@ export default function Reports() {
                     </div>
                     <div className="space-y-2">
                       <label className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Department</label>
-                      <select className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold outline-none transition-colors ${
+                      <select 
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold outline-none transition-colors ${
                         isDark ? 'bg-zinc-800/50 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
                       }`}>
                         <option>All Departments</option>
-                        <option>Engineering</option>
-                        <option>Sales</option>
-                        <option>HR</option>
-                        <option>Finance</option>
+                        {dynamicDepartments.length > 0 ? (
+                          dynamicDepartments.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option>Engineering</option>
+                            <option>Sales</option>
+                            <option>HR</option>
+                            <option>Finance</option>
+                          </>
+                        )}
                       </select>
                     </div>
                   </div>

@@ -287,6 +287,7 @@ public class PayrollService {
         // Use snapshotted values instead of fetching via REST API
         dto.setEmployeeName(payroll.getEmployeeName());
         dto.setEmployeeCode(payroll.getEmployeeCode());
+        dto.setDepartment(payroll.getDepartmentName());
         dto.setPosition(payroll.getDesignationName());
 
         return dto;

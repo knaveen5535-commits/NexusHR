@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getDashboardStats, getPendingProfileRequests, getPendingDocuments, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
-  FileText, Upload, Shield, Heart, UserMinus, Clock
+  FileText, Upload, Shield, Heart, UserMinus, Clock, Download
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
@@ -207,10 +207,13 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
     const fetchAttendance = async () => {
       try {
         setLoadingCharts(true);
-        // Fetch last 7 days of attendance
+        // Fetch current week of attendance
         const today = new Date();
         const start = new Date();
-        start.setDate(today.getDate() - 7);
+        const currentDay = start.getDay();
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        start.setDate(today.getDate() + diffToMonday);
+        start.setHours(0, 0, 0, 0);
         const res = await api.get(`/attendance?startDate=${start.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`);
         
         // Aggregate by day of week
@@ -591,6 +594,124 @@ function NotificationsTab() {
   );
 }
 
+function MyPayslipsTab() {
+  const [payrolls, setPayrolls] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        if (user?.id) {
+          const res = await api.get('/payrolls/me');
+          setPayrolls(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch payrolls", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [user]);
+
+  const handleDownloadPayslip = async (id: number, number: string) => {
+    try {
+      const response = await api.get(`/payrolls/${id}/payslip/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${number}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download payslip. Please try again later.");
+    }
+  };
+
+  const renderTable = (payrollsData: any[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="text-muted-foreground border-b border-border bg-muted/30">
+          <tr>
+            <th className="px-6 py-4 font-medium">Month/Year</th>
+            <th className="px-6 py-4 font-medium">Payslip #</th>
+            <th className="px-6 py-4 font-medium text-right">Basic Salary</th>
+            <th className="px-6 py-4 font-medium text-right">Deductions & Tax</th>
+            <th className="px-6 py-4 font-medium text-right">Net Salary</th>
+            <th className="px-6 py-4 font-medium text-center">Status</th>
+            <th className="px-6 py-4 font-medium text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border text-foreground">
+          {payrollsData.length > 0 ? payrollsData.map((row) => (
+            <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+              <td className="px-6 py-4 font-medium whitespace-nowrap">
+                {new Date(row.payrollYear, row.payrollMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </td>
+              <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{row.payslipNumber}</td>
+              <td className="px-6 py-4 text-right">${row.grossSalary?.toLocaleString()}</td>
+              <td className="px-6 py-4 text-right text-red-400">
+                -${((row.totalDeductions || 0) + (row.totalTaxes || 0)).toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-right font-bold text-emerald-400">
+                ${row.netSalary?.toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-center">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${
+                  row.status === 'processed' || row.status === 'paid' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                } capitalize`}>
+                  {row.status}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex justify-center">
+                  {row.status === 'paid' && (
+                    <button 
+                      onClick={() => handleDownloadPayslip(row.id, row.payslipNumber)}
+                      className="text-blue-400 hover:text-blue-300 text-xs font-medium border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all whitespace-nowrap"
+                    >
+                      <Download size={14} /> Download PDF
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          )) : (
+            <tr>
+              <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                No payslips found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading payslips...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">My Payslips</h3>
+        </div>
+        {renderTable(payrolls)}
+      </div>
+    </div>
+  );
+}
+
 export default function HrDashboard() {
   const location = useLocation();
   const currentPath = location.pathname.split('/').pop();
@@ -622,7 +743,8 @@ export default function HrDashboard() {
       case 'my-attendance': return <AttendanceTab />;
       case 'company-attendance': return <AttendanceList />;
       case 'leave': return <LeaveTab />;
-      case 'payroll': return <PayrollList />;
+      case 'my-payslips': return <MyPayslipsTab />;
+      case 'company-payroll': return <PayrollList />;
       case 'notifications': return <NotificationsTab />;
       case 'profile': return <ProfileTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;
