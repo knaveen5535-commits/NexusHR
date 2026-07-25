@@ -15,6 +15,7 @@ import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest, LeaveBalance, LeaveRequestSubmit } from '../../../types/leave';
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 import { feedbackService } from '../../../services/feedback.service';
+import { performanceService } from '../../../services/performance.service';
 import ProfileTab from '../../../components/profile/ProfileTab';
 
 function OverviewTab() {
@@ -35,13 +36,15 @@ function OverviewTab() {
           const totalRemaining = res.reduce((acc, curr) => acc + curr.remainingDays, 0);
           setLeaveBalance(totalRemaining);
         }),
-        feedbackService.getMyFeedbacks().then(res => {
-          if (res.length > 0) {
-            const sum = res.reduce((acc, curr) => acc + (curr.overallRating || 0), 0);
-            const avg = sum / res.length;
-            setPerformanceRating(avg.toFixed(1));
+        performanceService.getMyPerformanceHistory().then(res => {
+          const perfArray = Array.isArray(res) ? res : (res as any).data || [];
+          const validScores = perfArray.filter((p:any) => Number(p.finalScore) > 0);
+          if (validScores.length > 0) {
+            const sum = validScores.reduce((acc: number, curr: any) => acc + Number(curr.finalScore), 0);
+            const avg = sum / validScores.length;
+            setPerformanceRating(Math.round(avg).toString());
           }
-        })
+        }).catch(err => console.error(err))
       ]).finally(() => {
         setIsLoading(false);
       });
@@ -125,7 +128,7 @@ function OverviewTab() {
     { label: 'My Attendance', value: isLoading ? '...' : attendanceDisplay, change: isLoading ? 'Loading data...' : (workingDays > 0 ? `${absentDays} days absent` : 'No data available'), trend: attendancePercentage > 80 ? 'up' : 'down', icon: 'Calendar', color: 'blue-500' },
     { label: 'Leave Balance', value: isLoading ? '...' : `${leaveBalance} Days`, change: isLoading ? 'Loading data...' : 'Total available', trend: 'neutral', icon: 'FileText', color: 'emerald-500' },
     { label: 'Current Streak', value: isLoading ? '...' : `${currentStreak} Days`, change: isLoading ? 'Loading data...' : (currentStreak > 0 ? 'Consecutive present' : 'No active streak'), trend: currentStreak > 3 ? 'up' : 'neutral', icon: 'Activity', color: 'amber-500' },
-    { label: 'Performance', value: isLoading ? '...' : (performanceRating !== '--' ? `${performanceRating} / 5` : '--'), change: isLoading ? 'Loading data...' : (performanceRating !== '--' ? 'Average rating' : 'No data available'), trend: 'neutral', icon: 'Star', color: 'purple-500' },
+    { label: 'Performance', value: isLoading ? '...' : (performanceRating !== '--' ? performanceRating : '--'), change: isLoading ? 'Loading data...' : (performanceRating !== '--' ? 'Average score' : 'No data available'), trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
   ];
 
   return (

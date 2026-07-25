@@ -13,7 +13,6 @@ public interface PerformanceService {
 
     void generateMonthlyPerformance(PerformanceGenerateRequest request, String generatedBy, String authHeader);
     void publishPerformance(PerformanceGenerateRequest request);
-    void lockPerformance(PerformanceGenerateRequest request);
 
     PerformanceRecordDto getMyPerformance(Long employeeId, Integer year, Integer month, boolean requirePublished);
     List<PerformanceRecordDto> getMyPerformanceHistory(Long employeeId, boolean requirePublished);

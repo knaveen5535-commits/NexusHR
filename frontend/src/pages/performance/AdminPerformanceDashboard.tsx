@@ -53,7 +53,15 @@ export default function AdminPerformanceDashboard() {
     }
   };
 
+  const isMonthConcluded = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    return selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth);
+  };
+
   const handlePublish = async () => {
+    if (!window.confirm('Are you sure you want to publish? This will permanently lock this cycle and no further edits will be allowed. This action is irreversible.')) return;
     try {
       await performanceService.publishPerformance({ year: selectedYear, month: selectedMonth });
       toast.success('Performance published successfully');
@@ -63,15 +71,7 @@ export default function AdminPerformanceDashboard() {
     }
   };
 
-  const handleLock = async () => {
-    try {
-      await performanceService.lockPerformance({ year: selectedYear, month: selectedMonth });
-      toast.success('Performance locked successfully');
-      fetchData();
-    } catch (error: any) {
-      toast.error('Failed to lock performance');
-    }
-  };
+
 
   const categorizePerformers = (role: string) => {
     const roleRecords = allRecords.filter(r => r.employee.role === role && r.finalScore != null);
@@ -135,15 +135,12 @@ export default function AdminPerformanceDashboard() {
               </div>
 
               <div className="space-y-3">
-                <button onClick={handleGenerate} disabled={isGenerating} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50">
+                <button onClick={handleGenerate} disabled={isGenerating || !isMonthConcluded()} title={!isMonthConcluded() ? "Cannot generate for the current or future months." : ""} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50">
                   <Play className="w-4 h-4"/> {isGenerating ? 'Generating...' : 'Generate Performance'}
                 </button>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <button onClick={handlePublish} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-semibold transition-colors">
-                    <CheckCircle className="w-4 h-4"/> Publish
-                  </button>
-                  <button onClick={handleLock} className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl font-semibold transition-colors">
-                    <Lock className="w-4 h-4"/> Lock
+                    <CheckCircle className="w-4 h-4"/> Publish Performance (Locks Cycle)
                   </button>
                 </div>
               </div>

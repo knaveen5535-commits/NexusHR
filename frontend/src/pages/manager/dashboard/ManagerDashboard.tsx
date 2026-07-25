@@ -190,6 +190,7 @@ function OverviewTab() {
   const [teamCount, setTeamCount] = useState<number | string>('--');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('--');
   const [attendancePercent, setAttendancePercent] = useState<number | string>('--');
+  const [teamPerformanceScore, setTeamPerformanceScore] = useState<number | string>('--');
 
   const [teamAttendanceData, setTeamAttendanceData] = useState<any[]>([]);
   const [teamPerformanceData, setTeamPerformanceData] = useState<any[]>([]);
@@ -266,10 +267,19 @@ function OverviewTab() {
           .slice(0, 5); // Top 5
         setTeamPerformanceData(topPerformers);
 
+        const validScores = perfArray.filter((p:any) => Number(p.finalScore) > 0);
+        if (validScores.length > 0) {
+          const avg = validScores.reduce((acc: number, curr: any) => acc + Number(curr.finalScore), 0) / validScores.length;
+          setTeamPerformanceScore(Math.round(avg).toString());
+        } else {
+          setTeamPerformanceScore('--');
+        }
+
       }).catch(() => {
         setTeamCount('--');
         setPendingApprovalsCount(0);
         setAttendancePercent('--');
+        setTeamPerformanceScore('--');
       }).finally(() => {
         setLoadingCharts(false);
       });
@@ -280,7 +290,7 @@ function OverviewTab() {
     { label: 'Team Members', value: String(teamCount), trend: 'neutral', icon: 'Users', color: 'blue-500' },
     { label: 'Team Attendance', value: String(attendancePercent), trend: 'neutral', icon: 'Calendar', color: 'emerald-500' },
     { label: 'Pending Approvals', value: String(pendingApprovalsCount), trend: 'neutral', icon: 'FileText', color: 'amber-500' },
-    { label: 'Team Performance', value: '--', trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
+    { label: 'Team Performance', value: String(teamPerformanceScore), trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
   ];
 
   return (

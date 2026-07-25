@@ -51,6 +51,33 @@ public class EmployeeClient {
         }
     }
 
+    public com.nexushr.dto.PayrollEmployeeDTO getPayrollEmployeeById(Long employeeId) {
+        try {
+            String url = employeeServiceUrl + "/" + employeeId;
+            
+            HttpHeaders headers = new HttpHeaders();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null) {
+                    headers.set("Authorization", authHeader);
+                }
+            }
+            
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            return restTemplate.exchange(url, HttpMethod.GET, entity, com.nexushr.dto.PayrollEmployeeDTO.class).getBody();
+        } catch (Exception e) {
+            log.error("Failed to fetch payroll employee details for ID: {}", employeeId, e);
+            com.nexushr.dto.PayrollEmployeeDTO fallback = new com.nexushr.dto.PayrollEmployeeDTO();
+            fallback.setId(employeeId);
+            fallback.setFirstName("Unknown");
+            fallback.setLastName("Employee");
+            fallback.setDesignation("Unknown Position");
+            return fallback;
+        }
+    }
+
     public java.util.List<EmployeeDTO> getTeamMembers() {
         try {
             String url = employeeServiceUrl + "/manager/team";

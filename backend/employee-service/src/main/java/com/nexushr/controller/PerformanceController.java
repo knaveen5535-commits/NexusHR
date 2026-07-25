@@ -44,14 +44,7 @@ public class PerformanceController {
         return ResponseEntity.ok("Performance published successfully");
     }
 
-    @PostMapping("/lock")
-    public ResponseEntity<String> lockPerformance(
-            @Valid @RequestBody PerformanceGenerateRequest request,
-            HttpServletRequest httpRequest) {
-        getAdminOrHrEmployee(httpRequest, true);
-        performanceService.lockPerformance(request);
-        return ResponseEntity.ok("Performance locked successfully");
-    }
+
 
     @GetMapping("/me")
     public ResponseEntity<PerformanceRecordDto> getMyPerformance(

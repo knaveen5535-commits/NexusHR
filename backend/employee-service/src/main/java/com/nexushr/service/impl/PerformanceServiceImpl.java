@@ -82,8 +82,11 @@ public class PerformanceServiceImpl implements PerformanceService {
             throw new RuntimeException("Performance generation is currently disabled in configuration.");
         }
 
-        // Validate window (simplified for now, Admin can generate anytime or we enforce strictly)
-        // Enforcing idempotency as requested
+        LocalDate now = LocalDate.now();
+        YearMonth targetMonth = YearMonth.of(request.getYear(), request.getMonth());
+        if (!now.isAfter(targetMonth.atEndOfMonth())) {
+            throw new IllegalArgumentException("Performance can only be generated after the target month has concluded.");
+        }
         
         List<Employee> allEmployees = employeeRepository.findAll().stream()
                 .filter(e -> (e.getRole() == Role.EMPLOYEE || e.getRole() == Role.MANAGER) && e.getStatus() == EmployeeStatus.ACTIVE)
@@ -93,12 +96,12 @@ public class PerformanceServiceImpl implements PerformanceService {
             Optional<PerformanceRecord> existingRecordOpt = performanceRecordRepository
                     .findByEmployeeIdAndPerformanceYearAndPerformanceMonth(emp.getId(), request.getYear(), request.getMonth());
                     
-            if (existingRecordOpt.isPresent() && existingRecordOpt.get().isLocked()) {
-                log.info("Skipping locked performance record for employee {}", emp.getId());
-                continue; // Cannot regenerate locked record
+            if (existingRecordOpt.isPresent()) {
+                log.info("Performance record already generated for employee {} for {}/{}", emp.getId(), request.getMonth(), request.getYear());
+                continue; // Cannot regenerate record
             }
 
-            PerformanceRecord record = existingRecordOpt.orElse(new PerformanceRecord());
+            PerformanceRecord record = new PerformanceRecord();
             record.setEmployee(emp);
             record.setPerformanceYear(request.getYear());
             record.setPerformanceMonth(request.getMonth());
@@ -215,16 +218,23 @@ public class PerformanceServiceImpl implements PerformanceService {
     @Transactional
     public void publishPerformance(PerformanceGenerateRequest request) {
         List<PerformanceRecord> records = performanceRecordRepository.findByPerformanceYearAndPerformanceMonth(request.getYear(), request.getMonth());
-        records.forEach(r -> r.setPublished(true));
+        records.forEach(r -> {
+            r.setPublished(true);
+            r.setLocked(true);
+        });
         performanceRecordRepository.saveAll(records);
-    }
+        
+        List<SelfReview> selfReviews = selfReviewRepository.findByReviewYearAndReviewMonthAndDeletedFalse(request.getYear(), request.getMonth());
+        selfReviews.forEach(r -> r.setStatus(com.nexushr.enums.FeedbackStatus.LOCKED));
+        selfReviewRepository.saveAll(selfReviews);
 
-    @Override
-    @Transactional
-    public void lockPerformance(PerformanceGenerateRequest request) {
-        List<PerformanceRecord> records = performanceRecordRepository.findByPerformanceYearAndPerformanceMonth(request.getYear(), request.getMonth());
-        records.forEach(r -> r.setLocked(true));
-        performanceRecordRepository.saveAll(records);
+        List<PeerFeedback> peerFeedbacks = peerFeedbackRepository.findByReviewYearAndReviewMonthAndDeletedFalse(request.getYear(), request.getMonth());
+        peerFeedbacks.forEach(r -> r.setStatus(com.nexushr.enums.FeedbackStatus.LOCKED));
+        peerFeedbackRepository.saveAll(peerFeedbacks);
+
+        List<ManagerReview> managerReviews = managerReviewRepository.findByReviewYearAndReviewMonthAndDeletedFalse(request.getYear(), request.getMonth());
+        managerReviews.forEach(r -> r.setStatus(com.nexushr.enums.FeedbackStatus.LOCKED));
+        managerReviewRepository.saveAll(managerReviews);
     }
 
     @Override

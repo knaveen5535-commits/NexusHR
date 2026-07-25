@@ -75,6 +75,8 @@ export default function FeedbackDashboard({
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
+  const currentDay = new Date().getDate();
+  const isSubmissionWindowOpen = currentDay >= 25;
   const hasSelfReviewThisMonth = feedbacks.some(f => 
     f.type === FeedbackType.SELF_REVIEW && 
     f.reviewYear === currentYear && 
@@ -86,20 +88,28 @@ export default function FeedbackDashboard({
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <h3 className="text-sm font-semibold text-foreground">Feedback & Reviews</h3>
+        
+        {!isSubmissionWindowOpen && (
+          <div className="text-xs bg-amber-500/10 text-amber-600 px-3 py-1.5 rounded-lg font-medium border border-amber-500/20">
+            Review submission window opens on the 25th of the month.
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {!hideSelfPeer && (user?.role === 'EMPLOYEE' || user?.role === 'MANAGER') && (
             <>
               {!hasSelfReviewThisMonth && (
                 <button 
                   onClick={() => setIsSelfReviewOpen(true)}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20">
+                  disabled={!isSubmissionWindowOpen}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                   Submit Self Review
                 </button>
               )}
               
               <button 
                 onClick={() => setIsPeerFeedbackOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20">
+                disabled={!isSubmissionWindowOpen}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                 Submit Peer Feedback
               </button>
             </>
@@ -108,7 +118,8 @@ export default function FeedbackDashboard({
           {!hideManagerReview && user?.role === 'MANAGER' && (
             <button 
               onClick={() => setIsManagerReviewOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+              disabled={!isSubmissionWindowOpen}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
               Submit Manager Review
             </button>
           )}
