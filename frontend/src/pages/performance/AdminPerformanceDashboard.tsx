@@ -4,7 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { performanceService } from '../../services/performance.service';
 import type { PerformanceConfiguration, PerformanceReport } from '../../types/performance.types';
 import { toast } from 'sonner';
-import { Settings, Play, Lock, FileText, CheckCircle } from 'lucide-react';
+import { Settings, Play, FileText, CheckCircle } from 'lucide-react';
 
 export default function AdminPerformanceDashboard() {
   const { isDark } = useTheme();

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
   FileText, X, Clock,
-  Brain, AlertTriangle, Target, UserPlus, Download
+  UserPlus, Download
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
