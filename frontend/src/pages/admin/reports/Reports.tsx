@@ -628,7 +628,7 @@ export default function Reports() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const filename = `${activeReport.name.replace(/\s+/g, '_')}_${today}`;
-      await generateEnterprisePdf(activeReport.name, reportData, chartRef.current, filename);
+      await generateEnterprisePdf(activeReport.name, reportData, chartRef.current, filename, user);
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
