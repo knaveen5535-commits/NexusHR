@@ -107,6 +107,10 @@ public class LeaveService {
             throw new RuntimeException("Admin account cannot request leave");
         }
         
+        if (employee.getStatus() == com.nexushr.enums.EmployeeStatus.ONBOARDING) {
+            throw new RuntimeException("Feature locked during onboarding");
+        }
+        
         if (requestDto.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Start date cannot be in the past");
         }

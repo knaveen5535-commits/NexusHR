@@ -238,8 +238,8 @@ public class FeedbackServiceImpl implements FeedbackService {
     private Employee getValidEmployee(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new EmployeeNotFoundException("Employee not found with id " + id));
-        if (employee.getStatus() == EmployeeStatus.INACTIVE || employee.getLeaveDate() != null) {
-            throw new IllegalArgumentException("Feedback cannot be submitted for/by inactive or resigned employees.");
+        if (employee.getStatus() == EmployeeStatus.INACTIVE || employee.getLeaveDate() != null || employee.getStatus() == EmployeeStatus.ONBOARDING) {
+            throw new IllegalArgumentException("Feedback cannot be submitted for/by inactive, resigned, or onboarding employees.");
         }
         return employee;
     }

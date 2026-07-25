@@ -86,14 +86,8 @@ public class AuthService {
 
     public String login(LoginRequest request) {
 
-        /*
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
-            throw new InvalidCredentialsException("Invalid password");
-        }
-        */
+        long start = System.currentTimeMillis();
+        System.out.println("[AUTH-SERVICE] Starting authenticationManager.authenticate at: " + start);
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -101,6 +95,9 @@ public class AuthService {
                         request.getPassword()
                 )
         );
+
+        long afterAuth = System.currentTimeMillis();
+        System.out.println("[AUTH-SERVICE] Finished authenticationManager.authenticate at: " + afterAuth + ", duration: " + (afterAuth - start) + " ms");
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->
@@ -115,11 +112,18 @@ public class AuthService {
             }
         }
 
+        long beforeJwt = System.currentTimeMillis();
+        System.out.println("[AUTH-SERVICE] Starting JWT generation at: " + beforeJwt);
+
         String token = jwtService.generateToken(
                 user.getId(),
                 user.getEmail(),
                 user.getRole().name()
         );
+        
+        long afterJwt = System.currentTimeMillis();
+        System.out.println("[AUTH-SERVICE] Finished JWT generation at: " + afterJwt + ", duration: " + (afterJwt - beforeJwt) + " ms");
+
         return token;
     }
 

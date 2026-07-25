@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../hooks/useTheme';
 import { useAuthStore } from '../../../store/authStore';
-import { exportDashboardPdf } from '../../../utils/exportPdf';
+import { generateEnterprisePdf } from '../../../utils/exportPdf';
 import { getEmployees, getTeamMembers } from '../../../services/employee.service';
 import type { Employee } from '../../../services/employee.service';
 import BarChartCard from '../../../components/charts/BarChartCard';
@@ -18,7 +18,7 @@ import { performanceService } from '../../../services/performance.service';
 
 const REPORT_TYPES = [
   { id: 'emp', name: 'Employee Report', desc: 'Headcount, diversity, and turnover metrics.', icon: Users, color: 'text-blue-500', glow: 'shadow-blue-500/20', bg: 'bg-blue-500/10' },
-  { id: 'pay', name: 'Payroll Report', desc: 'Salary distributions, tax deductions, and bonuses.', icon: DollarSign, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
+  { id: 'pay', name: 'Payroll Report', desc: 'Salary distributions and tax deductions.', icon: DollarSign, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
   { id: 'att', name: 'Attendance Report', desc: 'Absenteeism, overtime, and leave balances.', icon: CalendarCheck, color: 'text-emerald-500', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-500/10' },
   { id: 'perf', name: 'Performance Report', desc: 'Review scores, goal completion, and feedback.', icon: TrendingUp, color: 'text-rose-500', glow: 'shadow-rose-500/20', bg: 'bg-rose-500/10' },
   { id: 'ai', name: 'AI Insights Report', desc: 'Predictive analytics for attrition and engagement.', icon: Brain, color: 'text-purple-500', glow: 'shadow-purple-500/20', bg: 'bg-purple-500/10' },
@@ -60,22 +60,21 @@ const REPORT_DATA: Record<string, {
       { label: 'Total Payroll', value: '$4.2M', icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
       { label: 'Avg Salary', value: '$72K', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
       { label: 'Tax Deductions', value: '$840K', icon: FileText, color: 'text-red-500', bg: 'bg-red-500/10' },
-      { label: 'Bonuses (Q2)', value: '$210K', icon: BadgeCheck, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
     ],
     chart: { type: 'area', title: 'Monthly Payroll Trend', data: [
       { name: 'Jan', value: 3.8 }, { name: 'Feb', value: 3.9 }, { name: 'Mar', value: 4.0 },
       { name: 'Apr', value: 4.1 }, { name: 'May', value: 4.1 }, { name: 'Jun', value: 4.2 },
     ]},
-    tableHeaders: ['Department', 'Total Payroll', 'Avg Salary', 'Bonuses', '# Employees'],
+    tableHeaders: ['Department', 'Total Payroll', 'Avg Salary', '# Employees'],
     tableRows: [
-      ['Engineering', '$1.8M', '$95K', '$85K', '420'],
-      ['Sales', '$980K', '$68K', '$55K', '280'],
-      ['Operations', '$570K', '$52K', '$28K', '190'],
-      ['Marketing', '$360K', '$60K', '$22K', '120'],
-      ['Finance', '$210K', '$75K', '$12K', '60'],
-      ['HR', '$150K', '$55K', '$5K', '45'],
-      ['Legal', '$130K', '$78K', '$3K', '32'],
-      ['Design', '$280K', '$56K', '$0K', '100'],
+      ['Engineering', '$1.8M', '$95K', '420'],
+      ['Sales', '$980K', '$68K', '280'],
+      ['Operations', '$570K', '$52K', '190'],
+      ['Marketing', '$360K', '$60K', '120'],
+      ['Finance', '$210K', '$75K', '60'],
+      ['HR', '$150K', '$55K', '45'],
+      ['Legal', '$130K', '$78K', '32'],
+      ['Design', '$280K', '$56K', '100'],
     ],
   },
   att: {
@@ -160,6 +159,7 @@ export default function Reports() {
   const isManager = user?.role === 'MANAGER';
   
   const reportContentRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [employeesData, setEmployeesData] = useState<Employee[]>([]);
   const [payrollsData, setPayrollsData] = useState<any[]>([]);
@@ -321,10 +321,10 @@ export default function Reports() {
     const avg = total / payrollsData.length;
     const taxes = payrollsData.reduce((sum, p) => sum + (p.totalTaxes || 0), 0);
     
-    const positionMap: Record<string, { totalPayroll: number, bonuses: number, count: number, employees: any[] }> = {};
+    const positionMap: Record<string, { totalPayroll: number, count: number, employees: any[] }> = {};
     payrollsData.forEach(p => {
       const pos = p.position || 'Unknown';
-      if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, bonuses: 0, count: 0, employees: [] };
+      if (!positionMap[pos]) positionMap[pos] = { totalPayroll: 0, count: 0, employees: [] };
       positionMap[pos].totalPayroll += p.netSalary || 0;
       positionMap[pos].count++;
       positionMap[pos].employees.push(p);
@@ -339,7 +339,6 @@ export default function Reports() {
           e.employeeName || 'Unknown',
           '$' + ((e.netSalary || 0) / 1000).toFixed(1) + 'K',
           '$' + ((e.grossSalary || 0) / 1000).toFixed(1) + 'K',
-          '$0.0K',
           e.status || 'Unknown'
         ];
       });
@@ -349,7 +348,6 @@ export default function Reports() {
           pos,
           '$' + (pTotal / 1000).toFixed(1) + 'K',
           '$' + (pAvg / 1000).toFixed(1) + 'K',
-          '$' + (positionMap[pos].bonuses / 1000).toFixed(1) + 'K',
           String(positionMap[pos].count)
         ],
         subRows
@@ -368,10 +366,9 @@ export default function Reports() {
         { label: 'Total Payroll', value: '$' + (total / 1000).toFixed(1) + 'K', icon: DollarSign, color: 'text-amber-500', bg: 'bg-amber-500/10' },
         { label: 'Avg Salary', value: '$' + (avg / 1000).toFixed(1) + 'K', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
         { label: 'Tax Deductions', value: '$' + (taxes / 1000).toFixed(1) + 'K', icon: FileText, color: 'text-red-500', bg: 'bg-red-500/10' },
-        { label: 'Bonuses (MTD)', value: '$0K', icon: BadgeCheck, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
       ],
       chart: { type: 'pie', title: 'Payroll by Role ($K)', data: chartData },
-      tableHeaders: ['Role / Position', 'Total Payroll', 'Avg Salary', 'Bonuses', '# Employees'],
+      tableHeaders: ['Role / Position', 'Total Payroll', 'Avg Salary', '# Employees'],
       tableRows: tableRows
     };
   }
@@ -456,15 +453,18 @@ export default function Reports() {
     const avgScore = totalRecords > 0 ? (performanceData.reduce((sum, p) => sum + (p.finalScore || 0), 0) / totalRecords).toFixed(1) : '0';
     const topCount = performanceData.filter(p => p.grade === 'Outstanding' || p.grade === 'Excellent').length;
     const needsImpCount = performanceData.filter(p => p.grade === 'Needs Improvement').length;
+    const completedCount = performanceData.filter(p => p.managerReviewSubmitted && p.peerReviewSubmitted && p.selfReviewSubmitted).length;
+    const completedPct = totalRecords > 0 ? Math.round((completedCount / totalRecords) * 100) + '%' : '0%';
 
-    const deptMap: Record<string, { totalScore: number, count: number, top: number, needsImp: number, employees: any[] }> = {};
+    const deptMap: Record<string, { totalScore: number, count: number, top: number, needsImp: number, completed: number, employees: any[] }> = {};
     performanceData.forEach(p => {
       const dept = p.employee?.departmentName || 'Unknown';
-      if (!deptMap[dept]) deptMap[dept] = { totalScore: 0, count: 0, top: 0, needsImp: 0, employees: [] };
+      if (!deptMap[dept]) deptMap[dept] = { totalScore: 0, count: 0, top: 0, needsImp: 0, completed: 0, employees: [] };
       deptMap[dept].count++;
       deptMap[dept].totalScore += (p.finalScore || 0);
       if (p.grade === 'Outstanding' || p.grade === 'Excellent') deptMap[dept].top++;
       if (p.grade === 'Needs Improvement') deptMap[dept].needsImp++;
+      if (p.managerReviewSubmitted && p.peerReviewSubmitted && p.selfReviewSubmitted) deptMap[dept].completed++;
       deptMap[dept].employees.push(p);
     });
 
@@ -476,7 +476,7 @@ export default function Reports() {
         return [
           (e.employee?.firstName || '') + ' ' + (e.employee?.lastName || ''),
           String(e.finalScore || 0),
-          '100%',
+          (e.managerReviewSubmitted && e.peerReviewSubmitted && e.selfReviewSubmitted) ? 'Yes' : 'No',
           (e.grade === 'Outstanding' || e.grade === 'Excellent') ? 'Yes' : 'No',
           (e.grade === 'Needs Improvement') ? 'Yes' : 'No'
         ];
@@ -486,7 +486,7 @@ export default function Reports() {
         cells: [
           dept,
           dAvg,
-          '100%',
+          deptMap[dept].count > 0 ? Math.round((deptMap[dept].completed / deptMap[dept].count) * 100) + '%' : '0%',
           String(deptMap[dept].top),
           String(deptMap[dept].needsImp)
         ],
@@ -510,7 +510,7 @@ export default function Reports() {
       ...reportData!,
       kpis: [
         { label: 'Avg Score', value: `${avgScore}/100`, icon: Target, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { label: 'Completed Reviews', value: '100%', icon: BadgeCheck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+        { label: 'Completed Reviews', value: completedPct, icon: BadgeCheck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
         { label: 'Top Performers', value: String(topCount), icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
         { label: 'Needs Improvement', value: String(needsImpCount), icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-500/10' },
       ],
@@ -541,10 +541,12 @@ export default function Reports() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
   };
   const handleExportPDF = async () => {
-    if (!reportContentRef.current || exporting || !activeReport) return;
+    if (!reportContentRef.current || exporting || !activeReport || !reportData) return;
     setExporting(true);
     try {
-      await exportDashboardPdf(reportContentRef.current, `${activeReport.id}-report`);
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `${activeReport.name.replace(/\s+/g, '_')}_${today}`;
+      await generateEnterprisePdf(activeReport.name, reportData, chartRef.current, filename);
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
@@ -674,7 +676,7 @@ export default function Reports() {
                   ) : (
                     <>
                       {/* Filters Section */}
-                  <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-slate-50/50 border-slate-200'}`}>
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl border ${isDark ? 'bg-zinc-900/50 border-white/5' : 'bg-slate-50/50 border-slate-200'}`}>
                     <div className="space-y-2">
                       <label className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Date Range</label>
                       <select className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold outline-none transition-colors ${
@@ -697,23 +699,6 @@ export default function Reports() {
                         <option>HR</option>
                         <option>Finance</option>
                       </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className={`block text-xs font-black uppercase tracking-wider ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>Export Format</label>
-                      <div className="flex gap-3 h-full items-center">
-                        <label className={`flex items-center justify-center gap-2 flex-1 p-2.5 cursor-pointer rounded-xl border transition-all ${
-                          isDark ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-emerald-500 bg-emerald-50'
-                        }`}>
-                          <input type="radio" name="format" defaultChecked className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
-                          <span className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>PDF</span>
-                        </label>
-                        <label className={`flex items-center justify-center gap-2 flex-1 p-2.5 cursor-pointer rounded-xl border transition-all ${
-                          isDark ? 'border-white/10 hover:bg-zinc-800/50' : 'border-slate-200 hover:bg-slate-50'
-                        }`}>
-                          <input type="radio" name="format" className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
-                          <span className={`text-xs font-bold ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>Excel</span>
-                        </label>
-                      </div>
                     </div>
                   </div>
 
@@ -742,7 +727,7 @@ export default function Reports() {
                   </div>
 
                   {/* Chart */}
-                  <div>
+                  <div ref={chartRef}>
                     {reportData.chart.type === 'bar' && (
                       <BarChartCard
                         title={reportData.chart.title}

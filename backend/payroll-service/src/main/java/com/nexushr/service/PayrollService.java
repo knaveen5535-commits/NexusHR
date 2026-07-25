@@ -47,6 +47,9 @@ public class PayrollService {
         if (employee.getId() == null) {
             throw new RuntimeException("Employee details could not be fetched");
         }
+        if ("ONBOARDING".equalsIgnoreCase(employee.getStatus())) {
+            throw new RuntimeException("Cannot generate payroll for onboarding employees");
+        }
 
         // Attendance Calculation
         java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
@@ -170,7 +173,7 @@ public class PayrollService {
             try {
                 // Skip ADMIN role or inactive employees
                 EmployeeDTO emp = employeeClient.getEmployeeById(structure.getEmployeeId());
-                if (emp.getId() == null || "ADMIN".equals(emp.getRole()) || "INACTIVE".equalsIgnoreCase(emp.getStatus())) {
+                if (emp.getId() == null || "ADMIN".equals(emp.getRole()) || "INACTIVE".equalsIgnoreCase(emp.getStatus()) || "ONBOARDING".equalsIgnoreCase(emp.getStatus())) {
                     result.setSkipped(result.getSkipped() + 1);
                     continue;
                 }

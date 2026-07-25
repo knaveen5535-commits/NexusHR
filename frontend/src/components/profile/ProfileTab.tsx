@@ -12,7 +12,9 @@ import { changePassword } from '../../services/auth.service';
 import { submitResignation, getMyResignations } from '../../services/resignation.service';
 import type { Resignation } from '../../services/resignation.service';
 import api from '../../services/api';
+import { calculateProfileCompletion } from '../../utils/profileUtils';
 
+const PendingBadge = () => <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-500 border border-amber-500/20">Pending</span>;
 export default function ProfileTab() {
   const [profile, setProfile] = useState<Employee | null>(null);
   const [latestRequest, setLatestRequest] = useState<ProfileUpdateRequest | null>(null);
@@ -236,22 +238,6 @@ export default function ProfileTab() {
     return `${years} Year${years > 1 ? 's' : ''} ${remainingMonths} Month${remainingMonths > 1 ? 's' : ''}`;
   };
 
-  const calculateCompletion = () => {
-    if (!profile) return 0;
-    const fields = [
-      profile.firstName,
-      profile.email,
-      profile.phone,
-      profile.address,
-      profile.emergencyContactName,
-      profile.emergencyContactNumber,
-      profile.dateOfBirth,
-      profile.gender
-    ];
-    const filledFields = fields.filter(f => f && f.trim() !== '');
-    return Math.round((filledFields.length / fields.length) * 100);
-  };
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
@@ -269,7 +255,7 @@ export default function ProfileTab() {
 
   if (!profile) return <div className="text-center py-10">Failed to load profile.</div>;
 
-  const completion = calculateCompletion();
+  const completion = calculateProfileCompletion(profile);
   const isPending = latestRequest?.status.includes('PENDING');
 
   return (
@@ -345,50 +331,50 @@ export default function ProfileTab() {
                 {(profile.phone || '') !== (latestRequest.requestedPhone || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Phone</td>
-                    <td className="p-3 text-muted-foreground">{profile.phone || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedPhone || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.phone || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedPhone || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.address || '') !== (latestRequest.requestedAddress || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Address</td>
-                    <td className="p-3 text-muted-foreground">{profile.address || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedAddress || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.address || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedAddress || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.dateOfBirth || '') !== (latestRequest.requestedDateOfBirth || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Date of Birth</td>
-                    <td className="p-3 text-muted-foreground">{profile.dateOfBirth || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedDateOfBirth || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.dateOfBirth || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedDateOfBirth || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.gender || '') !== (latestRequest.requestedGender || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Gender</td>
-                    <td className="p-3 text-muted-foreground">{profile.gender || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedGender || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.gender || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedGender || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.bloodGroup || '') !== (latestRequest.requestedBloodGroup || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Blood Group</td>
-                    <td className="p-3 text-muted-foreground">{profile.bloodGroup || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedBloodGroup || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.bloodGroup || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedBloodGroup || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.emergencyContactName || '') !== (latestRequest.requestedEmergencyContactName || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Emergency Contact Name</td>
-                    <td className="p-3 text-muted-foreground">{profile.emergencyContactName || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedEmergencyContactName || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.emergencyContactName || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedEmergencyContactName || <PendingBadge />}</td>
                   </tr>
                 )}
                 {(profile.emergencyContactNumber || '') !== (latestRequest.requestedEmergencyContactNumber || '') && (
                   <tr>
                     <td className="p-3 font-medium text-foreground">Emergency Contact Phone</td>
-                    <td className="p-3 text-muted-foreground">{profile.emergencyContactNumber || 'N/A'}</td>
-                    <td className="p-3 text-blue-400">{latestRequest.requestedEmergencyContactNumber || 'N/A'}</td>
+                    <td className="p-3 text-muted-foreground">{profile.emergencyContactNumber || <PendingBadge />}</td>
+                    <td className="p-3 text-blue-400">{latestRequest.requestedEmergencyContactNumber || <PendingBadge />}</td>
                   </tr>
                 )}
               </tbody>
@@ -407,14 +393,14 @@ export default function ProfileTab() {
                 <span className="text-3xl font-bold text-white">{profile.firstName?.[0] || 'U'}</span>
               )}
             </div>
-            <h2 className="text-xl font-bold text-foreground">{profile.firstName || 'Not Available'} {profile.lastName || ''}</h2>
-            <p className="text-sm text-muted-foreground">{profile.employeeCode || 'Not Available'}</p>
+            <h2 className="text-xl font-bold text-foreground">{profile.firstName || <PendingBadge />} {profile.lastName || ''}</h2>
+            <p className="text-sm text-muted-foreground">{profile.employeeCode || <PendingBadge />}</p>
             
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
-              <span className="px-2 py-1 text-xs rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">{profile.departmentName || 'Not Available'}</span>
-              <span className="px-2 py-1 text-xs rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 capitalize">{profile.role || 'Not Available'}</span>
+              <span className="px-2 py-1 text-xs rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">{profile.departmentName || <PendingBadge />}</span>
+              <span className="px-2 py-1 text-xs rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 capitalize">{profile.role || <PendingBadge />}</span>
               <span className={`px-2 py-1 text-xs rounded-md border ${profile.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                {profile.status || 'Not Available'}
+                {profile.status || <PendingBadge />}
               </span>
             </div>
 
@@ -464,15 +450,15 @@ export default function ProfileTab() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-sm text-foreground">
                 <Mail size={16} className="text-muted-foreground shrink-0" />
-                <span className="truncate">{profile.email || 'Not Available'}</span>
+                <span className="truncate">{profile.email || <PendingBadge />}</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-foreground">
                 <Phone size={16} className="text-muted-foreground shrink-0" />
-                <span>{profile.phone || 'Not Available'}</span>
+                <span>{profile.phone || <PendingBadge />}</span>
               </div>
               <div className="flex items-start gap-3 text-sm text-foreground">
                 <MapPin size={16} className="text-muted-foreground shrink-0 mt-0.5" />
-                <span className="leading-tight">{profile.address || 'Not Available'}</span>
+                <span className="leading-tight">{profile.address || <PendingBadge />}</span>
               </div>
             </div>
           </div>
@@ -484,19 +470,19 @@ export default function ProfileTab() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
               <div>
                 <p className="text-xs text-muted-foreground">Employee Code</p>
-                <p className="text-sm text-foreground font-medium">{profile.employeeCode || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.employeeCode || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Date of Birth</p>
-                <p className="text-sm text-foreground font-medium">{profile.dateOfBirth || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.dateOfBirth || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Gender</p>
-                <p className="text-sm text-foreground font-medium">{profile.gender || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.gender || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Blood Group</p>
-                <p className="text-sm text-foreground font-medium">{profile.bloodGroup || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.bloodGroup || <PendingBadge />}</p>
               </div>
               <div className="sm:col-span-2 pt-2 mt-2 border-t border-border/50">
                 <p className="text-xs text-muted-foreground mb-2">Emergency Contact</p>
@@ -504,12 +490,12 @@ export default function ProfileTab() {
                   <div className="flex items-center gap-3">
                     <User size={16} className="text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">{profile.emergencyContactName || 'Not Available'}</p>
+                      <p className="text-sm font-medium text-foreground">{profile.emergencyContactName || <PendingBadge />}</p>
                       <p className="text-xs text-muted-foreground">Contact Person</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">{profile.emergencyContactNumber || 'Not Available'}</p>
+                    <p className="text-sm font-medium text-foreground">{profile.emergencyContactNumber || <PendingBadge />}</p>
                     <p className="text-xs text-muted-foreground">Phone</p>
                   </div>
                 </div>
@@ -522,11 +508,11 @@ export default function ProfileTab() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6">
               <div>
                 <p className="text-xs text-muted-foreground">Department</p>
-                <p className="text-sm text-foreground font-medium">{profile.departmentName || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.departmentName || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Designation</p>
-                <p className="text-sm text-foreground font-medium">{profile.designation || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.designation || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Employment Type</p>
@@ -534,7 +520,7 @@ export default function ProfileTab() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Joining Date</p>
-                <p className="text-sm text-foreground font-medium">{profile.joiningDate || 'Not Available'}</p>
+                <p className="text-sm text-foreground font-medium">{profile.joiningDate || <PendingBadge />}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Experience</p>
@@ -617,6 +603,12 @@ export default function ProfileTab() {
               <h2 className="text-xl font-bold text-foreground mb-1">Edit Profile</h2>
               <p className="text-xs text-muted-foreground mb-4">Update your personal contact information.</p>
               
+              {profile?.status === 'ONBOARDING' && calculateProfileCompletion(profile, editForm) < 70 && (
+                <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs p-3 rounded-lg flex gap-2 items-start">
+                  <span className="font-bold">Notice:</span> At least 70% profile completion is required to submit for verification. (Current: {calculateProfileCompletion(profile, editForm)}%)
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -676,8 +668,8 @@ export default function ProfileTab() {
 
                 <div className="flex gap-3 pt-4 mt-2">
                   <button onClick={() => setEditModalOpen(false)} disabled={submitting} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">Cancel</button>
-                  <button onClick={handleUpdateProfile} disabled={submitting} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-colors disabled:opacity-50">
-                    {submitting ? 'Saving...' : 'Save Changes'}
+                  <button onClick={handleUpdateProfile} disabled={submitting || (profile?.status === 'ONBOARDING' && calculateProfileCompletion(profile, editForm) < 70)} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-colors disabled:opacity-50">
+                    {submitting ? 'Saving...' : profile?.status === 'ONBOARDING' ? 'Submit for Verification' : 'Save Changes'}
                   </button>
                 </div>
               </div>
@@ -769,3 +761,4 @@ export default function ProfileTab() {
     </div>
   );
 }
+

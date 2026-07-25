@@ -109,6 +109,7 @@ export default function App() {
             <Route path="payroll" element={<HrDashboard />} />
             <Route path="performance" element={<HrPerformanceReports />} />
             <Route path="onboarding" element={<HrDashboard />} />
+            <Route path="profile-requests" element={<HrDashboard />} />
             <Route path="reports/*" element={<Reports />} />
             <Route
               path="employees"

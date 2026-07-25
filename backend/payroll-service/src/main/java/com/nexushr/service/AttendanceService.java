@@ -38,6 +38,10 @@ public class AttendanceService {
             throw new RuntimeException("Admin account cannot mark attendance");
         }
         
+        if ("ONBOARDING".equalsIgnoreCase(currentEmployee.getStatus())) {
+            throw new RuntimeException("Feature locked during onboarding");
+        }
+        
         // Always force the employeeId to be the current user's ID
         request.setEmployeeId(currentEmployee.getId());
 
@@ -74,6 +78,10 @@ public class AttendanceService {
 
         if ("ADMIN".equals(currentEmployee.getRole())) {
             throw new RuntimeException("Admin account cannot mark attendance");
+        }
+
+        if ("ONBOARDING".equalsIgnoreCase(currentEmployee.getStatus())) {
+            throw new RuntimeException("Feature locked during onboarding");
         }
 
         // Always force the employeeId to be the current user's ID

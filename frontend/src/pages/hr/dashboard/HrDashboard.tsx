@@ -18,6 +18,20 @@ import { toast } from 'sonner';
 import api from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
 import ProfileTab from '../../../components/profile/ProfileTab';
+import ProfileApprovalsList from '../../../components/profile/ProfileApprovalsList';
+import EmployeeOnboardingTab from './EmployeeOnboardingTab';
+
+function ProfileApprovalsTab() {
+  return (
+    <div className="space-y-6 relative">
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Profile Approvals</h3>
+        <p className="text-sm text-muted-foreground mb-6">Review and verify submitted profiles from employees.</p>
+        <ProfileApprovalsList />
+      </div>
+    </div>
+  );
+}
 
 // Mock data removed in favor of real data fetching
 
@@ -581,8 +595,6 @@ export default function HrDashboard() {
   const location = useLocation();
   const currentPath = location.pathname.split('/').pop();
   let activeTab = currentPath === 'dashboard' ? 'overview' : currentPath || 'overview';
-  
-  if (activeTab === 'onboarding') activeTab = 'lifecycle';
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -604,6 +616,8 @@ export default function HrDashboard() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview': return <OverviewTab stats={stats} isLoading={isLoading} />;
+      case 'profile-requests': return <ProfileApprovalsTab />;
+      case 'onboarding': return <EmployeeOnboardingTab />;
       case 'lifecycle': return <LifecycleTab />;
       case 'my-attendance': return <AttendanceTab />;
       case 'company-attendance': return <AttendanceList />;

@@ -37,7 +37,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+        long startTime = System.currentTimeMillis();
+        System.out.println("[AUTH-CONTROLLER] Received login request at: " + startTime);
+        try {
+            return authService.login(request);
+        } finally {
+            long endTime = System.currentTimeMillis();
+            System.out.println("[AUTH-CONTROLLER] Completed login request at: " + endTime + ", duration: " + (endTime - startTime) + " ms");
+        }
     }
 
     @PostMapping("/reset-password")

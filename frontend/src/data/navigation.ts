@@ -2,12 +2,19 @@ import type { NavItem } from '../types';
 
 export const adminNav: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: 'LayoutDashboard' },
+  
   { name: 'Employee Management', href: '/admin/employees', icon: 'Users', permissions: ['manage:employees'] },
   { name: 'Department Management', href: '/admin/departments', icon: 'Building', permissions: ['view:analytics'] },
   { name: 'Designation Management', href: '/admin/designations', icon: 'Badge', permissions: ['view:analytics'] },
   { name: 'Role Management', href: '/admin/roles', icon: 'Shield', permissions: ['view:analytics'] },
-  { name: 'Performance Admin', href: '/admin/performance', icon: 'TrendingUp', permissions: ['view:analytics'] },
+  
   { name: 'Payroll Management', href: '/admin/payroll', icon: 'DollarSign', permissions: ['view:analytics'] },
+  { name: 'Performance Admin', href: '/admin/performance', icon: 'TrendingUp', permissions: ['view:analytics'] },
+  
+  { name: 'Profile Approvals', href: '/admin/profile-requests', icon: 'UserCheck', permissions: ['manage:employees'] },
+  { name: 'Document Approvals', href: '/admin/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
+  { name: 'Resignations', href: '/admin/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
+  
   {
     name: 'Reports',
     href: '/admin/reports',
@@ -21,18 +28,17 @@ export const adminNav: NavItem[] = [
       { name: 'AI Insights', href: '/admin/reports/ai', icon: 'Brain', badge: 'AI' },
     ],
   },
+  
   { name: 'System Settings', href: '/admin/settings', icon: 'Settings', permissions: ['configure:system'] },
-  { name: 'Resignations', href: '/admin/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
-  { name: 'Profile Approvals', href: '/admin/profile-requests', icon: 'UserCheck', permissions: ['manage:employees'] },
-  { name: 'Document Approvals', href: '/admin/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
 ];
 
 export const hrNav: NavItem[] = [
   { name: 'Dashboard', href: '/hr/dashboard', icon: 'LayoutDashboard' },
   { name: 'My Profile', href: '/hr/profile', icon: 'User', permissions: ['view:own-profile'] },
+  
+  { name: 'Employee Onboarding', href: '/hr/onboarding', icon: 'UserPlus', permissions: ['manage:onboarding'] },
   { name: 'Employees', href: '/hr/employees', icon: 'Users', permissions: ['manage:employees'] },
-  { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
-  { name: 'Document Approvals', href: '/hr/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
+  
   {
     name: 'Attendance',
     href: '/hr/attendance',
@@ -46,7 +52,11 @@ export const hrNav: NavItem[] = [
   { name: 'Leave Management', href: '/hr/leave', icon: 'FileText', permissions: ['manage:leave'] },
   { name: 'Payroll', href: '/hr/payroll', icon: 'DollarSign', permissions: ['view:payroll'] },
   { name: 'Performance', href: '/hr/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
-  { name: 'Onboarding', href: '/hr/onboarding', icon: 'UserPlus', permissions: ['manage:onboarding'] },
+  
+  { name: 'Profile Approvals', href: '/hr/profile-requests', icon: 'UserCheck', permissions: ['manage:onboarding'] },
+  { name: 'Document Approvals', href: '/hr/document-approvals', icon: 'FileCheck', permissions: ['manage:employees'] },
+  { name: 'Resignations', href: '/hr/resignations', icon: 'UserMinus', permissions: ['manage:employees'] },
+  
   {
     name: 'Reports',
     href: '/hr/reports',
@@ -60,13 +70,16 @@ export const hrNav: NavItem[] = [
       { name: 'AI Insights', href: '/hr/reports/ai', icon: 'Brain', badge: 'AI' },
     ],
   },
+  
   { name: 'AI Assistant', href: '/hr/ai-reports', icon: 'Sparkles', permissions: ['access:ai-insights'], badge: 'AI' },
 ];
 
 export const managerNav: NavItem[] = [
   { name: 'Dashboard', href: '/manager/dashboard', icon: 'LayoutDashboard' },
   { name: 'My Profile', href: '/manager/profile', icon: 'User', permissions: ['view:own-profile'] },
+  
   { name: 'My Team', href: '/manager/team', icon: 'Users', permissions: ['access:team'] },
+  
   {
     name: 'Attendance',
     href: '/manager/attendance',
@@ -87,8 +100,6 @@ export const managerNav: NavItem[] = [
       { name: 'Team Performance', href: '/manager/team-performance', icon: 'Users' },
     ],
   },
-  { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
-  { name: 'Profile Approvals', href: '/manager/profile-requests', icon: 'UserCheck', permissions: ['access:team'] },
   {
     name: 'Payroll',
     icon: 'DollarSign',
@@ -98,7 +109,10 @@ export const managerNav: NavItem[] = [
       { name: 'Team Payslips', href: '/manager/team-payslips', icon: 'Users' },
     ],
   },
-
+  
+  { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
+  { name: 'Profile Approvals', href: '/manager/profile-requests', icon: 'UserCheck', permissions: ['access:team'] },
+  
   { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 
@@ -107,8 +121,8 @@ export const employeeNav: NavItem[] = [
   { name: 'My Profile', href: '/employee/profile', icon: 'User', permissions: ['view:own-profile'] },
   { name: 'Attendance', href: '/employee/attendance', icon: 'Calendar', permissions: ['view:attendance'] },
   { name: 'Apply Leave', href: '/employee/leave', icon: 'FileText', permissions: ['apply:leave'] },
-  { name: 'Payroll', href: '/employee/payroll', icon: 'DollarSign', permissions: ['view:own-payroll'] },
   { name: 'Performance', href: '/employee/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
+  { name: 'Payroll', href: '/employee/payroll', icon: 'DollarSign', permissions: ['view:own-payroll'] },
   { name: 'AI Assistant', href: '/employee/ai-assistant', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 

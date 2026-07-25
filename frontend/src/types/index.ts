@@ -124,7 +124,7 @@ export interface Employee {
   designation: string;
   managerId?: number;
   managerName?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
+  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'ONBOARDING';
   role: UserRole;
   joiningDate: string;
   leaveDate?: string;
