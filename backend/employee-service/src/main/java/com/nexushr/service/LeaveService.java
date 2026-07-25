@@ -474,6 +474,11 @@ public class LeaveService {
                 .map(this::mapToDto).collect(Collectors.toList());
     }
 
+    public List<LeaveRequestDto> getApprovedLeavesForEmployee(Long employeeId, LocalDate startDate, LocalDate endDate) {
+        return leaveRequestRepository.findOverlappingLeaves(employeeId, LeaveStatus.APPROVED, startDate, endDate)
+                .stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
     private void addApprovalHistory(LeaveRequest leaveRequest, Employee user, LeaveAction action, String comments) {
         LeaveApprovalHistory history = new LeaveApprovalHistory();
         history.setLeaveRequest(leaveRequest);

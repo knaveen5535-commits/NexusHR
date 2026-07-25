@@ -21,4 +21,11 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
     List<LeaveRequest> findByManagerIdAndStatusOrderByCreatedAtDesc(@Param("managerId") Long managerId, @Param("status") LeaveStatus status);
 
     List<LeaveRequest> findByStatusOrderByCreatedAtDesc(LeaveStatus status);
+
+    @Query("SELECT lr FROM LeaveRequest lr WHERE lr.employee.id = :employeeId AND lr.status = :status AND ((lr.startDate BETWEEN :startDate AND :endDate) OR (lr.endDate BETWEEN :startDate AND :endDate) OR (lr.startDate <= :startDate AND lr.endDate >= :endDate))")
+    List<LeaveRequest> findOverlappingLeaves(
+            @Param("employeeId") Long employeeId, 
+            @Param("status") LeaveStatus status, 
+            @Param("startDate") java.time.LocalDate startDate, 
+            @Param("endDate") java.time.LocalDate endDate);
 }

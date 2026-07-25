@@ -69,10 +69,31 @@ public class PayrollService {
             .filter(a -> "present".equalsIgnoreCase(a.getStatus()) || "late".equalsIgnoreCase(a.getStatus()))
             .count();
             
-        // If there are absolutely zero attendance records for this month, assume 100% attendance (Salaried default)
+        // Fetch approved leaves
+        List<com.nexushr.dto.LeaveDTO> approvedLeaves = employeeClient.getApprovedLeaves(employeeId, startDate, endDate);
+        
+        long paidLeaveDays = 0;
+        for (java.time.LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
+            if (d.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || d.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+                continue; // Only count working days for paid leave offsets
+            }
+            java.time.LocalDate currentDay = d;
+            
+            // Check if this day is part of an approved leave
+            boolean isOnLeave = approvedLeaves.stream().anyMatch(leave -> 
+                !currentDay.isBefore(leave.getStartDate()) && !currentDay.isAfter(leave.getEndDate())
+            );
+            
+            if (isOnLeave) {
+                paidLeaveDays++;
+            }
+        }
+            
+        // If there are absolutely zero attendance records AND zero leave records, assume 100% attendance (Salaried default)
         long lopDays = 0;
-        if (!attendance.isEmpty()) {
-            lopDays = workingDays > presentDays ? workingDays - presentDays : 0;
+        if (!attendance.isEmpty() || !approvedLeaves.isEmpty()) {
+            long totalAccountedDays = presentDays + paidLeaveDays;
+            lopDays = workingDays > totalAccountedDays ? workingDays - totalAccountedDays : 0;
         }
 
         BigDecimal prorationFactor = BigDecimal.ONE;
