@@ -21,9 +21,15 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
 
+        long start = System.currentTimeMillis();
+        System.out.println("[USER-DETAILS-SERVICE] Starting loadUserByUsername for email: " + email + " at: " + start);
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found"));
+
+        long end = System.currentTimeMillis();
+        System.out.println("[USER-DETAILS-SERVICE] Finished loadUserByUsername at: " + end + ", duration: " + (end - start) + " ms");
 
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),

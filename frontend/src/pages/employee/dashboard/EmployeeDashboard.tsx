@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { toast } from 'sonner';
 import { 
-  Clock, Download
+  Clock, Download, CheckCircle2, Circle, ChevronRight
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
@@ -16,6 +16,9 @@ import type { LeaveRequest, LeaveBalance, LeaveRequestSubmit } from '../../../ty
 import FeedbackDashboard from '../../performance/feedback/FeedbackDashboard';
 import { performanceService } from '../../../services/performance.service';
 import ProfileTab from '../../../components/profile/ProfileTab';
+import { getMyLatestProfileRequest } from '../../../services/employee.service';
+import type { Employee, ProfileUpdateRequest } from '../../../types';
+import { calculateProfileCompletion } from '../../../utils/profileUtils';
 
 function OverviewTab() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
@@ -745,7 +748,49 @@ export default function EmployeeDashboard() {
   const currentPath = location.pathname.split('/').pop();
   const activeTab = currentPath === 'dashboard' ? 'overview' : currentPath || 'overview';
 
+  const [profile, setProfile] = useState<Employee | null>(null);
+  const [latestRequest, setLatestRequest] = useState<ProfileUpdateRequest | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setIsLoadingProfile(true);
+        const [profileRes, reqRes] = await Promise.all([
+          api.get('/employees/me'),
+          getMyLatestProfileRequest()
+        ]);
+        setProfile(profileRes.data);
+        setLatestRequest(reqRes);
+      } catch (err) {
+        console.error("Failed to fetch profile in dashboard", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+    fetchProfileData();
+  }, []);
+
   const renderTabContent = () => {
+    if (isLoadingProfile) {
+      return <div className="p-12 text-center text-muted-foreground animate-pulse">Loading dashboard...</div>;
+    }
+
+    const isRestricted = profile?.status === 'ONBOARDING' && ['attendance', 'leave', 'performance', 'payroll'].includes(activeTab);
+    
+    if (isRestricted) {
+      return (
+        <div className="p-12 text-center border border-dashed border-border rounded-xl bg-card/50">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
+            <Clock size={32} />
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">Feature Locked During Onboarding</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            This feature is currently unavailable. You must complete your profile and have it verified by HR or your manager to unlock full access.
+          </p>
+        </div>
+      );
+    }
     switch (activeTab) {
       case 'overview': return <OverviewTab />;
       case 'profile': return <ProfileTab />;
@@ -765,7 +810,65 @@ export default function EmployeeDashboard() {
         <p className="text-muted-foreground text-sm mt-1">Manage your profile, attendance, and benefits.</p>
       </motion.div>
 
+      {profile?.status === 'ONBOARDING' && !isLoadingProfile && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-blue-600/10 to-indigo-600/10 border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden backdrop-blur-xl">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          
+          <div className="relative z-10">
+            <h2 className="text-lg font-bold text-foreground mb-2">Welcome to NexusHR! Let's get you onboarded.</h2>
+            <p className="text-sm text-muted-foreground mb-6">Complete your profile to unlock all features like Attendance, Leave, and Payroll.</p>
+            
+            <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between mb-8">
+              <div className="flex-1 max-w-md">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Profile Completion</span>
+                  <span className="text-sm font-bold text-blue-500">{calculateProfileCompletion(profile)}%</span>
+                </div>
+                <div className="h-3 bg-secondary rounded-full overflow-hidden border border-border/50">
+                  <div className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${calculateProfileCompletion(profile)}%` }} />
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1 text-sm font-medium">
+                <span className="text-xs text-muted-foreground">Current Phase:</span>
+                <span className="text-foreground px-3 py-1.5 bg-background border border-border rounded-lg inline-block w-fit">
+                  {latestRequest?.status.includes('PENDING') ? 'Awaiting Verification' : 'Profile Completion'}
+                </span>
+              </div>
+            </div>
 
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-sm flex-1 opacity-50">
+                <CheckCircle2 className="text-emerald-500" size={24} />
+                <span className="font-medium line-through">Employee Created</span>
+              </div>
+              <ChevronRight className="hidden sm:block text-muted-foreground/30" />
+              <div className={`flex items-center gap-3 text-sm flex-1 ${latestRequest ? 'opacity-50' : 'opacity-100'}`}>
+                {latestRequest ? <CheckCircle2 className="text-emerald-500" size={24} /> : <Circle className="text-blue-500" size={24} />}
+                <span className={`font-medium ${latestRequest ? 'line-through' : 'text-blue-500'}`}>Profile Completion</span>
+              </div>
+              <ChevronRight className="hidden sm:block text-muted-foreground/30" />
+              <div className={`flex items-center gap-3 text-sm flex-1 ${latestRequest && latestRequest.status === 'PROFILE_VERIFIED' ? 'opacity-50' : latestRequest?.status.includes('PENDING') ? 'opacity-100' : 'opacity-40'}`}>
+                {latestRequest && latestRequest.status === 'PROFILE_VERIFIED' ? <CheckCircle2 className="text-emerald-500" size={24} /> : 
+                 latestRequest?.status.includes('PENDING') ? <Clock className="text-amber-500" size={24} /> : <Circle className="text-muted-foreground" size={24} />}
+                <span className={`font-medium ${latestRequest?.status.includes('PENDING') ? 'text-amber-500' : ''}`}>Profile Verification</span>
+              </div>
+              <ChevronRight className="hidden sm:block text-muted-foreground/30" />
+              <div className="flex items-center gap-3 text-sm flex-1 opacity-40">
+                <Circle className="text-muted-foreground" size={24} />
+                <span className="font-medium">Active Employee</span>
+              </div>
+            </div>
+            
+            {!latestRequest && (
+              <div className="mt-8 pt-4 border-t border-border/50 text-xs text-muted-foreground flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                Remaining Task: Navigate to the Profile tab, fill out all your details until you reach 70%, and submit for verification.
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div

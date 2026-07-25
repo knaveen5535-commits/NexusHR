@@ -107,6 +107,10 @@ public class LeaveService {
             throw new RuntimeException("Admin account cannot request leave");
         }
         
+        if (employee.getStatus() == com.nexushr.enums.EmployeeStatus.ONBOARDING) {
+            throw new RuntimeException("Feature locked during onboarding");
+        }
+        
         if (requestDto.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Start date cannot be in the past");
         }
@@ -468,6 +472,11 @@ public class LeaveService {
                     return b.getCreatedAt().compareTo(a.getCreatedAt());
                 })
                 .map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    public List<LeaveRequestDto> getApprovedLeavesForEmployee(Long employeeId, LocalDate startDate, LocalDate endDate) {
+        return leaveRequestRepository.findOverlappingLeaves(employeeId, LeaveStatus.APPROVED, startDate, endDate)
+                .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     private void addApprovalHistory(LeaveRequest leaveRequest, Employee user, LeaveAction action, String comments) {

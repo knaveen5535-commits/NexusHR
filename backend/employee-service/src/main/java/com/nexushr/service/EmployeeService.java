@@ -50,6 +50,7 @@ public class EmployeeService {
         try {
             jdbcTemplate.execute("ALTER TABLE employee_documents DROP CONSTRAINT IF EXISTS employee_documents_verification_status_check");
             jdbcTemplate.execute("UPDATE employee_documents SET verification_status = 'PENDING_HR_APPROVAL' WHERE verification_status = 'PENDING_HR_ADMIN_APPROVAL'");
+            jdbcTemplate.execute("ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_status_check");
         } catch (Exception e) {
             // Ignore if constraint does not exist
         }
@@ -175,7 +176,7 @@ public class EmployeeService {
         }
 
         employee.setEmployeeCode("TEMP_" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        employee.setStatus(EmployeeStatus.ACTIVE);
+        employee.setStatus(EmployeeStatus.ONBOARDING);
         employee.setDepartment(department);
         employee.setDesignation(designation);
         employee.setManager(manager);
@@ -235,7 +236,8 @@ public class EmployeeService {
             }
             
         } catch (Exception e) {
-            throw new RuntimeException("Employee creation failed");
+            e.printStackTrace();
+            throw new RuntimeException("Employee creation failed: " + e.getMessage(), e);
         }
 
         return mapToResponse(savedEmployee);
@@ -393,6 +395,12 @@ public class EmployeeService {
             if (updateRequest.getRequestedDateOfBirth() != null) employee.setDateOfBirth(updateRequest.getRequestedDateOfBirth());
             if (updateRequest.getRequestedGender() != null) employee.setGender(updateRequest.getRequestedGender());
             if (updateRequest.getRequestedBloodGroup() != null) employee.setBloodGroup(updateRequest.getRequestedBloodGroup());
+            
+            if (employee.getStatus() == EmployeeStatus.ONBOARDING) {
+                if (employee.getDocuments() != null && !employee.getDocuments().isEmpty()) {
+                    employee.setStatus(EmployeeStatus.ACTIVE);
+                }
+            }
             
             employeeRepository.save(employee);
         }
@@ -552,6 +560,14 @@ public class EmployeeService {
         }
         
         employeeDocumentRepository.save(doc);
+
+        if (caller.getStatus() == EmployeeStatus.ONBOARDING) {
+            java.util.Optional<com.nexushr.entity.ProfileUpdateRequest> latestReq = profileUpdateRequestRepository.findTopByEmployeeIdOrderByCreatedAtDesc(caller.getId());
+            if (latestReq.isPresent() && latestReq.get().getStatus() == com.nexushr.enums.ProfileVerificationStatus.PROFILE_VERIFIED) {
+                caller.setStatus(EmployeeStatus.ACTIVE);
+                employeeRepository.save(caller);
+            }
+        }
 
         if (caller.getRole() == null || (caller.getRole() != com.nexushr.enums.Role.MANAGER && caller.getRole() != com.nexushr.enums.Role.HR)) {
             List<Employee> hrs = employeeRepository.findByRole(com.nexushr.enums.Role.HR);

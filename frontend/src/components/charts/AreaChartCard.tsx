@@ -38,6 +38,7 @@ export default function AreaChartCard({ title, data, areas, height = 300, isDark
                 key={area.key}
                 type="monotone"
                 dataKey={area.key}
+                name={area.label}
                 stroke={area.color}
                 fill={`url(#gradient-${area.key})`}
                 strokeWidth={2}

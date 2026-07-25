@@ -125,4 +125,32 @@ public class EmployeeClient {
             throw new RuntimeException("Could not verify identity");
         }
     }
+
+    public java.util.List<com.nexushr.dto.LeaveDTO> getApprovedLeaves(Long employeeId, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        try {
+            String url = employeeServiceUrl + "/leaves/employee/" + employeeId + "/approved?startDate=" + startDate + "&endDate=" + endDate;
+            HttpHeaders headers = new HttpHeaders();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null) {
+                    headers.set("Authorization", authHeader);
+                }
+            }
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            
+            org.springframework.http.ResponseEntity<java.util.List<com.nexushr.dto.LeaveDTO>> response = 
+                restTemplate.exchange(
+                    url, 
+                    HttpMethod.GET, 
+                    entity, 
+                    new org.springframework.core.ParameterizedTypeReference<java.util.List<com.nexushr.dto.LeaveDTO>>() {}
+                );
+            return response.getBody() != null ? response.getBody() : java.util.Collections.emptyList();
+        } catch (Exception e) {
+            log.error("Failed to fetch approved leaves for employee {}", employeeId, e);
+            return java.util.Collections.emptyList();
+        }
+    }
 }

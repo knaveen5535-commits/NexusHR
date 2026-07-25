@@ -234,9 +234,12 @@ function OverviewTab() {
           { name: 'Fri', value: 0, value2: 0 },
         ];
         
-        // Only look at last 7 days
+        // Only look at current week (starting Monday)
         const start = new Date();
-        start.setDate(start.getDate() - 7);
+        const currentDay = start.getDay();
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        start.setDate(start.getDate() + diffToMonday);
+        start.setHours(0, 0, 0, 0);
         const recentAttendance = attendanceData.filter(r => new Date(r.attendanceDate) >= start);
 
         recentAttendance.forEach((record: any) => {

@@ -98,4 +98,12 @@ public class LeaveController {
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(leaveService.getAllRequests(authHeader));
     }
+
+    @GetMapping("/employee/{employeeId}/approved")
+    public ResponseEntity<List<LeaveRequestDto>> getApprovedLeavesForEmployee(
+            @PathVariable Long employeeId,
+            @RequestParam("startDate") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(leaveService.getApprovedLeavesForEmployee(employeeId, startDate, endDate));
+    }
 }

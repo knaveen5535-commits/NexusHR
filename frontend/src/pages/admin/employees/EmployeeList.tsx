@@ -24,7 +24,7 @@ const MOCK_EMPLOYEES: Employee[] = []; // fallback removed
 type SortField = 'firstName' | 'departmentName' | 'designation' | 'joiningDate' | 'status' | 'managerName' | 'role' | 'employmentType';
 type SortDir = 'asc' | 'desc';
 
-const STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] as const;
+const STATUSES = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'ONBOARDING'] as const;
 const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Freelance'] as const;
 
 const ModalWrapper = ({ isOpen, onClose, title, children }: any) => {
@@ -634,6 +634,7 @@ export default function EmployeeList() {
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
                         emp.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20' :
                         emp.status === 'INACTIVE' ? 'bg-zinc-500/10 text-zinc-400 ring-1 ring-inset ring-zinc-500/20' :
+                        emp.status === 'ONBOARDING' ? 'bg-purple-500/10 text-purple-400 ring-1 ring-inset ring-purple-500/20' :
                         'bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20'
                       }`}>
                         {emp.status}
