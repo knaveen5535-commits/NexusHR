@@ -8,6 +8,7 @@ public class PayrollDTO {
     private Long id;
     private Long employeeId;
     private String employeeName; // Aggregated field
+    private String employeeCode; // Aggregated field
     private String position; // Aggregated field
     private Integer payrollMonth;
     private Integer payrollYear;
@@ -17,4 +18,5 @@ public class PayrollDTO {
     private BigDecimal totalTaxes;
     private BigDecimal netSalary;
     private String status;
+    private String remarks;
 }

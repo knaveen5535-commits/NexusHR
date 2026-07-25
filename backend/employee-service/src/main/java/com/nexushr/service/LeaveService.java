@@ -25,19 +25,22 @@ public class LeaveService {
     private final LeaveApprovalHistoryRepository leaveApprovalHistoryRepository;
     private final EmployeeRepository employeeRepository;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
     public LeaveService(LeaveRequestRepository leaveRequestRepository,
                         LeaveBalanceRepository leaveBalanceRepository,
                         LeaveTypeRepository leaveTypeRepository,
                         LeaveApprovalHistoryRepository leaveApprovalHistoryRepository,
                         EmployeeRepository employeeRepository,
-                        JwtService jwtService) {
+                        JwtService jwtService,
+                        NotificationService notificationService) {
         this.leaveRequestRepository = leaveRequestRepository;
         this.leaveBalanceRepository = leaveBalanceRepository;
         this.leaveTypeRepository = leaveTypeRepository;
         this.leaveApprovalHistoryRepository = leaveApprovalHistoryRepository;
         this.employeeRepository = employeeRepository;
         this.jwtService = jwtService;
+        this.notificationService = notificationService;
     }
 
     private Employee getCurrentUser(String authHeader) {
@@ -100,6 +103,10 @@ public class LeaveService {
     public LeaveRequestDto submitLeaveRequest(LeaveRequestSubmitDto requestDto, String authHeader) {
         Employee employee = getCurrentUser(authHeader);
         
+        if (employee.getRole() == Role.ADMIN) {
+            throw new RuntimeException("Admin account cannot request leave");
+        }
+        
         if (requestDto.getStartDate().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Start date cannot be in the past");
         }
@@ -143,6 +150,19 @@ public class LeaveService {
 
         // Add History
         addApprovalHistory(leaveRequest, employee, LeaveAction.SUBMITTED, "Leave request submitted");
+
+        // Notification Logic
+        String notificationMsg = employee.getFirstName() + " " + employee.getLastName() + " has submitted a leave request.";
+        if (employee.getRole() == Role.HR || employee.getRole() == Role.MANAGER) {
+            List<Employee> admins = employeeRepository.findByRole(Role.ADMIN);
+            for (Employee admin : admins) {
+                notificationService.createNotification(admin.getId(), "LEAVE_SUBMITTED", "New Leave Request", notificationMsg);
+            }
+        } else {
+            if (employee.getManager() != null) {
+                notificationService.createNotification(employee.getManager().getId(), "LEAVE_SUBMITTED", "New Leave Request", notificationMsg);
+            }
+        }
 
         return mapToDto(leaveRequest);
     }
@@ -263,12 +283,20 @@ public class LeaveService {
             throw new IllegalArgumentException("Cancelled request cannot be approved");
         }
 
-        boolean isManager = leaveRequest.getEmployee().getManager() != null && 
-                            leaveRequest.getEmployee().getManager().getId().equals(actionUser.getId());
         boolean isHrOrAdmin = actionUser.getRole() == Role.HR || actionUser.getRole() == Role.ADMIN;
+        Role requesterRole = leaveRequest.getEmployee().getRole();
 
-        if (!isManager && !isHrOrAdmin) {
-            throw new RuntimeException("Not authorized to approve this request");
+        if (requesterRole == Role.HR || requesterRole == Role.MANAGER) {
+            if (actionUser.getRole() != Role.ADMIN) {
+                throw new RuntimeException("Only Admin can approve leave requests for HR or Managers");
+            }
+        } else {
+            boolean isManager = leaveRequest.getEmployee().getManager() != null && 
+                                leaveRequest.getEmployee().getManager().getId().equals(actionUser.getId());
+            
+            if (!isManager && !isHrOrAdmin) {
+                throw new RuntimeException("Not authorized to approve this request");
+            }
         }
 
         LeaveAction actionTaken = LeaveAction.APPROVED;
@@ -302,7 +330,9 @@ public class LeaveService {
 
         addApprovalHistory(leaveRequest, actionUser, actionTaken, approvalDto.getComments());
         
-        // TODO: Notification logic
+        // Notification logic
+        String notificationMsg = "Your leave request from " + leaveRequest.getStartDate() + " to " + leaveRequest.getEndDate() + " has been approved.";
+        notificationService.createNotification(leaveRequest.getEmployee().getId(), "LEAVE_APPROVED", "Leave Request Approved", notificationMsg);
 
         return mapToDto(leaveRequest);
     }
@@ -317,12 +347,26 @@ public class LeaveService {
             throw new IllegalArgumentException("Cancelled request cannot be rejected");
         }
 
-        boolean isManager = leaveRequest.getEmployee().getManager() != null && 
-                            leaveRequest.getEmployee().getManager().getId().equals(actionUser.getId());
         boolean isHrOrAdmin = actionUser.getRole() == Role.HR || actionUser.getRole() == Role.ADMIN;
+        Role requesterRole = leaveRequest.getEmployee().getRole();
 
-        if (!isManager && !isHrOrAdmin) {
-            throw new RuntimeException("Not authorized to reject this request");
+        if (requesterRole == Role.HR || requesterRole == Role.MANAGER) {
+            if (actionUser.getRole() != Role.ADMIN) {
+                throw new RuntimeException("Only Admin can reject leave requests for HR or Managers");
+            }
+        } else {
+            boolean isManager = leaveRequest.getEmployee().getManager() != null && 
+                                leaveRequest.getEmployee().getManager().getId().equals(actionUser.getId());
+            
+            if (!isManager && !isHrOrAdmin) {
+                throw new RuntimeException("Not authorized to reject this request");
+            }
+        }
+
+        if (actionUser.getRole() == Role.ADMIN) {
+            if (approvalDto.getComments() == null || approvalDto.getComments().trim().isEmpty()) {
+                throw new IllegalArgumentException("Rejection reason is mandatory when Admin rejects a leave request");
+            }
         }
 
         LeaveAction actionTaken = LeaveAction.REJECTED;
@@ -354,7 +398,9 @@ public class LeaveService {
 
         addApprovalHistory(leaveRequest, actionUser, actionTaken, approvalDto.getComments());
 
-        // TODO: Notification logic
+        // Notification logic
+        String notificationMsg = "Your leave request from " + leaveRequest.getStartDate() + " to " + leaveRequest.getEndDate() + " has been rejected. Reason: " + approvalDto.getComments();
+        notificationService.createNotification(leaveRequest.getEmployee().getId(), "LEAVE_REJECTED", "Leave Request Rejected", notificationMsg);
         
         return mapToDto(leaveRequest);
     }

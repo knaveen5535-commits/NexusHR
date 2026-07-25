@@ -11,5 +11,7 @@ import java.util.List;
 public interface FeedbackRepository<T extends Feedback> extends JpaRepository<T, Long> {
     List<T> findByRevieweeIdAndDeletedFalse(Long revieweeId);
     List<T> findByReviewerIdAndDeletedFalse(Long reviewerId);
+    List<T> findByReviewYearAndReviewMonthAndDeletedFalse(Integer reviewYear, Integer reviewMonth);
     boolean existsByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(Long reviewerId, Long revieweeId, Integer reviewYear, Integer reviewMonth, FeedbackType type);
+    java.util.Optional<T> findByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(Long reviewerId, Long revieweeId, Integer reviewYear, Integer reviewMonth, FeedbackType type);
 }

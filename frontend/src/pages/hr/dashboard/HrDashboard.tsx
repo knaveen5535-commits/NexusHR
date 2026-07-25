@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getDashboardStats, getPendingProfileRequests, getPendingDocuments, type DashboardStats } from '../../../services/employee.service';
 import { 
   Calendar, UserPlus, CheckCircle, DollarSign,
-  FileText, Upload, Shield, Heart, UserMinus
+  FileText, Upload, Shield, Heart, UserMinus, Clock
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
@@ -16,9 +16,172 @@ import { leaveService } from '../../../services/leave.service';
 import type { LeaveRequest } from '../../../types/leave';
 import { toast } from 'sonner';
 import api from '../../../services/api';
+import { useAuthStore } from '../../../store/authStore';
 import ProfileTab from '../../../components/profile/ProfileTab';
 
 // Mock data removed in favor of real data fetching
+
+function AttendanceTab() {
+  const [loading, setLoading] = useState(false);
+  const [fetchingHistory, setFetchingHistory] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const user = useAuthStore(s => s.user);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+
+  const fetchHistory = async () => {
+    try {
+      setFetchingHistory(true);
+      const empId = user?.id || 1;
+      const res = await api.get(`/attendance/employee/${empId}`);
+      
+      const actualRecords = res.data;
+      
+      // Sort history descending by date
+      actualRecords.sort((a: any, b: any) => b.attendanceDate.localeCompare(a.attendanceDate));
+      setAttendanceHistory(actualRecords);
+    } catch (err) {
+      console.error('Failed to fetch attendance history', err);
+    } finally {
+      setFetchingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    const timer = setInterval(() => {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const istTime = new Date(utc + (3600000 * 5.5));
+      setCurrentTime(istTime);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      
+      await api.post('/attendance/check-in', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkInTime: new Date().toISOString(), // This will be ignored by backend
+        source: 'WEB'
+      });
+      toast.success('Successfully checked in!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check in');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      setLoading(true);
+      await api.post('/attendance/check-out', {
+        employeeId: user?.id || 1, // fallback for demo
+        checkOutTime: new Date().toISOString(), // This will be ignored by backend
+        remarks: 'Standard checkout'
+      });
+      toast.success('Successfully checked out!');
+      fetchHistory();
+    } catch (error: any) {
+      toast.error(error.response?.data || 'Failed to check out');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check if current time is within allowed window (05:00 AM - 03:00 PM)
+  const isWithinTimeWindow = currentTime.getHours() >= 5 && currentTime.getHours() < 15;
+
+  // Find today's record in local time
+  const year = currentTime.getFullYear();
+  const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+  const day = String(currentTime.getDate()).padStart(2, '0');
+  const localTodayStr = `${year}-${month}-${day}`;
+  
+  const todayRecord = attendanceHistory.find(r => r.attendanceDate === localTodayStr);
+  const hasCheckedInToday = todayRecord && todayRecord.checkInTime !== '--';
+  const hasCheckedOutToday = todayRecord && todayRecord.checkOutTime !== '--';
+
+  const isCheckInAllowed = isWithinTimeWindow && !hasCheckedInToday;
+  const isCheckOutAllowed = hasCheckedInToday && !hasCheckedOutToday;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl text-center">
+          <div className="w-32 h-32 rounded-full border-4 border-blue-500/20 mx-auto mb-6 flex flex-col items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
+            <Clock size={24} className="text-blue-400 mb-2 z-10" />
+            <span className="text-2xl font-bold text-foreground z-10">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={handleCheckIn} disabled={loading || !isCheckInAllowed} className="flex-1 py-2.5 rounded-lg bg-emerald-500 text-foreground text-sm font-medium hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedInToday ? 'Checked In' : 'Check In'}
+            </button>
+            <button onClick={handleCheckOut} disabled={loading || !isCheckOutAllowed} className="flex-1 py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary transition-colors border border-border disabled:opacity-50 disabled:cursor-not-allowed">
+              {hasCheckedOutToday ? 'Checked Out' : 'Check Out'}
+            </button>
+          </div>
+          {!isWithinTimeWindow && !hasCheckedInToday && <p className="text-xs text-amber-500 mt-2 font-medium">Check-in is only available between 05:00 AM and 03:00 PM</p>}
+        </div>
+
+        <div className="lg:col-span-2 rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+          <h3 className="text-sm font-semibold text-foreground mb-4">My Recent Attendance History</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="pb-3 font-medium">Date</th>
+                  <th className="pb-3 font-medium">Check In</th>
+                  <th className="pb-3 font-medium">Check Out</th>
+                  <th className="pb-3 font-medium">Total Hours</th>
+                  <th className="pb-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground">
+                {fetchingHistory ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin" />
+                        <p className="text-muted-foreground text-sm mt-2">Loading attendance records...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : attendanceHistory.length > 0 ? attendanceHistory.map((row, i) => (
+                  <tr key={i} className="hover:bg-muted transition-colors">
+                    <td className="py-3">{row.attendanceDate}</td>
+                    <td className="py-3">{row.checkInTime}</td>
+                    <td className="py-3">{row.checkOutTime}</td>
+                    <td className="py-3">{row.totalHours}</td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
+                        row.status === 'present' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        row.status === 'late' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        'bg-red-500/10 text-red-400 border-red-500/20'
+                      } capitalize`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      No attendance records found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 
 function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoading: boolean }) {
@@ -442,9 +605,10 @@ export default function HrDashboard() {
     switch (activeTab) {
       case 'overview': return <OverviewTab stats={stats} isLoading={isLoading} />;
       case 'lifecycle': return <LifecycleTab />;
-      case 'attendance': return <div className="-m-8"><AttendanceList /></div>;
+      case 'my-attendance': return <AttendanceTab />;
+      case 'company-attendance': return <AttendanceList />;
       case 'leave': return <LeaveTab />;
-      case 'payroll': return <div className="-m-8"><PayrollList /></div>;
+      case 'payroll': return <PayrollList />;
       case 'notifications': return <NotificationsTab />;
       case 'profile': return <ProfileTab />;
       case 'performance': return <div className="p-6 text-center text-muted-foreground">Performance management module coming soon.</div>;

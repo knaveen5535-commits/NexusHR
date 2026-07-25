@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,15 +38,21 @@ public class FeedbackServiceImpl implements FeedbackService {
         
         Employee reviewer = getValidEmployee(reviewerId);
 
-        if (selfReviewRepository.existsByReviewerIdAndReviewYearAndReviewMonthAndDeletedFalse(reviewerId, request.getReviewYear(), request.getReviewMonth())) {
-            throw new IllegalArgumentException("Self review for this month already exists.");
+        Optional<SelfReview> existingOpt = selfReviewRepository.findByReviewerIdAndReviewYearAndReviewMonthAndDeletedFalse(reviewerId, request.getReviewYear(), request.getReviewMonth());
+        SelfReview review;
+        
+        if (existingOpt.isPresent()) {
+            review = existingOpt.get();
+            if (review.getStatus() == FeedbackStatus.LOCKED) {
+                throw new IllegalArgumentException("Cannot edit a locked review.");
+            }
+        } else {
+            review = new SelfReview();
+            review.setReviewer(reviewer);
+            review.setReviewee(reviewer);
+            review.setReviewYear(request.getReviewYear());
+            review.setReviewMonth(request.getReviewMonth());
         }
-
-        SelfReview review = new SelfReview();
-        review.setReviewer(reviewer);
-        review.setReviewee(reviewer);
-        review.setReviewYear(request.getReviewYear());
-        review.setReviewMonth(request.getReviewMonth());
         review.setOverallRating(request.getOverallRating());
         review.setAchievements(request.getAchievements());
         review.setChallenges(request.getChallenges());
@@ -97,16 +104,22 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
         }
 
-        if (peerFeedbackRepository.existsByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
-                reviewerId, reviewee.getId(), request.getReviewYear(), request.getReviewMonth(), FeedbackType.PEER_FEEDBACK)) {
-            throw new IllegalArgumentException("Peer feedback for this employee for this month already exists.");
+        Optional<PeerFeedback> existingOpt = peerFeedbackRepository.findByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
+                reviewerId, reviewee.getId(), request.getReviewYear(), request.getReviewMonth(), FeedbackType.PEER_FEEDBACK);
+        
+        PeerFeedback pf;
+        if (existingOpt.isPresent()) {
+            pf = existingOpt.get();
+            if (pf.getStatus() == FeedbackStatus.LOCKED) {
+                throw new IllegalArgumentException("Cannot edit a locked review.");
+            }
+        } else {
+            pf = new PeerFeedback();
+            pf.setReviewer(reviewer);
+            pf.setReviewee(reviewee);
+            pf.setReviewYear(request.getReviewYear());
+            pf.setReviewMonth(request.getReviewMonth());
         }
-
-        PeerFeedback pf = new PeerFeedback();
-        pf.setReviewer(reviewer);
-        pf.setReviewee(reviewee);
-        pf.setReviewYear(request.getReviewYear());
-        pf.setReviewMonth(request.getReviewMonth());
         pf.setOverallRating(request.getOverallRating());
         pf.setCommunicationRating(request.getCommunicationRating());
         pf.setTeamworkRating(request.getTeamworkRating());
@@ -141,16 +154,22 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
         }
 
-        if (managerReviewRepository.existsByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
-                reviewerId, reviewee.getId(), request.getReviewYear(), request.getReviewMonth(), FeedbackType.MANAGER_REVIEW)) {
-            throw new IllegalArgumentException("Manager review for this employee for this month already exists.");
+        Optional<ManagerReview> existingOpt = managerReviewRepository.findByReviewerIdAndRevieweeIdAndReviewYearAndReviewMonthAndTypeAndDeletedFalse(
+                reviewerId, reviewee.getId(), request.getReviewYear(), request.getReviewMonth(), FeedbackType.MANAGER_REVIEW);
+        
+        ManagerReview mr;
+        if (existingOpt.isPresent()) {
+            mr = existingOpt.get();
+            if (mr.getStatus() == FeedbackStatus.LOCKED) {
+                throw new IllegalArgumentException("Cannot edit a locked review.");
+            }
+        } else {
+            mr = new ManagerReview();
+            mr.setReviewer(reviewer);
+            mr.setReviewee(reviewee);
+            mr.setReviewYear(request.getReviewYear());
+            mr.setReviewMonth(request.getReviewMonth());
         }
-
-        ManagerReview mr = new ManagerReview();
-        mr.setReviewer(reviewer);
-        mr.setReviewee(reviewee);
-        mr.setReviewYear(request.getReviewYear());
-        mr.setReviewMonth(request.getReviewMonth());
         mr.setOverallRating(request.getOverallRating());
         mr.setTechnicalSkillsRating(request.getTechnicalSkillsRating());
         mr.setCommunicationRating(request.getCommunicationRating());
@@ -209,6 +228,10 @@ public class FeedbackServiceImpl implements FeedbackService {
         LocalDate now = LocalDate.now();
         if (reviewYear != now.getYear() || reviewMonth != now.getMonthValue()) {
             throw new IllegalArgumentException("Feedback can only be submitted for the current calendar month.");
+        }
+        
+        if (now.getDayOfMonth() < 25) {
+            throw new IllegalArgumentException("The review submission window opens on the 25th of the month.");
         }
     }
 

@@ -212,6 +212,28 @@ public class EmployeeService {
             savedEmployee.setEmployeeCode(employeeCode);
             savedEmployee = employeeRepository.save(savedEmployee);
             
+            // Auto-provision salary structure
+            try {
+                java.util.Map<String, Object> autoProvisionPayload = new java.util.HashMap<>();
+                autoProvisionPayload.put("employeeId", savedEmployee.getId());
+                autoProvisionPayload.put("designationId", designation.getId());
+                autoProvisionPayload.put("designationName", designation.getDesignationName());
+                autoProvisionPayload.put("baseSalary", savedEmployee.getSalary());
+
+                HttpHeaders payrollHeaders = new HttpHeaders();
+                payrollHeaders.set("Authorization", authHeader);
+                HttpEntity<java.util.Map<String, Object>> payrollEntity = new HttpEntity<>(autoProvisionPayload, payrollHeaders);
+
+                restTemplate.postForObject(
+                        "http://localhost:8083/api/salary-structures/auto-provision",
+                        payrollEntity,
+                        String.class
+                );
+            } catch (Exception ex) {
+                // Log and ignore to prevent employee creation failure if payroll service is down
+                System.err.println("Failed to auto-provision salary structure: " + ex.getMessage());
+            }
+            
         } catch (Exception e) {
             throw new RuntimeException("Employee creation failed");
         }

@@ -9,6 +9,8 @@ import {
 import { getMyLatestProfileRequest } from '../../services/employee.service';
 import type { Employee, ProfileUpdateRequest } from '../../types';
 import { changePassword } from '../../services/auth.service';
+import { submitResignation, getMyResignations } from '../../services/resignation.service';
+import type { Resignation } from '../../services/resignation.service';
 import api from '../../services/api';
 
 export default function ProfileTab() {
@@ -33,6 +35,10 @@ export default function ProfileTab() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [resignModalOpen, setResignModalOpen] = useState(false);
+  const [resignForm, setResignForm] = useState({ reason: '', expectedLeaveDate: '' });
+  const [myResignation, setMyResignation] = useState<Resignation | null>(null);
 
   const fetchProfile = async () => {
     try {
@@ -60,6 +66,13 @@ export default function ProfileTab() {
 
   useEffect(() => {
     fetchProfile();
+    
+    getMyResignations().then(data => {
+      if (data && data.length > 0) {
+        const pendingOrApproved = data.find(r => r.status === 'PENDING' || r.status === 'APPROVED');
+        setMyResignation(pendingOrApproved || data[0]);
+      }
+    }).catch(console.error);
   }, []);
 
   const handleUpdateProfile = async () => {
@@ -133,6 +146,30 @@ export default function ProfileTab() {
       toast.error(error.response?.data?.message || 'Failed to change password');
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleResignSubmit = async () => {
+    try {
+      if (!resignForm.reason || !resignForm.expectedLeaveDate) {
+        toast.error('Reason and expected leave date are required');
+        return;
+      }
+      const selectedDate = new Date(resignForm.expectedLeaveDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate <= today) {
+        toast.error('Expected leave date must be in the future');
+        return;
+      }
+
+      const res = await submitResignation(resignForm);
+      setMyResignation(res);
+      setResignModalOpen(false);
+      toast.success('Resignation request submitted successfully');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to submit resignation');
     }
   };
 
@@ -395,15 +432,29 @@ export default function ProfileTab() {
             </div>
 
             {!isPending && (
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <button onClick={() => setEditModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm font-bold">
-                  <Edit2 size={16} />
-                  Edit Profile
-                </button>
-                <button onClick={() => setPasswordModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-sm text-sm font-bold">
-                  <Lock size={16} />
-                  Change Password
-                </button>
+              <div className="mt-6">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => setEditModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm font-bold">
+                    <Edit2 size={16} />
+                    Edit Profile
+                  </button>
+                  <button onClick={() => setPasswordModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted transition-colors shadow-sm text-sm font-bold">
+                    <Lock size={16} />
+                    Change Password
+                  </button>
+                </div>
+                
+                <div className="mt-3">
+                  {myResignation && (myResignation.status === 'PENDING' || myResignation.status === 'APPROVED') ? (
+                    <div className={`w-full py-2 text-center rounded-xl text-sm font-bold border ${myResignation.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
+                      Resignation {myResignation.status}
+                    </div>
+                  ) : (
+                    <button onClick={() => setResignModalOpen(true)} className="w-full flex justify-center items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20 text-sm font-bold shadow-sm">
+                      Submit Resignation
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -685,6 +736,31 @@ export default function ProfileTab() {
                 <button onClick={handleUpdatePassword} disabled={changingPassword} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-colors disabled:opacity-50">
                   {changingPassword ? 'Updating...' : 'Update'}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {resignModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setResignModalOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md flex flex-col rounded-3xl shadow-2xl border bg-card border-border p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4">Submit Resignation</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Reason for Resignation</label>
+                  <textarea rows={4} value={resignForm.reason} onChange={(e) => setResignForm({...resignForm, reason: e.target.value})} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Please provide your reason..." />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Expected Last Working Day</label>
+                  <input type="date" value={resignForm.expectedLeaveDate} onChange={(e) => setResignForm({...resignForm, expectedLeaveDate: e.target.value})} min={new Date().toISOString().split('T')[0]} className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 dark:[color-scheme:dark]" />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button onClick={() => setResignModalOpen(false)} className="flex-1 py-2 rounded-xl text-sm font-bold border border-border text-muted-foreground hover:bg-muted">Cancel</button>
+                  <button onClick={handleResignSubmit} className="flex-1 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/20">Submit</button>
+                </div>
               </div>
             </motion.div>
           </div>

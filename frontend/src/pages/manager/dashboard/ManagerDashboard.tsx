@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router';
 import { 
   FileText, X, Clock,
-  Brain, AlertTriangle, Target, UserPlus
+  UserPlus, Download
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
 import BarChartCard from '../../../components/charts/BarChartCard';
@@ -190,6 +190,7 @@ function OverviewTab() {
   const [teamCount, setTeamCount] = useState<number | string>('--');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | string>('--');
   const [attendancePercent, setAttendancePercent] = useState<number | string>('--');
+  const [teamPerformanceScore, setTeamPerformanceScore] = useState<number | string>('--');
 
   const [teamAttendanceData, setTeamAttendanceData] = useState<any[]>([]);
   const [teamPerformanceData, setTeamPerformanceData] = useState<any[]>([]);
@@ -266,10 +267,19 @@ function OverviewTab() {
           .slice(0, 5); // Top 5
         setTeamPerformanceData(topPerformers);
 
+        const validScores = perfArray.filter((p:any) => Number(p.finalScore) > 0);
+        if (validScores.length > 0) {
+          const avg = validScores.reduce((acc: number, curr: any) => acc + Number(curr.finalScore), 0) / validScores.length;
+          setTeamPerformanceScore(Math.round(avg).toString());
+        } else {
+          setTeamPerformanceScore('--');
+        }
+
       }).catch(() => {
         setTeamCount('--');
         setPendingApprovalsCount(0);
         setAttendancePercent('--');
+        setTeamPerformanceScore('--');
       }).finally(() => {
         setLoadingCharts(false);
       });
@@ -280,7 +290,7 @@ function OverviewTab() {
     { label: 'Team Members', value: String(teamCount), trend: 'neutral', icon: 'Users', color: 'blue-500' },
     { label: 'Team Attendance', value: String(attendancePercent), trend: 'neutral', icon: 'Calendar', color: 'emerald-500' },
     { label: 'Pending Approvals', value: String(pendingApprovalsCount), trend: 'neutral', icon: 'FileText', color: 'amber-500' },
-    { label: 'Team Performance', value: '--', trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
+    { label: 'Team Performance', value: String(teamPerformanceScore), trend: 'neutral', icon: 'TrendingUp', color: 'purple-500' },
   ];
 
   return (
@@ -657,33 +667,248 @@ function PerformanceTab() {
 function AIInsightsTab() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="p-6 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-xl">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertTriangle size={24} className="text-red-400" />
-            <h3 className="text-lg font-semibold text-red-400">Attrition Prediction</h3>
-          </div>
-          <p className="text-sm text-foreground mb-4">AI models indicate a <span className="text-red-400 font-bold">High Risk</span> of attrition for <span className="text-foreground font-medium">Carol Davis</span> due to prolonged stagnation in the current role and recent overtime patterns.</p>
-          <button className="w-full py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors">View Retention Strategy</button>
-        </div>
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Manager AI Assistant</h3>
+        <p className="text-sm text-muted-foreground">AI Insights module coming soon. Will provide predictive analytics on team performance and retention risks.</p>
+      </div>
+    </div>
+  );
+}
 
-        <div className="p-6 rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-xl">
-          <div className="flex items-center gap-3 mb-4">
-            <Target size={24} className="text-amber-400" />
-            <h3 className="text-lg font-semibold text-amber-400">Skill Gap Analysis</h3>
-          </div>
-          <p className="text-sm text-foreground mb-4">The team is lacking proficiency in <span className="text-amber-400 font-medium">Next.js 14 App Router</span>. Recommending targeted upskilling for the frontend sub-team.</p>
-          <button className="w-full py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition-colors">Assign Training Module</button>
-        </div>
+function MyPayslipsTab() {
+  const [payrolls, setPayrolls] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(s => s.user);
 
-        <div className="p-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-xl">
-          <div className="flex items-center gap-3 mb-4">
-            <Brain size={24} className="text-emerald-400" />
-            <h3 className="text-lg font-semibold text-emerald-400">Workload Balance</h3>
-          </div>
-          <p className="text-sm text-foreground mb-4">David Lee is currently handling <span className="text-emerald-400 font-medium">35% more tasks</span> than average. Consider redistributing 2 tasks to Bob Kim to balance load.</p>
-          <button className="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">Auto-Redistribute Tasks</button>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        if (user?.id) {
+          const res = await api.get('/payrolls/me');
+          setPayrolls(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch payrolls", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [user]);
+
+  const handleDownloadPayslip = async (id: number, number: string) => {
+    try {
+      const response = await api.get(`/payrolls/${id}/payslip/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${number}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download payslip. Please try again later.");
+    }
+  };
+
+  const renderTable = (payrollsData: any[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="text-muted-foreground border-b border-border bg-muted/30">
+          <tr>
+            <th className="px-6 py-4 font-medium">Month/Year</th>
+            <th className="px-6 py-4 font-medium">Payslip #</th>
+            <th className="px-6 py-4 font-medium text-right">Basic Salary</th>
+            <th className="px-6 py-4 font-medium text-right">Deductions & Tax</th>
+            <th className="px-6 py-4 font-medium text-right">Net Salary</th>
+            <th className="px-6 py-4 font-medium text-center">Status</th>
+            <th className="px-6 py-4 font-medium text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border text-foreground">
+          {payrollsData.length > 0 ? payrollsData.map((row) => (
+            <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+              <td className="px-6 py-4 font-medium whitespace-nowrap">
+                {new Date(row.payrollYear, row.payrollMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </td>
+              <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{row.payslipNumber}</td>
+              <td className="px-6 py-4 text-right">${row.grossSalary?.toLocaleString()}</td>
+              <td className="px-6 py-4 text-right text-red-400">
+                -${((row.totalDeductions || 0) + (row.totalTaxes || 0)).toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-right font-bold text-emerald-400">
+                ${row.netSalary?.toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-center">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${
+                  row.status === 'processed' || row.status === 'paid' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                } capitalize`}>
+                  {row.status}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex justify-center">
+                  {row.status === 'paid' && (
+                    <button 
+                      onClick={() => handleDownloadPayslip(row.id, row.payslipNumber)}
+                      className="text-blue-400 hover:text-blue-300 text-xs font-medium border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all whitespace-nowrap"
+                    >
+                      <Download size={14} /> Download PDF
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          )) : (
+            <tr>
+              <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                No payslips found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading payslips...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">My Payslips</h3>
         </div>
+        {renderTable(payrolls)}
+      </div>
+    </div>
+  );
+}
+
+function TeamPayslipsTab() {
+  const [payrolls, setPayrolls] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/payrolls/team');
+        setPayrolls(res.data);
+      } catch (err) {
+        console.error("Failed to fetch team payrolls", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleDownloadPayslip = async (id: number, number: string) => {
+    try {
+      const response = await api.get(`/payrolls/${id}/payslip/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip_${number}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download payslip. Please try again later.");
+    }
+  };
+
+  const renderTable = (payrollsData: any[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="text-muted-foreground border-b border-border bg-muted/30">
+          <tr>
+            <th className="px-6 py-4 font-medium">Employee</th>
+            <th className="px-6 py-4 font-medium">Month/Year</th>
+            <th className="px-6 py-4 font-medium">Payslip #</th>
+            <th className="px-6 py-4 font-medium text-right">Basic Salary</th>
+            <th className="px-6 py-4 font-medium text-right">Deductions & Tax</th>
+            <th className="px-6 py-4 font-medium text-right">Net Salary</th>
+            <th className="px-6 py-4 font-medium text-center">Status</th>
+            <th className="px-6 py-4 font-medium text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border text-foreground">
+          {payrollsData.length > 0 ? payrollsData.map((row) => (
+            <tr key={row.id} className="hover:bg-muted/50 transition-colors">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="font-bold text-foreground">{row.employeeName || 'Unknown Employee'}</div>
+                <div className="text-xs text-muted-foreground">{row.employeeCode || 'N/A'}</div>
+              </td>
+              <td className="px-6 py-4 font-medium whitespace-nowrap">
+                {new Date(row.payrollYear, row.payrollMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </td>
+              <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{row.payslipNumber}</td>
+              <td className="px-6 py-4 text-right">${row.grossSalary?.toLocaleString()}</td>
+              <td className="px-6 py-4 text-right text-red-400">
+                -${((row.totalDeductions || 0) + (row.totalTaxes || 0)).toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-right font-bold text-emerald-400">
+                ${row.netSalary?.toLocaleString()}
+              </td>
+              <td className="px-6 py-4 text-center">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap ${
+                  row.status === 'processed' || row.status === 'paid' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                } capitalize`}>
+                  {row.status}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex justify-center">
+                  {row.status === 'paid' && (
+                    <button 
+                      onClick={() => handleDownloadPayslip(row.id, row.payslipNumber)}
+                      className="text-blue-400 hover:text-blue-300 text-xs font-medium border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all whitespace-nowrap"
+                    >
+                      <Download size={14} /> Download PDF
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          )) : (
+            <tr>
+              <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                No payslips found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading payslips...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">Team Payslips</h3>
+          <span className="text-xs text-muted-foreground">Viewing payroll records for your direct reports</span>
+        </div>
+        {renderTable(payrolls)}
       </div>
     </div>
   );
@@ -705,6 +930,8 @@ export default function ManagerDashboard() {
       case 'ai': return <AIInsightsTab />;
       case 'my-attendance': return <AttendanceTab />;
       case 'team-attendance': return <div className="-m-8"><AttendanceList /></div>;
+      case 'my-payslips': return <MyPayslipsTab />;
+      case 'team-payslips': return <TeamPayslipsTab />;
       case 'profile': return <ProfileTab />;
       case 'profile-requests': return <ProfileApprovalsList />;
       default: return <OverviewTab />;
