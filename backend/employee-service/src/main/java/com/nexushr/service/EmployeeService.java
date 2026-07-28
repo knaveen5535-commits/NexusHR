@@ -195,11 +195,21 @@ public class EmployeeService {
 
         Employee savedEmployee = null;
         try {
-            String response = restTemplate.postForObject(
-                    "http://localhost:8081/api/auth/create-user",
-                    entity,
-                    String.class
-            );
+            String response = null;
+            try {
+                response = restTemplate.postForObject(
+                        "http://localhost:8081/api/auth/create-user",
+                        entity,
+                        String.class
+                );
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                if (e.getStatusCode() == org.springframework.http.HttpStatus.CONFLICT) {
+                    System.out.println("User already exists in auth-service (desynced state), proceeding to save employee record");
+                    response = "User already exists"; // Mock response to bypass null check
+                } else {
+                    throw e;
+                }
+            }
 
             if (response == null) {
                 throw new RuntimeException("Auth service failed");
