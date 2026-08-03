@@ -28,8 +28,8 @@ export default function PayrollList() {
   
   // Generation state
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
-  const [generateMonth, setGenerateMonth] = useState(new Date().getMonth() + 1);
-  const [generateYear, setGenerateYear] = useState(new Date().getFullYear());
+  const [generatePeriod, setGeneratePeriod] = useState<string>('');
+  const [availableMonths, setAvailableMonths] = useState<{year: number, month: number, label: string, key: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { user } = useAuthStore();
   const canGenerate = user?.role === 'ADMIN' || user?.role === 'HR';
@@ -51,6 +51,41 @@ export default function PayrollList() {
     fetchPayrolls();
   }, []);
 
+  useEffect(() => {
+    const generatedMonths = new Set(payrollData.map(p => `${p.payrollYear}-${p.payrollMonth}`));
+    const available = [];
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    // Look back up to 24 months
+    for (let i = 1; i <= 24; i++) {
+      let m = currentMonth - i;
+      let y = currentYear;
+      if (m <= 0) {
+        m += 12;
+        y -= 1;
+      }
+      
+      const key = `${y}-${m}`;
+      if (!generatedMonths.has(key)) {
+        const dateObj = new Date(y, m - 1, 1);
+        available.push({
+          year: y,
+          month: m,
+          label: dateObj.toLocaleString('default', { month: 'long', year: 'numeric' }),
+          key
+        });
+      }
+    }
+    setAvailableMonths(available);
+    if (available.length > 0) {
+      setGeneratePeriod(available[0].key);
+    } else {
+      setGeneratePeriod('');
+    }
+  }, [payrollData]);
+
   const fetchPayrolls = async () => {
     setIsLoading(true);
     try {
@@ -65,17 +100,18 @@ export default function PayrollList() {
   };
 
   const handleGenerate = async () => {
+    if (!generatePeriod) return;
+    const [year, month] = generatePeriod.split('-');
+
     try {
       setIsGenerating(true);
-      const res = await api.post(`/payrolls/generate/bulk?month=${generateMonth}&year=${generateYear}`);
+      const res = await api.post(`/payrolls/generate/bulk?month=${month}&year=${year}`);
       const data = res.data;
       
       if (data.processed > 0) {
-        toast.success(`Successfully processed ${data.processed} payrolls! Skipped: ${data.skipped}, Failed: ${data.failed}`);
-      } else if (data.skipped > 0) {
-        toast.info(`No new payrolls generated. Skipped: ${data.skipped} (already exist or inactive).`);
+        toast.success(`Payroll generated successfully.\n\nGenerated: ${data.processed}\nSkipped: ${data.skipped} (inactive employees)`, { duration: 5000 });
       } else {
-        toast.error(`Generation failed. Processed: 0, Failed: ${data.failed}`);
+        toast.info(`No new payrolls generated.\n\nGenerated: 0\nSkipped: ${data.skipped} (already generated or inactive employees)`, { duration: 5000 });
       }
 
       setIsGenerateModalOpen(false);
@@ -390,37 +426,31 @@ export default function PayrollList() {
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Month</label>
-                    <select 
-                      value={generateMonth}
-                      onChange={(e) => setGenerateMonth(Number(e.target.value))}
-                      className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {Array.from({length: 12}).map((_, i) => (
-                        <option key={i+1} value={i+1}>{new Date(2000, i, 1).toLocaleString('default', { month: 'long' })}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Year</label>
-                    <select 
-                      value={generateYear}
-                      onChange={(e) => setGenerateYear(Number(e.target.value))}
-                      className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {[2024, 2025, 2026, 2027].map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
+                    <label className="block text-xs font-bold mb-1.5 text-muted-foreground">Select Month</label>
+                    {availableMonths.length > 0 ? (
+                      <select 
+                        value={generatePeriod}
+                        onChange={(e) => setGeneratePeriod(e.target.value)}
+                        className="w-full rounded-xl border px-4 py-2 text-sm bg-background border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {availableMonths.map(am => (
+                          <option key={am.key} value={am.key}>{am.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="w-full rounded-xl border px-4 py-2 text-sm bg-muted text-muted-foreground border-border flex items-center h-[38px]">
+                        No eligible months available for generation.
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="pt-4">
                   <button 
                     onClick={handleGenerate}
-                    disabled={isGenerating}
+                    disabled={isGenerating || availableMonths.length === 0}
                     className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     {isGenerating ? (

@@ -21,4 +21,5 @@ public interface PerformanceService {
     List<PerformanceRecordDto> getAllPerformance(Integer year, Integer month);
     
     PerformanceReportDto getPerformanceReport(Integer year, Integer month);
+    List<String> getGeneratedMonths();
 }

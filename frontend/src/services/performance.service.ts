@@ -22,5 +22,6 @@ export const performanceService = {
   getTeamPerformance: (year: number, month: number) => api.get<PerformanceRecord[]>(`/employees/performance/team?year=${year}&month=${month}`),
   getAllPerformance: (year: number, month: number) => api.get<PerformanceRecord[]>(`/employees/performance/all?year=${year}&month=${month}`),
   getEmployeePerformanceHistory: (employeeId: number) => api.get<PerformanceRecord[]>(`/employees/performance/history/${employeeId}`),
-  getPerformanceReport: (year: number, month: number) => api.get<PerformanceReport>(`/employees/performance/report?year=${year}&month=${month}`)
+  getPerformanceReport: (year: number, month: number) => api.get<PerformanceReport>(`/employees/performance/report?year=${year}&month=${month}`),
+  getGeneratedMonths: () => api.get<string[]>('/employees/performance/generated-months')
 };

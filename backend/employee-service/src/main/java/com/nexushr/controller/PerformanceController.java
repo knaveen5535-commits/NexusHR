@@ -102,6 +102,12 @@ public class PerformanceController {
         return ResponseEntity.ok(performanceService.getConfiguration());
     }
 
+    @GetMapping("/generated-months")
+    public ResponseEntity<List<String>> getGeneratedMonths(HttpServletRequest httpRequest) {
+        getAdminOrHrEmployee(httpRequest, false);
+        return ResponseEntity.ok(performanceService.getGeneratedMonths());
+    }
+
     @PutMapping("/configuration")
     public ResponseEntity<PerformanceConfigurationDto> updateConfiguration(
             @RequestBody PerformanceConfigurationDto request,

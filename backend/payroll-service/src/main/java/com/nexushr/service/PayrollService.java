@@ -39,6 +39,11 @@ public class PayrollService {
                     payrollRepository.delete(p);
                 });
 
+        java.time.YearMonth targetMonth = java.time.YearMonth.of(year, month);
+        if (!targetMonth.isBefore(java.time.YearMonth.now())) {
+            throw new RuntimeException("Payroll can only be generated for past months");
+        }
+
         SalaryStructure structure = salaryStructureRepository.findActiveStructureByEmployeeId(employeeId)
                 .orElseThrow(() -> new RuntimeException("Active salary structure not found for employee"));
         
@@ -184,6 +189,11 @@ public class PayrollService {
     }
 
     public BulkPayrollResultDTO generateBulkPayroll(Integer month, Integer year) {
+        java.time.YearMonth targetMonth = java.time.YearMonth.of(year, month);
+        if (!targetMonth.isBefore(java.time.YearMonth.now())) {
+            throw new RuntimeException("Payroll can only be generated for past months");
+        }
+
         List<SalaryStructure> activeStructures = salaryStructureRepository.findAll().stream()
                 .filter(s -> s.getIsActive() == null || Boolean.TRUE.equals(s.getIsActive()))
                 .collect(Collectors.toList());

@@ -13,25 +13,92 @@ export default function AdminPerformanceDashboard() {
   const [allRecords, setAllRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // 1-12
+  const [generatePeriod, setGeneratePeriod] = useState<string>('');
+  const [viewPeriod, setViewPeriod] = useState<string>('');
+  const [availableGenerateMonths, setAvailableGenerateMonths] = useState<{year: number, month: number, label: string, key: string}[]>([]);
+  const [availablePublishMonths, setAvailablePublishMonths] = useState<{year: number, month: number, label: string, key: string}[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedYear, selectedMonth]);
+  const loadInitialMonths = async (newViewPeriod?: string) => {
+    try {
+      const genRes = await performanceService.getGeneratedMonths();
+      const genMonths = new Set(genRes.data);
+      
+      const availGen = [];
+      const availPub = [];
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
 
-  const fetchData = async () => {
+      for (let i = 1; i <= 24; i++) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        if (m <= 0) {
+          m += 12;
+          y -= 1;
+        }
+        const key = `${y}-${m}`;
+        const dateObj = new Date(y, m - 1, 1);
+        const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (!genMonths.has(key)) {
+          availGen.push({ year: y, month: m, label, key });
+        } else {
+          availPub.push({ year: y, month: m, label, key });
+        }
+      }
+      setAvailableGenerateMonths(availGen);
+      setAvailablePublishMonths(availPub);
+      
+      if (availGen.length > 0) {
+        setGeneratePeriod(prev => availGen.find(m => m.key === prev) ? prev : availGen[0].key);
+      } else {
+        setGeneratePeriod('');
+      }
+      
+      let targetViewPeriod = newViewPeriod || viewPeriod;
+      if (!targetViewPeriod && availPub.length > 0) {
+        targetViewPeriod = availPub[0].key;
+        setViewPeriod(targetViewPeriod);
+      } else if (newViewPeriod) {
+        setViewPeriod(newViewPeriod);
+      }
+      return targetViewPeriod;
+    } catch (e) {
+      console.error("Failed to load initial months", e);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    loadInitialMonths().then(vp => {
+      if (vp) fetchData(vp);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (viewPeriod) fetchData(viewPeriod);
+  }, [viewPeriod]);
+
+  const fetchData = async (vp?: string) => {
     try {
       setLoading(true);
-      const [confRes, repRes, allRes] = await Promise.all([
-        performanceService.getConfiguration(),
-        performanceService.getPerformanceReport(selectedYear, selectedMonth),
-        performanceService.getAllPerformance(selectedYear, selectedMonth)
-      ]);
+      const targetView = vp || viewPeriod;
+      
+      const confRes = await performanceService.getConfiguration();
       setConfig(confRes.data);
-      setReport(repRes.data);
-      setAllRecords(allRes.data);
+
+      if (targetView) {
+        const [vYear, vMonth] = targetView.split('-');
+        const [repRes, allRes] = await Promise.all([
+          performanceService.getPerformanceReport(Number(vYear), Number(vMonth)),
+          performanceService.getAllPerformance(Number(vYear), Number(vMonth))
+        ]);
+        setReport(repRes.data);
+        setAllRecords(allRes.data);
+      } else {
+        setReport(null);
+        setAllRecords([]);
+      }
     } catch (error) {
       console.error('Failed to load performance data', error);
       toast.error('Failed to load performance data');
@@ -41,11 +108,14 @@ export default function AdminPerformanceDashboard() {
   };
 
   const handleGenerate = async () => {
+    if (!generatePeriod) return;
+    const [year, month] = generatePeriod.split('-');
     try {
       setIsGenerating(true);
-      await performanceService.generatePerformance({ year: selectedYear, month: selectedMonth });
+      await performanceService.generatePerformance({ year: Number(year), month: Number(month) });
       toast.success('Performance generated successfully');
-      fetchData();
+      await loadInitialMonths(generatePeriod);
+
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to generate performance');
     } finally {
@@ -53,19 +123,16 @@ export default function AdminPerformanceDashboard() {
     }
   };
 
-  const isMonthConcluded = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    return selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth);
-  };
+
 
   const handlePublish = async () => {
+    if (!viewPeriod) return;
+    const [year, month] = viewPeriod.split('-');
     if (!window.confirm('Are you sure you want to publish? This will permanently lock this cycle and no further edits will be allowed. This action is irreversible.')) return;
     try {
-      await performanceService.publishPerformance({ year: selectedYear, month: selectedMonth });
+      await performanceService.publishPerformance({ year: Number(year), month: Number(month) });
       toast.success('Performance published successfully');
-      fetchData();
+      fetchData(viewPeriod);
     } catch (error: any) {
       toast.error('Failed to publish performance');
     }
@@ -119,27 +186,63 @@ export default function AdminPerformanceDashboard() {
             <div className={`rounded-2xl border p-6 ${isDark ? 'bg-[#111116]/80 border-white/5' : 'bg-white border-slate-200'}`}>
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Settings className="w-5 h-5 text-blue-500"/> Cycle Management</h3>
               
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Year</label>
-                  <input type="number" value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Month</label>
-                  <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm">
-                    {Array.from({length: 12}).map((_, i) => (
-                      <option key={i+1} value={i+1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Select Month to Generate</label>
+                  {availableGenerateMonths.length > 0 ? (
+                    <select 
+                      value={generatePeriod} 
+                      onChange={e => setGeneratePeriod(e.target.value)} 
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                    >
+                      {availableGenerateMonths.map(m => (
+                        <option key={m.key} value={m.key}>{m.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground flex items-center h-[38px]">
+                      No eligible months available for generation.
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-3">
-                <button onClick={handleGenerate} disabled={isGenerating || !isMonthConcluded()} title={!isMonthConcluded() ? "Cannot generate for the current or future months." : ""} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50">
+                <button 
+                  onClick={handleGenerate} 
+                  disabled={isGenerating || availableGenerateMonths.length === 0} 
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                >
                   <Play className="w-4 h-4"/> {isGenerating ? 'Generating...' : 'Generate Performance'}
                 </button>
+              </div>
+              
+              <div className="mt-6 border-t border-border pt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">View/Publish Cycle</label>
+                  {availablePublishMonths.length > 0 ? (
+                    <select 
+                      value={viewPeriod} 
+                      onChange={e => setViewPeriod(e.target.value)} 
+                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                    >
+                      {availablePublishMonths.map(m => (
+                        <option key={m.key} value={m.key}>{m.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground flex items-center h-[38px]">
+                      No generated cycles available.
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-3">
-                  <button onClick={handlePublish} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-semibold transition-colors">
+                  <button 
+                    onClick={handlePublish} 
+                    disabled={!viewPeriod}
+                    className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                  >
                     <CheckCircle className="w-4 h-4"/> Publish Performance (Locks Cycle)
                   </button>
                 </div>
@@ -181,7 +284,7 @@ export default function AdminPerformanceDashboard() {
           <div className="lg:col-span-2 space-y-6">
             {/* Quick Stats */}
             <div className={`rounded-2xl border p-6 ${isDark ? 'bg-[#111116]/80 border-white/5' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-lg font-bold mb-6">Cycle Overview ({new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })})</h3>
+              <h3 className="text-lg font-bold mb-6">Cycle Overview {viewPeriod && `(${new Date(Number(viewPeriod.split('-')[0]), Number(viewPeriod.split('-')[1]) - 1).toLocaleString('default', { month: 'long', year: 'numeric' })})`}</h3>
               
               {loading || !report ? (
                  <div className="text-sm text-muted-foreground text-center py-12">Loading reports...</div>

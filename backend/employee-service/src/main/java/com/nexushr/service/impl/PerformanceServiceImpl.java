@@ -421,4 +421,11 @@ public class PerformanceServiceImpl implements PerformanceService {
                 .attendanceAvailable(entity.isAttendanceAvailable())
                 .build();
     }
+
+    @Override
+    public List<String> getGeneratedMonths() {
+        return performanceRecordRepository.findDistinctYearAndMonth().stream()
+                .map(r -> r[0] + "-" + r[1])
+                .collect(Collectors.toList());
+    }
 }
