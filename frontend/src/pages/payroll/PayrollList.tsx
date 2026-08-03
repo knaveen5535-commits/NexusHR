@@ -11,6 +11,8 @@ interface PayrollRecord {
   id: number;
   employeeName: string;
   position: string;
+  payrollMonth: number;
+  payrollYear: number;
   grossSalary: number;
   totalDeductions: number;
   totalTaxes: number;

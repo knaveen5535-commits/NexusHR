@@ -24,8 +24,8 @@ export default function AdminPerformanceDashboard() {
       const genRes = await performanceService.getGeneratedMonths();
       const genMonths = new Set(genRes.data);
       
-      const availGen = [];
-      const availPub = [];
+      const availGen: {year: number, month: number, label: string, key: string}[] = [];
+      const availPub: {year: number, month: number, label: string, key: string}[] = [];
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
