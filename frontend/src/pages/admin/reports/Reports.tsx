@@ -10,7 +10,7 @@ import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import PieChartCard from '../../../components/charts/PieChartCard';
 import {
-  FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck, Brain,
+  FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck,
   UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle, Activity
 } from 'lucide-react';
 import api from '../../../services/api';
@@ -21,7 +21,6 @@ const REPORT_TYPES = [
   { id: 'pay', name: 'Payroll Report', desc: 'Salary distributions and tax deductions.', icon: DollarSign, color: 'text-amber-500', glow: 'shadow-amber-500/20', bg: 'bg-amber-500/10' },
   { id: 'att', name: 'Attendance Report', desc: 'Absenteeism, overtime, and leave balances.', icon: CalendarCheck, color: 'text-emerald-500', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-500/10' },
   { id: 'perf', name: 'Performance Report', desc: 'Review scores, goal completion, and feedback.', icon: TrendingUp, color: 'text-rose-500', glow: 'shadow-rose-500/20', bg: 'bg-rose-500/10' },
-  { id: 'ai', name: 'AI Insights Report', desc: 'Predictive analytics for attrition and engagement.', icon: Brain, color: 'text-purple-500', glow: 'shadow-purple-500/20', bg: 'bg-purple-500/10' },
 ];
 
 const REPORT_DATA: Record<string, {
@@ -126,29 +125,6 @@ const REPORT_DATA: Record<string, {
       ['Design', '83', '90%', '7', '2'],
     ],
   },
-  ai: {
-    kpis: [
-      { label: 'Attrition Risk', value: '4.2%', icon: AlertTriangle, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-      { label: 'Engagement Score', value: '82/100', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-      { label: 'Predicted Hires', value: '156', icon: UserPlus, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-      { label: 'Skill Gap', value: '23%', icon: Brain, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    ],
-    chart: { type: 'area', title: 'Attrition Risk Trend', data: [
-      { name: 'Jan', value: 5.1 }, { name: 'Feb', value: 4.8 }, { name: 'Mar', value: 4.6 },
-      { name: 'Apr', value: 4.5 }, { name: 'May', value: 4.3 }, { name: 'Jun', value: 4.2 },
-    ]},
-    tableHeaders: ['Department', 'Attrition Risk', 'Engagement', 'Predicted Hires', 'Skill Gap'],
-    tableRows: [
-      ['Engineering', '3.8%', '85', '42', '28%'],
-      ['Sales', '4.5%', '80', '35', '20%'],
-      ['Operations', '5.2%', '78', '28', '25%'],
-      ['Marketing', '3.5%', '84', '18', '18%'],
-      ['Finance', '2.8%', '88', '10', '15%'],
-      ['HR', '4.0%', '82', '8', '22%'],
-      ['Legal', '2.5%', '86', '5', '12%'],
-      ['Design', '6.5%', '75', '7', '30%'],
-    ],
-  },
 };
 
 export default function Reports() {
@@ -206,8 +182,7 @@ export default function Reports() {
     employees: 'emp',
     payroll: 'pay',
     attendance: 'att',
-    performance: 'perf',
-    ai: 'ai'
+    performance: 'perf'
   };
 
   const filteredReportId = pathMap[subPath];
@@ -581,8 +556,7 @@ export default function Reports() {
     emp: 'employees',
     pay: 'payroll',
     att: 'attendance',
-    perf: 'performance',
-    ai: 'ai'
+    perf: 'performance'
   };
   
   // Dynamically generate department options based on fetched data

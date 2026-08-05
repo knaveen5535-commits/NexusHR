@@ -25,7 +25,6 @@ export const adminNav: NavItem[] = [
       { name: 'Payroll Report', href: '/admin/reports/payroll', icon: 'DollarSign' },
       { name: 'Attendance Report', href: '/admin/reports/attendance', icon: 'CalendarCheck' },
       { name: 'Performance Report', href: '/admin/reports/performance', icon: 'TrendingUp' },
-      { name: 'AI Insights', href: '/admin/reports/ai', icon: 'Brain', badge: 'AI' },
     ],
   },
   
@@ -75,11 +74,8 @@ export const hrNav: NavItem[] = [
       { name: 'Payroll Report', href: '/hr/reports/payroll', icon: 'DollarSign' },
       { name: 'Attendance Report', href: '/hr/reports/attendance', icon: 'CalendarCheck' },
       { name: 'Performance Report', href: '/hr/reports/performance', icon: 'TrendingUp' },
-      { name: 'AI Insights', href: '/hr/reports/ai', icon: 'Brain', badge: 'AI' },
     ],
   },
-  
-  { name: 'AI Assistant', href: '/hr/ai-reports', icon: 'Sparkles', permissions: ['access:ai-insights'], badge: 'AI' },
 ];
 
 export const managerNav: NavItem[] = [
@@ -120,8 +116,6 @@ export const managerNav: NavItem[] = [
   
   { name: 'Leave Approvals', href: '/manager/leave-approvals', icon: 'FileCheck', permissions: ['approve:leave'], badge: '3' },
   { name: 'Profile Approvals', href: '/manager/profile-requests', icon: 'UserCheck', permissions: ['access:team'] },
-  
-  { name: 'Team AI', href: '/manager/ai-insights', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 
 export const employeeNav: NavItem[] = [
@@ -131,7 +125,6 @@ export const employeeNav: NavItem[] = [
   { name: 'Apply Leave', href: '/employee/leave', icon: 'FileText', permissions: ['apply:leave'] },
   { name: 'Performance', href: '/employee/performance', icon: 'TrendingUp', permissions: ['view:performance'] },
   { name: 'Payroll', href: '/employee/payroll', icon: 'DollarSign', permissions: ['view:own-payroll'] },
-  { name: 'AI Assistant', href: '/employee/ai-assistant', icon: 'Sparkles', permissions: ['chat:ai'], badge: 'AI' },
 ];
 
 export function getNavForRole(role: string | undefined): NavItem[] {

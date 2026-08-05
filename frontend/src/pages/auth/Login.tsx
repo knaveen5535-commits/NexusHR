@@ -303,7 +303,7 @@ export default function Login() {
 
             {/* Decorative pill badges */}
             {/* <div className="mt-8 flex flex-wrap gap-2">
-              {['Analytics', 'Payroll', 'HR Tools', 'AI Insights'].map((tag) => (
+              {['Analytics', 'Payroll', 'HR Tools'].map((tag) => (
                 <span
                   key={tag}
                   className={`rounded-full px-4 py-1.5 text-xs font-bold tracking-wide backdrop-blur-md border transition-colors ${

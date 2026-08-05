@@ -203,7 +203,15 @@ function OverviewTab() {
         getTeamMembers(),
         leaveService.getTeamRequests(),
         api.get('/attendance/team'),
-        performanceService.getTeamPerformance(new Date().getFullYear(), new Date().getMonth() + 1).catch(() => ({ data: [] }))
+        (async () => {
+          let perfYear = new Date().getFullYear();
+          let perfMonth = new Date().getMonth(); // Previous month (1-indexed)
+          if (perfMonth === 0) {
+            perfMonth = 12;
+            perfYear -= 1;
+          }
+          return performanceService.getTeamPerformance(perfYear, perfMonth).catch(() => ({ data: [] }));
+        })()
       ]).then(([membersData, requests, attendanceRes, perfRes]) => {
         setTeamCount(membersData.length);
         
@@ -328,13 +336,13 @@ function OverviewTab() {
           )}
           {teamPerformanceData.length === 0 && !loadingCharts ? (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Top Performers (Current Month)</span>
+              <span className="text-sm font-medium text-muted-foreground">Top Performers (Last Month)</span>
               <span className="text-xs font-bold px-3 py-1 bg-muted text-muted-foreground rounded-full border border-border">No performance data yet</span>
             </div>
           ) : null}
           <div className={teamPerformanceData.length === 0 && !loadingCharts ? "opacity-30 pointer-events-none" : ""}>
             <BarChartCard
-              title="Top Performers (Current Month)"
+              title="Top Performers (Last Month)"
               data={teamPerformanceData.length > 0 ? teamPerformanceData : [{ name: 'No Data', value: 0 }]}
               bars={[{ key: 'value', color: '#8b5cf6', label: 'Score' }]}
             />
@@ -667,16 +675,6 @@ function PerformanceTab() {
   );
 }
 
-function AIInsightsTab() {
-  return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-xl">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Manager AI Assistant</h3>
-        <p className="text-sm text-muted-foreground">AI Insights module coming soon. Will provide predictive analytics on team performance and retention risks.</p>
-      </div>
-    </div>
-  );
-}
 
 function MyPayslipsTab() {
   const [payrolls, setPayrolls] = useState<any[]>([]);
@@ -930,7 +928,6 @@ export default function ManagerDashboard() {
       case 'team': return <TeamTab />;
       case 'leave': return <LeaveTab />;
       case 'performance': return <PerformanceTab />;
-      case 'ai': return <AIInsightsTab />;
       case 'my-attendance': return <AttendanceTab />;
       case 'team-attendance': return <div className="-m-8"><AttendanceList /></div>;
       case 'my-payslips': return <MyPayslipsTab />;
@@ -945,7 +942,7 @@ export default function ManagerDashboard() {
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-foreground">Manager Workspace</h1>
-        <p className="text-muted-foreground text-sm mt-1">Oversee team performance, approvals, and AI insights.</p>
+        <p className="text-muted-foreground text-sm mt-1">Oversee team performance and approvals.</p>
       </motion.div>
 
 

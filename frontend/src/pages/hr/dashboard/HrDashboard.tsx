@@ -301,8 +301,8 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="relative">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="relative w-full">
           {loadingCharts && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
               <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
@@ -316,19 +316,6 @@ function OverviewTab({ stats, isLoading }: { stats: DashboardStats | null, isLoa
               { key: 'value2', color: '#ef4444', label: 'Absent' },
             ]}
           />
-        </div>
-        <div className="relative h-full">
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl border border-dashed border-border flex-col gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Recruitment Funnel</span>
-            <span className="text-xs font-bold px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full border border-blue-500/20 uppercase tracking-wider">Coming Soon</span>
-          </div>
-          <div className="opacity-30 pointer-events-none">
-            <BarChartCard
-              title="Recruitment Funnel"
-              data={[]}
-              bars={[{ key: 'value', color: '#3b82f6', label: 'Candidates' }]}
-            />
-          </div>
         </div>
       </div>
     </div>

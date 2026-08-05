@@ -4,25 +4,24 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ADMIN: [
     'view:own-profile', 'manage:users', 'manage:hrs', 'manage:managers', 'manage:employees',
     'view:analytics', 'view:attendance', 'view:payroll',
-    'configure:system', 'manage:permissions', 'access:ai-insights', 'view:audit-logs',
+    'configure:system', 'manage:permissions', 'view:audit-logs',
     'manage:leave', 'manage:onboarding', 'assign:managers',
     'view:performance', 'approve:leave', 'manage:goals', 'generate:reports',
-    'chat:ai',
   ],
   HR: [
     'view:own-profile', 'manage:employees', 'manage:leave', 'manage:onboarding',
     'assign:managers', 'view:attendance', 'view:payroll',
-    'view:performance', 'view:analytics', 'access:ai-insights',
-    'generate:reports', 'approve:leave', 'chat:ai',
+    'view:performance', 'view:analytics',
+    'generate:reports', 'approve:leave',
   ],
   MANAGER: [
     'view:own-profile', 'access:team', 'approve:leave', 'view:performance',
     'manage:goals', 'view:attendance', 'generate:reports',
-    'view:analytics', 'chat:ai',
+    'view:analytics',
   ],
   EMPLOYEE: [
     'view:own-profile', 'apply:leave', 'view:own-payroll',
-    'view:attendance', 'view:performance', 'chat:ai',
+    'view:attendance', 'view:performance',
   ],
   NONE: [],
 };

@@ -17,7 +17,6 @@ import ResignationManagement from './pages/admin/employees/ResignationManagement
 import AdminProfileRequests from './pages/admin/employees/AdminProfileRequests';
 import AdminDocumentApprovals from './pages/admin/employees/AdminDocumentApprovals';
 import HrDocumentApprovals from './pages/hr/employees/HrDocumentApprovals';
-import AiAssistant from './components/ai/AiAssistant';
 import DashboardLayout from './layouts/DashboardLayout';
 import RootRedirect from './layouts/RootRedirect';
 import ProtectedRoute from './components/guards/ProtectedRoute';
@@ -87,7 +86,6 @@ export default function App() {
             <Route path="reports/*" element={<Reports />} />
             <Route path="settings" element={<SystemSettings />} />
             <Route path="performance" element={<AdminPerformanceDashboard />} />
-            <Route path="ai-insights" element={<AiAssistant />} />
           </Route>
 
           {/* HR Routes */}
@@ -123,7 +121,6 @@ export default function App() {
             />
             <Route path="resignations" element={<ResignationManagement />} />
             <Route path="document-approvals" element={<HrDocumentApprovals />} />
-            <Route path="ai-reports" element={<AiAssistant />} />
           </Route>
 
           {/* Manager Routes */}
@@ -158,7 +155,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="ai-insights" element={<AiAssistant />} />
           </Route>
 
           {/* Employee Routes */}
@@ -177,7 +173,6 @@ export default function App() {
             <Route path="leave" element={<EmployeeDashboard />} />
             <Route path="payroll" element={<EmployeeDashboard />} />
             <Route path="performance" element={<EmployeeMyPerformance />} />
-            <Route path="ai-assistant" element={<AiAssistant />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

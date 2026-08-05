@@ -31,7 +31,6 @@ export type Permission =
   | 'view:payroll'
   | 'configure:system'
   | 'manage:permissions'
-  | 'access:ai-insights'
   | 'view:audit-logs'
   | 'manage:leave'
   | 'manage:onboarding'
@@ -43,8 +42,7 @@ export type Permission =
   | 'generate:reports'
   | 'view:own-profile'
   | 'apply:leave'
-  | 'view:own-payroll'
-  | 'chat:ai';
+  | 'view:own-payroll';
 
 export interface NavItem {
   name: string;
