@@ -464,8 +464,6 @@ function LeaveTab() {
             <div className="space-y-4">
               {balances.map((balance) => {
                 const total = balance.totalDays;
-                const used = balance.usedDays;
-                const pending = balance.pendingDays;
                 const percent = total > 0 ? ((total - balance.remainingDays) / total) * 100 : 0;
                 
                 return (
@@ -482,8 +480,8 @@ function LeaveTab() {
                         />
                       )}
                     </div>
-                    {pending > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1 text-right">{pending} pending approval</p>
+                    {balance.pendingDays > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1 text-right">{balance.pendingDays} pending approval</p>
                     )}
                   </div>
                 );
