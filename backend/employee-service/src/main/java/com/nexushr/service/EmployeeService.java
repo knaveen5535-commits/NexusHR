@@ -45,6 +45,12 @@ public class EmployeeService {
     private final JwtService jwtService;
     private final com.nexushr.repository.ProfileUpdateRequestRepository profileUpdateRequestRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${auth.service.url:http://localhost:8081}")
+    private String authServiceUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${payroll.service.url:http://localhost:8083}")
+    private String payrollServiceUrl;
+
     @jakarta.annotation.PostConstruct
     public void init() {
         try {
@@ -198,7 +204,7 @@ public class EmployeeService {
             String response = null;
             try {
                 response = restTemplate.postForObject(
-                        "http://localhost:8081/api/auth/create-user",
+                        authServiceUrl + "/api/auth/create-user",
                         entity,
                         String.class
                 );
@@ -236,7 +242,7 @@ public class EmployeeService {
                 HttpEntity<java.util.Map<String, Object>> payrollEntity = new HttpEntity<>(autoProvisionPayload, payrollHeaders);
 
                 restTemplate.postForObject(
-                        "http://localhost:8083/api/salary-structures/auto-provision",
+                        payrollServiceUrl + "/api/salary-structures/auto-provision",
                         payrollEntity,
                         String.class
                 );
@@ -737,7 +743,7 @@ public class EmployeeService {
                 updateRolePayload.put("role", updatedEmployee.getRole().name());
 
                 restTemplate.postForObject(
-                        "http://localhost:8081/api/auth/update-role",
+                        authServiceUrl + "/api/auth/update-role",
                         updateRolePayload,
                         String.class
                 );

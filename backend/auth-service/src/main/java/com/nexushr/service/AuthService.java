@@ -44,6 +44,9 @@ public class AuthService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @org.springframework.beans.factory.annotation.Value("${frontend.url:http://localhost:2500}")
+    private String frontendUrl;
+
 
     public AuthService(UserRepository userRepository,
                        BCryptPasswordEncoder passwordEncoder,
@@ -157,7 +160,7 @@ public class AuthService {
             helper.setTo(user.getEmail());
             helper.setSubject("NexusHR - Password Reset Request");
 
-            String resetLink = "http://localhost:2500/reset-password?token=" + token;
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
 
             String htmlContent = "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>" +
                     "<h2 style='color: #2563eb;'>NexusHR Password Reset</h2>" +

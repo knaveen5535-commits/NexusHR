@@ -1,5 +1,6 @@
 server:
-  port: 9000
+  port: ${PORT:9000}
+  address: 0.0.0.0
 
 spring:
   application:
@@ -21,30 +22,30 @@ spring:
               - "*"
       routes:
         - id: auth-service
-          uri: http://localhost:8081
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/api/auth/**
         - id: employee-service
-          uri: http://localhost:8082
+          uri: ${EMPLOYEE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/employees/**, /api/employees, /api/notifications/**, /api/notifications
         - id: department-service
-          uri: http://localhost:8082
+          uri: ${EMPLOYEE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/departments/**, /api/departments
         - id: designation-service
-          uri: http://localhost:8082
+          uri: ${EMPLOYEE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/designations/**, /api/designations
         - id: payroll-service
-          uri: http://localhost:8083
+          uri: ${PAYROLL_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/payroll/**, /api/payroll, /api/payrolls/**, /api/payrolls, /api/attendance/**, /api/attendance, /api/salary-structures/**, /api/salary-structures
         - id: resignation-service
-          uri: http://localhost:8082
+          uri: ${EMPLOYEE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/resignations/**, /api/resignations
         - id: feedback-service
-          uri: http://localhost:8082
+          uri: ${EMPLOYEE_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/feedback/**, /api/feedback
