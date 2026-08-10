@@ -466,7 +466,7 @@ function LeaveTab() {
                 const total = balance.totalDays;
                 const used = balance.usedDays;
                 const pending = balance.pendingDays;
-                const percent = total > 0 ? ((used + pending) / total) * 100 : 0;
+                const percent = total > 0 ? ((total - balance.remainingDays) / total) * 100 : 0;
                 
                 return (
                   <div key={balance.id}>
@@ -475,10 +475,12 @@ function LeaveTab() {
                       <span className="text-foreground font-medium">{balance.remainingDays} / {total} remaining</span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${percent > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                        style={{ width: `${Math.min(percent, 100)}%` }} 
-                      />
+                      {percent > 0 && (
+                        <div 
+                          className={`h-full rounded-full ${percent > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                          style={{ width: `${Math.min(percent, 100)}%` }} 
+                        />
+                      )}
                     </div>
                     {pending > 0 && (
                       <p className="text-xs text-muted-foreground mt-1 text-right">{pending} pending approval</p>

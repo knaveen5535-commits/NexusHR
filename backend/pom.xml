@@ -25,7 +25,6 @@
         <module>auth-service</module>
         <module>employee-service</module>
         <module>payroll-service</module>
-        <module>common</module>
     </modules>
 
     <properties>
