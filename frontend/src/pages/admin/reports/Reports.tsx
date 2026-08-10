@@ -11,7 +11,7 @@ import AreaChartCard from '../../../components/charts/AreaChartCard';
 import PieChartCard from '../../../components/charts/PieChartCard';
 import {
   FileText, Download, TrendingUp, Users, DollarSign, CalendarCheck,
-  UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle, Activity
+  UserPlus, UserMinus, BadgeCheck, Clock, BookOpen, Target, AlertTriangle
 } from 'lucide-react';
 import api from '../../../services/api';
 import { performanceService } from '../../../services/performance.service';

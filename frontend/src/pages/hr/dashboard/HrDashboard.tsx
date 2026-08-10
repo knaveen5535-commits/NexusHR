@@ -7,7 +7,6 @@ import {
   FileText, Upload, Shield, Heart, UserMinus, Clock, Download
 } from 'lucide-react';
 import KpiCard from '../../../components/common/KpiCard';
-import BarChartCard from '../../../components/charts/BarChartCard';
 import AreaChartCard from '../../../components/charts/AreaChartCard';
 import type { KpiCard as KpiCardType } from '../../../types';
 import AttendanceList from '../../attendance/AttendanceList';
